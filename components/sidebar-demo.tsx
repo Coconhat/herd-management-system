@@ -17,12 +17,32 @@ import {
 // Sidebar Navigation Items
 const navigation = [
   { name: "Dashboard", icon: Home, current: true, href: "/" },
-  { name: "Animals", icon: PawPrint, current: false, href: "/animals" },
-  { name: "Reports", icon: BarChart3, current: false, href: "/reports" },
-  { name: "Health", icon: Heart, current: false, href: "/health" },
-  { name: "Breeding", icon: TrendingUp, current: false, href: "/breeding" },
-  { name: "Documents", icon: FileText, current: false, href: "/documents" },
-  { name: "Settings", icon: Settings, current: false, href: "/settings" },
+  {
+    name: "Record new calving",
+    icon: PawPrint,
+    current: false,
+    href: "/",
+  },
+  {
+    name: "Record new animal",
+    icon: BarChart3,
+    current: false,
+    href: "/",
+  },
+  { name: "Record milking", icon: Heart, current: false, href: "/" },
+  { name: "Pregnancy", icon: TrendingUp, current: false, href: "/" },
+  {
+    name: "Animal Inventory",
+    icon: FileText,
+    current: false,
+    href: "/",
+  },
+  {
+    name: "Medicine Inventory",
+    icon: Settings,
+    current: false,
+    href: "/",
+  },
 ];
 
 // Desktop Sidebar Component
