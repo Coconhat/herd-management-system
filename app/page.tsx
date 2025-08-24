@@ -1,66 +1,94 @@
-import { Suspense } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Users, Heart, TrendingUp } from "lucide-react"
-import { getAnimals, getAnimalStats } from "@/lib/actions/animals"
-import { DashboardContent } from "@/components/dashboard-content"
-import { UserNav } from "@/components/user-nav"
+import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Users, Heart, TrendingUp } from "lucide-react";
+import { getAnimals, getAnimalStats } from "@/lib/actions/animals";
+import { DashboardContent } from "@/components/dashboard-content";
+import { UserNav } from "@/components/user-nav";
+import { AppSidebar } from "@/components/side-bar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 async function StatsCards() {
-  const stats = await getAnimalStats()
+  const stats = await getAnimalStats();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Total Animals</CardTitle>
-          <Users className="h-4 w-4 text-primary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-primary">{stats.totalAnimals}</div>
-          <p className="text-xs text-muted-foreground">{stats.femaleAnimals} females active</p>
-        </CardContent>
-      </Card>
+    <>
+      <SidebarProvider>
+        <AppSidebar />
+      </SidebarProvider>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Recent Calvings</CardTitle>
-          <Heart className="h-4 w-4 text-secondary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-secondary">{stats.recentCalvings}</div>
-          <p className="text-xs text-muted-foreground">Last 30 days</p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Animals
+            </CardTitle>
+            <Users className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {stats.totalAnimals}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {stats.femaleAnimals} females active
+            </p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Pregnant Cows</CardTitle>
-          <TrendingUp className="h-4 w-4 text-accent" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-accent">{stats.pregnantCows}</div>
-          <p className="text-xs text-muted-foreground">Expected calvings coming</p>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Recent Calvings
+            </CardTitle>
+            <Heart className="h-4 w-4 text-secondary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-secondary">
+              {stats.recentCalvings}
+            </div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Herd Health</CardTitle>
-          <Heart className="h-4 w-4 text-chart-4" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-chart-4">98%</div>
-          <p className="text-xs text-muted-foreground">Animals in good health</p>
-        </CardContent>
-      </Card>
-    </div>
-  )
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pregnant Cows
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-accent" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-accent">
+              {stats.pregnantCows}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Expected calvings coming
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Herd Health
+            </CardTitle>
+            <Heart className="h-4 w-4 text-chart-4" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-chart-4">98%</div>
+            <p className="text-xs text-muted-foreground">
+              Animals in good health
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
 }
 
 async function AnimalsData() {
-  const animals = await getAnimals()
-  return <DashboardContent animals={animals} />
+  const animals = await getAnimals();
+  return <DashboardContent animals={animals} />;
 }
 
 export default function Dashboard() {
@@ -71,8 +99,12 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Herd Management System</h1>
-              <p className="text-muted-foreground">Manage your cattle with confidence</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                Herd Management System
+              </h1>
+              <p className="text-muted-foreground">
+                Manage your cattle with confidence
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
@@ -132,7 +164,10 @@ export default function Dashboard() {
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className="flex space-x-4">
                         {[...Array(8)].map((_, j) => (
-                          <div key={j} className="h-4 w-20 bg-muted animate-pulse rounded" />
+                          <div
+                            key={j}
+                            className="h-4 w-20 bg-muted animate-pulse rounded"
+                          />
                         ))}
                       </div>
                     ))}
@@ -146,5 +181,5 @@ export default function Dashboard() {
         </Suspense>
       </div>
     </div>
-  )
+  );
 }
