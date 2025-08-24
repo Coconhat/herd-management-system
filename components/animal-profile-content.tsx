@@ -94,12 +94,7 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
               </label>
               <p className="text-lg font-semibold">{animal.name || "—"}</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">
-                Breed
-              </label>
-              <p className="text-lg font-semibold">{animal.breed || "—"}</p>
-            </div>
+
             <div>
               <label className="text-sm font-medium text-muted-foreground">
                 Sex
