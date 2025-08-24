@@ -33,7 +33,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { createCalving } from "@/lib/actions/calvings";
 import { useToast } from "@/hooks/use-toast";
-import type { Animal } from "@/lib/actions/animals";
+import { createAnimal, type Animal } from "@/lib/actions/animals";
 
 interface CalvingRecordModalProps {
   open: boolean;
@@ -77,7 +77,7 @@ export function CalvingRecordModal({
 
         toast({
           title: "Calving Recorded Successfully",
-          description: `Calving event recorded for ${animalName} on ${calvingDate.toLocaleDateString()}`,
+          description: `New calf added to inventory for ${animalName}.`,
         });
 
         // Reset form
@@ -87,7 +87,11 @@ export function CalvingRecordModal({
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to record calving. Please try again.",
+          // Display the specific error message from the server if it exists
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to record calving. Please try again.",
           variant: "destructive",
         });
       }
@@ -105,8 +109,8 @@ export function CalvingRecordModal({
         <DialogHeader>
           <DialogTitle>Record New Calving</DialogTitle>
           <DialogDescription>
-            Record a new calving event for one of your animals. All fields
-            marked with * are required.
+            Record a new calving event for one of your animals. Fields marked
+            with * are required.
           </DialogDescription>
         </DialogHeader>
 
@@ -114,10 +118,10 @@ export function CalvingRecordModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Animal Selection */}
             <div className="space-y-2">
-              <Label htmlFor="animal_id">Animal *</Label>
+              <Label htmlFor="animal_id">Dam (Mother) *</Label>
               <Select name="animal_id" required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select an animal" />
+                  <SelectValue placeholder="Select a dam" />
                 </SelectTrigger>
                 <SelectContent>
                   {animals.map((animal) => (
@@ -131,7 +135,7 @@ export function CalvingRecordModal({
 
             {/* Calving Date */}
             <div className="space-y-2">
-              <Label>Calving Date *</Label>
+              <Label>Calving / Birth Date *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -167,6 +171,16 @@ export function CalvingRecordModal({
               />
             </div>
 
+            {/* ✨ ADDED: Calf Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="calf_name">Calf Name</Label>
+              <Input
+                id="calf_name"
+                name="calf_name"
+                placeholder="e.g., Sparky"
+              />
+            </div>
+
             {/* Calf Sex */}
             <div className="space-y-2">
               <Label htmlFor="calf_sex">Calf Sex</Label>
@@ -183,7 +197,7 @@ export function CalvingRecordModal({
 
             {/* Birth Weight */}
             <div className="space-y-2">
-              <Label htmlFor="birth_weight">Birth Weight (lbs)</Label>
+              <Label htmlFor="birth_weight">Birth Weight (kgs)</Label>
               <Input
                 id="birth_weight"
                 name="birth_weight"
@@ -192,17 +206,24 @@ export function CalvingRecordModal({
                 placeholder="e.g., 35.5"
               />
             </div>
+          </div>
 
-            {/* Assistance Required */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="assistance_required" name="assistance_required" />
-                <Label htmlFor="assistance_required">Assistance Required</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Check if assistance was needed during calving
-              </p>
+          {/* Add to Inventory Checkbox */}
+          <div className="md:col-span-2 space-y-2 pt-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="add_to_inventory"
+                name="add_to_inventory"
+                defaultChecked
+              />
+              <Label htmlFor="add_to_inventory" className="font-semibold">
+                Add calf to animal inventory
+              </Label>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Uncheck this if you do not want to create a new animal record for
+              this calf automatically. A calf ear tag is required.
+            </p>
           </div>
 
           {/* Complications */}

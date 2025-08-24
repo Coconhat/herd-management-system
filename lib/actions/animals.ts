@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Calving } from "../types";
 
 export interface Animal {
   id: number;
@@ -17,6 +18,7 @@ export interface Animal {
   user_id: string;
   created_at: string;
   updated_at: string;
+  calvings: Calving[];
 }
 
 export async function getAnimals(): Promise<Animal[]> {
@@ -31,7 +33,7 @@ export async function getAnimals(): Promise<Animal[]> {
 
   const { data, error } = await supabase
     .from("animals")
-    .select("*")
+    .select("*, calvings(*)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -39,7 +41,7 @@ export async function getAnimals(): Promise<Animal[]> {
     return [];
   }
 
-  return data || [];
+  return (data as Animal[]) || [];
 }
 
 export async function getAnimalById(id: number): Promise<Animal | null> {
@@ -54,7 +56,7 @@ export async function getAnimalById(id: number): Promise<Animal | null> {
 
   const { data, error } = await supabase
     .from("animals")
-    .select("*")
+    .select("*, calvings(*)")
     .eq("id", id)
     .single();
 

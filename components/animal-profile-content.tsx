@@ -1,30 +1,43 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Calendar, Heart, Stethoscope, FileText, Edit } from "lucide-react"
-import type { Animal } from "@/lib/actions/animals"
-import type { Calving } from "@/lib/actions/calvings"
-import type { HealthRecord } from "@/lib/actions/health-records"
-import type { BreedingRecord } from "@/lib/actions/breeding-records"
-import { getCalvingsByAnimalId } from "@/lib/actions/calvings"
-import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records"
-import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding-records"
-import { formatAge, formatWeight } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Calendar, Heart, Stethoscope, FileText, Edit } from "lucide-react";
+import type { Animal } from "@/lib/actions/animals";
+import type { Calving } from "@/lib/actions/calvings";
+import type { HealthRecord } from "@/lib/actions/health-records";
+import type { BreedingRecord } from "@/lib/actions/breeding-records";
+import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
+import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
+import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding-records";
+import { formatAge, formatWeight } from "@/lib/utils";
 
 interface AnimalProfileContentProps {
-  animal: Animal
+  animal: Animal;
 }
 
 export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
-  const [calvings, setCalvings] = useState<Calving[]>([])
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([])
-  const [breedingRecords, setBreedingRecords] = useState<BreedingRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const [calvings, setCalvings] = useState<Calving[]>([]);
+  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [breedingRecords, setBreedingRecords] = useState<BreedingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -33,30 +46,30 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           getCalvingsByAnimalId(animal.id),
           getHealthRecordsByAnimalId(animal.id),
           getBreedingRecordsByAnimalId(animal.id),
-        ])
+        ]);
 
-        setCalvings(calvingsData)
-        setHealthRecords(healthData)
-        setBreedingRecords(breedingData)
+        setCalvings(calvingsData);
+        setHealthRecords(healthData);
+        setBreedingRecords(breedingData);
       } catch (error) {
-        console.error("Error loading animal data:", error)
+        console.error("Error loading animal data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    loadData()
-  }, [animal.id])
+    loadData();
+  }, [animal.id]);
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A"
-    return new Date(dateString).toLocaleDateString()
-  }
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString();
+  };
 
   const formatCurrency = (amount?: number) => {
-    if (!amount) return "N/A"
-    return `$${amount.toFixed(2)}`
-  }
+    if (!amount) return "N/A";
+    return `$${amount.toFixed(2)}`;
+  };
 
   return (
     <>
@@ -68,48 +81,79 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Ear Tag</label>
-              <p className="text-lg font-semibold text-primary">{animal.ear_tag}</p>
+              <label className="text-sm font-medium text-muted-foreground">
+                Ear Tag
+              </label>
+              <p className="text-lg font-semibold text-primary">
+                {animal.ear_tag}
+              </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Name</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Name
+              </label>
               <p className="text-lg font-semibold">{animal.name || "—"}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Breed</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Breed
+              </label>
               <p className="text-lg font-semibold">{animal.breed || "—"}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Sex</label>
-              <Badge variant={animal.sex === "Female" ? "secondary" : "outline"} className="mt-1">
+              <label className="text-sm font-medium text-muted-foreground">
+                Sex
+              </label>
+              <Badge
+                variant={animal.sex === "Female" ? "secondary" : "outline"}
+                className="mt-1"
+              >
                 {animal.sex || "—"}
               </Badge>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Birth Date</label>
-              <p className="text-lg font-semibold">{formatDate(animal.birth_date)}</p>
+              <label className="text-sm font-medium text-muted-foreground">
+                Birth Date
+              </label>
+              <p className="text-lg font-semibold">
+                {formatDate(animal.birth_date)}
+              </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Age</label>
-              <p className="text-lg font-semibold">{animal.birth_date ? formatAge(animal.birth_date) : "N/A"}</p>
+              <label className="text-sm font-medium text-muted-foreground">
+                Age
+              </label>
+              <p className="text-lg font-semibold">
+                {animal.birth_date ? formatAge(animal.birth_date) : "N/A"}
+              </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Status</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Status
+              </label>
               <Badge
                 variant={animal.status === "Active" ? "default" : "secondary"}
-                className={`mt-1 ${animal.status === "Active" ? "bg-primary" : ""}`}
+                className={`mt-1 ${
+                  animal.status === "Active" ? "bg-primary" : ""
+                }`}
               >
                 {animal.status}
               </Badge>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Created</label>
-              <p className="text-lg font-semibold">{formatDate(animal.created_at)}</p>
+              <label className="text-sm font-medium text-muted-foreground">
+                Created
+              </label>
+              <p className="text-lg font-semibold">
+                {formatDate(animal.created_at)}
+              </p>
             </div>
           </div>
           {animal.notes && (
             <div className="mt-6">
-              <label className="text-sm font-medium text-muted-foreground">Notes</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Notes
+              </label>
               <p className="mt-1 text-foreground">{animal.notes}</p>
             </div>
           )}
@@ -142,7 +186,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           <Card>
             <CardHeader>
               <CardTitle>Calving History</CardTitle>
-              <CardDescription>{calvings.length} calving records</CardDescription>
+              <CardDescription>
+                {calvings.length} calving records
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -150,7 +196,10 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                   {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex space-x-4">
                       {[...Array(6)].map((_, j) => (
-                        <div key={j} className="h-4 w-20 bg-muted animate-pulse rounded" />
+                        <div
+                          key={j}
+                          className="h-4 w-20 bg-muted animate-pulse rounded"
+                        />
                       ))}
                     </div>
                   ))}
@@ -171,31 +220,45 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                     <TableBody>
                       {calvings.map((calving) => (
                         <TableRow key={calving.id}>
-                          <TableCell>{formatDate(calving.calving_date)}</TableCell>
-                          <TableCell className="font-medium">{calving.calf_ear_tag || "—"}</TableCell>
+                          <TableCell>
+                            {formatDate(calving.calving_date)}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {calving.calf_ear_tag || "—"}
+                          </TableCell>
                           <TableCell>
                             {calving.calf_sex ? (
-                              <Badge variant={calving.calf_sex === "Female" ? "secondary" : "outline"}>
+                              <Badge
+                                variant={
+                                  calving.calf_sex === "Female"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                              >
                                 {calving.calf_sex}
                               </Badge>
                             ) : (
                               "—"
                             )}
                           </TableCell>
-                          <TableCell>{formatWeight(calving.birth_weight?.toString() || "")}</TableCell>
                           <TableCell>
-                            <Badge variant={calving.assistance_required ? "destructive" : "default"}>
-                              {calving.assistance_required ? "Yes" : "No"}
-                            </Badge>
+                            {formatWeight(
+                              calving.birth_weight?.toString() || ""
+                            )}
                           </TableCell>
-                          <TableCell>{calving.complications || "None"}</TableCell>
+
+                          <TableCell>
+                            {calving.complications || "None"}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">No calving records found.</p>
+                <p className="text-muted-foreground text-center py-8">
+                  No calving records found.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -206,7 +269,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           <Card>
             <CardHeader>
               <CardTitle>Health Records</CardTitle>
-              <CardDescription>{healthRecords.length} health records</CardDescription>
+              <CardDescription>
+                {healthRecords.length} health records
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -214,7 +279,10 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                   {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex space-x-4">
                       {[...Array(6)].map((_, j) => (
-                        <div key={j} className="h-4 w-20 bg-muted animate-pulse rounded" />
+                        <div
+                          key={j}
+                          className="h-4 w-20 bg-muted animate-pulse rounded"
+                        />
                       ))}
                     </div>
                   ))}
@@ -235,9 +303,13 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                     <TableBody>
                       {healthRecords.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell>{formatDate(record.record_date)}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{record.record_type}</Badge>
+                            {formatDate(record.record_date)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {record.record_type}
+                            </Badge>
                           </TableCell>
                           <TableCell>{record.description || "—"}</TableCell>
                           <TableCell>{record.treatment || "—"}</TableCell>
@@ -249,7 +321,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                   </Table>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">No health records found.</p>
+                <p className="text-muted-foreground text-center py-8">
+                  No health records found.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -260,7 +334,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           <Card>
             <CardHeader>
               <CardTitle>Breeding Records</CardTitle>
-              <CardDescription>{breedingRecords.length} breeding records</CardDescription>
+              <CardDescription>
+                {breedingRecords.length} breeding records
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -268,7 +344,10 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                   {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex space-x-4">
                       {[...Array(6)].map((_, j) => (
-                        <div key={j} className="h-4 w-20 bg-muted animate-pulse rounded" />
+                        <div
+                          key={j}
+                          className="h-4 w-20 bg-muted animate-pulse rounded"
+                        />
                       ))}
                     </div>
                   ))}
@@ -289,31 +368,53 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                     <TableBody>
                       {breedingRecords.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell>{formatDate(record.breeding_date)}</TableCell>
-                          <TableCell className="font-medium">{record.sire_ear_tag || "—"}</TableCell>
                           <TableCell>
-                            <Badge variant={record.breeding_method === "AI" ? "secondary" : "outline"}>
+                            {formatDate(record.breeding_date)}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {record.sire_ear_tag || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                record.breeding_method === "AI"
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                            >
                               {record.breeding_method || "—"}
                             </Badge>
                           </TableCell>
-                          <TableCell>{formatDate(record.expected_calving_date)}</TableCell>
+                          <TableCell>
+                            {formatDate(record.expected_calving_date)}
+                          </TableCell>
                           <TableCell>
                             {record.confirmed_pregnant !== undefined ? (
-                              <Badge variant={record.confirmed_pregnant ? "default" : "destructive"}>
+                              <Badge
+                                variant={
+                                  record.confirmed_pregnant
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
                                 {record.confirmed_pregnant ? "Yes" : "No"}
                               </Badge>
                             ) : (
                               "—"
                             )}
                           </TableCell>
-                          <TableCell>{formatDate(record.pregnancy_check_date)}</TableCell>
+                          <TableCell>
+                            {formatDate(record.pregnancy_check_date)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">No breeding records found.</p>
+                <p className="text-muted-foreground text-center py-8">
+                  No breeding records found.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -324,15 +425,21 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           <Card>
             <CardHeader>
               <CardTitle>General Notes</CardTitle>
-              <CardDescription>Additional information and observations</CardDescription>
+              <CardDescription>
+                Additional information and observations
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {animal.notes ? (
                 <div className="prose max-w-none">
-                  <p className="text-foreground whitespace-pre-wrap">{animal.notes}</p>
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {animal.notes}
+                  </p>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">No notes available.</p>
+                <p className="text-muted-foreground text-center py-8">
+                  No notes available.
+                </p>
               )}
               <div className="mt-6">
                 <Button variant="outline">
@@ -345,5 +452,5 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
         </TabsContent>
       </Tabs>
     </>
-  )
+  );
 }
