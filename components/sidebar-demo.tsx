@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -12,41 +13,52 @@ import {
   FileText,
   Heart,
   TrendingUp,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
-// Sidebar Navigation Items
+// Navigation structure
 const navigation = [
   { name: "Dashboard", icon: Home, current: true, href: "/" },
   {
-    name: "Record new calving",
-    icon: PawPrint,
-    current: false,
-    href: "/",
-  },
-  {
-    name: "Record new animal",
+    name: "Record",
     icon: BarChart3,
     current: false,
-    href: "/",
+    isDropdown: true,
+    children: [
+      { name: "Record Calving", icon: PawPrint, href: "/record/calving" },
+      { name: "Record Animal", icon: Heart, href: "/record/animal" },
+      { name: "Record Milking", icon: TrendingUp, href: "/record/milking" },
+    ],
   },
-  { name: "Record milking", icon: Heart, current: false, href: "/" },
-  { name: "Pregnancy", icon: TrendingUp, current: false, href: "/" },
+  { name: "Pregnancy", icon: Heart, current: false, href: "/pregnancy" },
   {
-    name: "Animal Inventory",
+    name: "Inventory",
     icon: FileText,
     current: false,
-    href: "/",
-  },
-  {
-    name: "Medicine Inventory",
-    icon: Settings,
-    current: false,
-    href: "/",
+    isDropdown: true,
+    children: [
+      { name: "Animal Inventory", icon: PawPrint, href: "/inventory/animals" },
+      {
+        name: "Medicine Inventory",
+        icon: Settings,
+        href: "/inventory/medicine",
+      },
+    ],
   },
 ];
 
 // Desktop Sidebar Component
 export function DesktopSidebar() {
+  const [expandedItems, setExpandedItems] = useState({});
+
+  const toggleExpanded = (itemName) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [itemName]: !prev[itemName],
+    }));
+  };
+
   return (
     <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
       <div className="flex flex-col flex-grow pt-5 bg-card border-r overflow-y-auto">
@@ -60,22 +72,61 @@ export function DesktopSidebar() {
           <nav className="flex-1 px-2 space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
+              const isExpanded = expandedItems[item.name];
+
               return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className={`
-                    group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
-                    ${
-                      item.current
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }
-                  `}
-                >
-                  <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                  {item.name}
-                </a>
+                <div key={item.name}>
+                  {item.isDropdown ? (
+                    <>
+                      <button
+                        onClick={() => toggleExpanded(item.name)}
+                        className="w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                      >
+                        <div className="flex items-center">
+                          <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                          {item.name}
+                        </div>
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="ml-6 mt-1 space-y-1">
+                          {item.children.map((child) => {
+                            const ChildIcon = child.icon;
+                            return (
+                              <a
+                                key={child.name}
+                                href={child.href}
+                                className="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                              >
+                                <ChildIcon className="mr-3 h-4 w-4 flex-shrink-0" />
+                                {child.name}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <a
+                      href={item.href}
+                      className={`
+                        group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                        ${
+                          item.current
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }
+                      `}
+                    >
+                      <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                      {item.name}
+                    </a>
+                  )}
+                </div>
               );
             })}
           </nav>
@@ -93,6 +144,15 @@ export function DesktopSidebar() {
 
 // Mobile Sidebar Component
 export function MobileSidebar() {
+  const [expandedItems, setExpandedItems] = useState({});
+
+  const toggleExpanded = (itemName) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [itemName]: !prev[itemName],
+    }));
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -112,22 +172,61 @@ export function MobileSidebar() {
             <nav className="px-2 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isExpanded = expandedItems[item.name];
+
                 return (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className={`
-                      group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
-                      ${
-                        item.current
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }
-                    `}
-                  >
-                    <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                    {item.name}
-                  </a>
+                  <div key={item.name}>
+                    {item.isDropdown ? (
+                      <>
+                        <button
+                          onClick={() => toggleExpanded(item.name)}
+                          className="w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                        >
+                          <div className="flex items-center">
+                            <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                            {item.name}
+                          </div>
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        {isExpanded && (
+                          <div className="ml-6 mt-1 space-y-1">
+                            {item.children.map((child) => {
+                              const ChildIcon = child.icon;
+                              return (
+                                <a
+                                  key={child.name}
+                                  href={child.href}
+                                  className="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                                >
+                                  <ChildIcon className="mr-3 h-4 w-4 flex-shrink-0" />
+                                  {child.name}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <a
+                        href={item.href}
+                        className={`
+                          group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                          ${
+                            item.current
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }
+                        `}
+                      >
+                        <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                        {item.name}
+                      </a>
+                    )}
+                  </div>
                 );
               })}
             </nav>
