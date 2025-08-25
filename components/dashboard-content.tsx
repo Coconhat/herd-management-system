@@ -149,9 +149,7 @@ export function DashboardContent({ animals }: DashboardContentProps) {
       <CalvingRecordModal
         open={calvingModalOpen}
         onOpenChange={setCalvingModalOpen}
-        animals={animals.filter(
-          (a) => a.sex === "Female" && a.status === "Active"
-        )}
+        animals={animals}
       />
       <AddAnimalModal
         open={addAnimalModalOpen}

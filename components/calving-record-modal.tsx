@@ -50,6 +50,13 @@ export function CalvingRecordModal({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  const femaleAnimals = animals.filter(
+    (animal) => animal.sex === "Female" && animal.status === "Active"
+  );
+  const maleAnimals = animals.filter(
+    (animal) => animal.sex === "Male" && animal.status === "Active"
+  );
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -124,7 +131,21 @@ export function CalvingRecordModal({
                   <SelectValue placeholder="Select a dam" />
                 </SelectTrigger>
                 <SelectContent>
-                  {animals.map((animal) => (
+                  {femaleAnimals.map((animal) => (
+                    <SelectItem key={animal.id} value={animal.id.toString()}>
+                      {animal.ear_tag} - {animal.name || "Unnamed"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Label htmlFor="sire_id">Sire (Father) *</Label>
+              <Select name="sire_id" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a sire" />
+                </SelectTrigger>
+                <SelectContent>
+                  {maleAnimals.map((animal) => (
                     <SelectItem key={animal.id} value={animal.id.toString()}>
                       {animal.ear_tag} - {animal.name || "Unnamed"}
                     </SelectItem>

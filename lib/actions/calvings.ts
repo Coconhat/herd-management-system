@@ -55,6 +55,7 @@ export async function createCalving(formData: FormData) {
 
   // --- Step 1: Extract all necessary data from the form ---
   const damId = Number.parseInt(formData.get("animal_id") as string);
+  const sireIdString = formData.get("sire_id") as string;
   const calvingDate = formData.get("calving_date") as string;
   const calfEarTag = formData.get("calf_ear_tag") as string | null;
   const calfName = formData.get("calf_name") as string | null;
@@ -89,16 +90,22 @@ export async function createCalving(formData: FormData) {
   // --- Step 3: Conditionally create the calf as a new animal ---
   // This block only runs IF the user entered an ear tag for the calf.
   if (calfEarTag && calfEarTag.trim() !== "") {
+    // ✨ FIX: Convert the sireIdString from the form into a number or null.
+    const sireId =
+      sireIdString && sireIdString !== "none"
+        ? Number.parseInt(sireIdString)
+        : null;
+
     // Prepare the data for the new animal record in the 'animals' table.
     const newAnimalData = {
       ear_tag: calfEarTag.trim(),
       name: calfName?.trim() || null,
       sex: (formData.get("calf_sex") as "Male" | "Female") || null,
-      birth_date: calvingDate, // The calf's birth date is the calving date
-      status: "Active" as const, // New calves are active by default
-      dam_id: damId, // The mother (dam) is the animal selected in the form
-      sire_id: null, // Sire is unknown from this form
-      notes: `Born from calving event #${newCalvingRecord.id}.`, // Adds a useful, traceable note
+      birth_date: calvingDate,
+      status: "Active" as const,
+      dam_id: damId,
+      sire_id: sireId, // ✨ FIX: Use the processed sireId variable here.
+      notes: `Born from calving event #${newCalvingRecord.id}.`,
       user_id: user.id,
     };
 
@@ -109,7 +116,6 @@ export async function createCalving(formData: FormData) {
 
     if (animalError) {
       console.error("Error creating calf as a new animal:", animalError);
-      // IMPORTANT: Even if this fails, the calving was recorded. We throw a specific error.
       throw new Error(
         "Calving event was recorded, but failed to add the new calf to the inventory. Please add it manually."
       );
@@ -117,7 +123,6 @@ export async function createCalving(formData: FormData) {
   }
 
   // --- Step 4: Revalidate paths to update the UI ---
-  // Revalidating the root path will refresh the main animal inventory table.
   revalidatePath("/");
   revalidatePath(`/animal/${calvingData.animal_id}`);
 }
