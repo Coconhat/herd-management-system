@@ -139,8 +139,8 @@ export function CalvingRecordModal({
                 </SelectContent>
               </Select>
 
-              <Label htmlFor="sire_id">Sire (Father) *</Label>
-              <Select name="sire_id" required>
+              <Label htmlFor="sire_id">Sire (Father) </Label>
+              <Select name="sire_id">
                 <SelectTrigger>
                   <SelectValue placeholder="Select a sire" />
                 </SelectTrigger>
