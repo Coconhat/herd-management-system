@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,6 +34,15 @@ import { createAnimal } from "@/lib/actions/animals";
 import { useToast } from "@/hooks/use-toast";
 import type { Animal } from "@/lib/actions/animals";
 
+const commonBreeds = [
+  "Holstein Friesian",
+  "Jersey",
+  "Kiwi Cross",
+  "Sahiwal",
+  "Gir",
+  "Other",
+];
+
 interface AddAnimalModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,6 +56,7 @@ export function AddAnimalModal({
 }: AddAnimalModalProps) {
   const [birthDate, setBirthDate] = useState<Date>();
   const [isPending, startTransition] = useTransition();
+  const [earTagError, setEarTagError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const femaleAnimals = animals.filter(
@@ -56,11 +66,26 @@ export function AddAnimalModal({
     (animal) => animal.sex === "Male" && animal.status === "Active"
   );
 
+  const validateEarTag = (earTag: string) => {
+    if (!earTag) {
+      setEarTagError("Ear tag is required.");
+      return;
+    }
+    const isDuplicate = animals.some(
+      (animal) => animal.ear_tag.toLowerCase() === earTag.toLowerCase().trim()
+    );
+    if (isDuplicate) {
+      setEarTagError("An animal with this ear tag already exists.");
+    } else {
+      setEarTagError(null);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (earTagError) return;
 
     const formData = new FormData(e.currentTarget);
-
     if (birthDate) {
       formData.set("birth_date", birthDate.toISOString().split("T")[0]);
     }
@@ -68,35 +93,29 @@ export function AddAnimalModal({
     startTransition(async () => {
       try {
         await createAnimal(formData);
-
         const earTag = formData.get("ear_tag") as string;
-        const name = formData.get("name") as string;
-
         toast({
           title: "Animal Added Successfully",
-          description: `${earTag} ${
-            name ? `(${name})` : ""
-          } has been added to your herd`,
+          description: `Animal ${earTag} has been added to your herd.`,
         });
-
-        // Reset form
-        setBirthDate(undefined);
         onOpenChange(false);
-        (e.target as HTMLFormElement).reset();
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to add animal. Please try again.",
+          description:
+            error instanceof Error ? error.message : "Failed to add animal.",
           variant: "destructive",
         });
       }
     });
   };
 
-  const handleCancel = () => {
-    setBirthDate(undefined);
-    onOpenChange(false);
-  };
+  useEffect(() => {
+    if (!open) {
+      setBirthDate(undefined);
+      setEarTagError(null);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,26 +127,25 @@ export function AddAnimalModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Ear Tag */}
             <div className="space-y-2">
               <Label htmlFor="ear_tag">Ear Tag *</Label>
               <Input
                 id="ear_tag"
                 name="ear_tag"
-                placeholder="e.g., 009"
+                placeholder="e.g., 181"
                 required
+                onChange={(e) => validateEarTag(e.target.value)}
               />
+              <p className="text-sm font-medium text-destructive">
+                {earTagError}
+              </p>
             </div>
-
-            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="e.g., Buttercup" />
             </div>
-
-            {/* Sex */}
             <div className="space-y-2">
               <Label htmlFor="sex">Sex</Label>
               <Select name="sex">
@@ -141,7 +159,22 @@ export function AddAnimalModal({
               </Select>
             </div>
 
-            {/* Birth Date */}
+            <div className="space-y-2">
+              <Label htmlFor="breed">Breed</Label>
+              <Select name="breed">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select breed" />
+                </SelectTrigger>
+                <SelectContent>
+                  {commonBreeds.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Birth Date</Label>
               <Popover>
@@ -168,8 +201,6 @@ export function AddAnimalModal({
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select name="status" defaultValue="Active">
@@ -180,12 +211,9 @@ export function AddAnimalModal({
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Sold">Sold</SelectItem>
                   <SelectItem value="Deceased">Deceased</SelectItem>
-                  <SelectItem value="Culled">Culled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Dam (Mother) */}
             <div className="space-y-2">
               <Label htmlFor="dam_id">Dam (Mother)</Label>
               <Select name="dam_id">
@@ -193,17 +221,15 @@ export function AddAnimalModal({
                   <SelectValue placeholder="Select dam" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No dam selected</SelectItem>
-                  {femaleAnimals.map((animal) => (
-                    <SelectItem key={animal.id} value={animal.id.toString()}>
-                      {animal.ear_tag} - {animal.name || "Unnamed"}
-                    </SelectItem>
+                  <SelectItem value="none">Unknown</SelectItem>
+                  {femaleAnimals.map((a) => (
+                    <SelectItem key={a.id} value={a.id.toString()}>{`${
+                      a.ear_tag
+                    } - ${a.name || "Unnamed"}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Sire (Father) */}
             <div className="space-y-2">
               <Label htmlFor="sire_id">Sire (Father)</Label>
               <Select name="sire_id">
@@ -211,42 +237,33 @@ export function AddAnimalModal({
                   <SelectValue placeholder="Select sire" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No sire selected</SelectItem>
-                  {maleAnimals.map((animal) => (
-                    <SelectItem key={animal.id} value={animal.id.toString()}>
-                      {animal.ear_tag} - {animal.name || "Unnamed"}
-                    </SelectItem>
+                  <SelectItem value="none">Unknown</SelectItem>
+                  {maleAnimals.map((a) => (
+                    <SelectItem key={a.id} value={a.id.toString()}>{`${
+                      a.ear_tag
+                    } - ${a.name || "Unnamed"}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
               name="notes"
               placeholder="Any additional notes about this animal..."
-              rows={4}
             />
           </div>
-
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={handleCancel}
-              disabled={isPending}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="bg-primary hover:bg-primary/90"
-            >
+            <Button type="submit" disabled={isPending || !!earTagError}>
               {isPending ? "Adding..." : "Add Animal"}
             </Button>
           </DialogFooter>

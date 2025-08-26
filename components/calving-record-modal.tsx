@@ -33,7 +33,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { createCalving } from "@/lib/actions/calvings";
 import { useToast } from "@/hooks/use-toast";
-import { createAnimal, type Animal } from "@/lib/actions/animals";
+import type { Animal } from "@/lib/actions/animals";
 
 interface CalvingRecordModalProps {
   open: boolean;
@@ -59,7 +59,6 @@ export function CalvingRecordModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (!calvingDate) {
       toast({
         title: "Error",
@@ -68,62 +67,43 @@ export function CalvingRecordModal({
       });
       return;
     }
-
     const formData = new FormData(e.currentTarget);
     formData.set("calving_date", calvingDate.toISOString().split("T")[0]);
-
     startTransition(async () => {
       try {
         await createCalving(formData);
-
-        const animalId = Number.parseInt(formData.get("animal_id") as string);
-        const animal = animals.find((a) => a.id === animalId);
-        const animalName = animal
-          ? `${animal.ear_tag} (${animal.name || "Unnamed"})`
-          : `Animal ${animalId}`;
-
         toast({
-          title: "Calving Recorded Successfully",
-          description: `New calf added to inventory for ${animalName}.`,
+          title: "Success",
+          description:
+            "Calving event recorded and new calf added to inventory.",
         });
-
-        // Reset form
-        setCalvingDate(undefined);
         onOpenChange(false);
-        (e.target as HTMLFormElement).reset();
       } catch (error) {
         toast({
           title: "Error",
-          // Display the specific error message from the server if it exists
           description:
             error instanceof Error
               ? error.message
-              : "Failed to record calving. Please try again.",
+              : "Failed to record calving.",
           variant: "destructive",
         });
       }
     });
   };
 
-  const handleCancel = () => {
-    setCalvingDate(undefined);
-    onOpenChange(false);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Record New Calving</DialogTitle>
           <DialogDescription>
-            Record a new calving event for one of your animals. Fields marked
-            with * are required.
+            Record a new birth. This will create a calving event and add the new
+            calf to the inventory.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Animal Selection */}
             <div className="space-y-2">
               <Label htmlFor="animal_id">Dam (Mother) *</Label>
               <Select name="animal_id" required>
@@ -131,31 +111,31 @@ export function CalvingRecordModal({
                   <SelectValue placeholder="Select a dam" />
                 </SelectTrigger>
                 <SelectContent>
-                  {femaleAnimals.map((animal) => (
-                    <SelectItem key={animal.id} value={animal.id.toString()}>
-                      {animal.ear_tag} - {animal.name || "Unnamed"}
-                    </SelectItem>
+                  {femaleAnimals.map((a) => (
+                    <SelectItem key={a.id} value={a.id.toString()}>{`${
+                      a.ear_tag
+                    } - ${a.name || "Unnamed"}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
-              <Label htmlFor="sire_id">Sire (Father) </Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sire_id">Sire (Father)</Label>
               <Select name="sire_id">
                 <SelectTrigger>
                   <SelectValue placeholder="Select a sire" />
                 </SelectTrigger>
                 <SelectContent>
-                  {maleAnimals.map((animal) => (
-                    <SelectItem key={animal.id} value={animal.id.toString()}>
-                      {animal.ear_tag} - {animal.name || "Unnamed"}
-                    </SelectItem>
+                  <SelectItem value="none">Unknown</SelectItem>
+                  {maleAnimals.map((a) => (
+                    <SelectItem key={a.id} value={a.id.toString()}>{`${
+                      a.ear_tag
+                    } - ${a.name || "Unnamed"}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Calving Date */}
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2">
               <Label>Calving / Birth Date *</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -181,19 +161,15 @@ export function CalvingRecordModal({
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* Calf Ear Tag */}
             <div className="space-y-2">
-              <Label htmlFor="calf_ear_tag">Calf Ear Tag</Label>
+              <Label htmlFor="calf_ear_tag">Calf Ear Tag *</Label>
               <Input
                 id="calf_ear_tag"
                 name="calf_ear_tag"
-                placeholder="e.g., 201"
+                placeholder="e.g., M172"
                 required
               />
             </div>
-
-            {/* ✨ ADDED: Calf Name Input */}
             <div className="space-y-2">
               <Label htmlFor="calf_name">Calf Name</Label>
               <Input
@@ -202,11 +178,9 @@ export function CalvingRecordModal({
                 placeholder="e.g., Sparky"
               />
             </div>
-
-            {/* Calf Sex */}
             <div className="space-y-2">
-              <Label htmlFor="calf_sex">Calf Sex</Label>
-              <Select name="calf_sex">
+              <Label htmlFor="calf_sex">Calf Sex *</Label>
+              <Select name="calf_sex" required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select sex" />
                 </SelectTrigger>
@@ -216,8 +190,6 @@ export function CalvingRecordModal({
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Birth Weight */}
             <div className="space-y-2">
               <Label htmlFor="birth_weight">Birth Weight (kgs)</Label>
               <Input
@@ -225,65 +197,35 @@ export function CalvingRecordModal({
                 name="birth_weight"
                 type="number"
                 step="0.1"
-                placeholder="e.g., 35.5"
+                placeholder="e.g., 25.5"
               />
             </div>
           </div>
-
-          {/* Add to Inventory Checkbox */}
-          <div className="md:col-span-2 space-y-2 pt-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="add_to_inventory"
-                name="add_to_inventory"
-                defaultChecked
-              />
-              <Label htmlFor="add_to_inventory" className="font-semibold">
-                Add calf to animal inventory
-              </Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Uncheck this if you do not want to create a new animal record for
-              this calf automatically. A calf ear tag is required.
-            </p>
-          </div>
-
-          {/* Complications */}
           <div className="space-y-2">
-            <Label htmlFor="complications">Complications</Label>
+            <Label htmlFor="complications">Complications & Outcome</Label>
             <Textarea
               id="complications"
               name="complications"
-              placeholder="Describe any complications that occurred during calving..."
-              rows={3}
+              placeholder="describe any complications..."
             />
           </div>
-
-          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional Notes</Label>
             <Textarea
               id="notes"
               name="notes"
-              placeholder="Any additional observations or notes..."
-              rows={3}
+              placeholder="Any additional observations about the calving..."
             />
           </div>
-
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={handleCancel}
-              disabled={isPending}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={!calvingDate || isPending}
-              className="bg-primary hover:bg-primary/90"
-            >
+            <Button type="submit" disabled={!calvingDate || isPending}>
               {isPending ? "Recording..." : "Record Calving"}
             </Button>
           </DialogFooter>
