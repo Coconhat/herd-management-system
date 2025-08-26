@@ -22,18 +22,21 @@ type CalvingToCreate = {
   birth_weight: number | null;
 };
 
-// --- improved clean + normalizer ----------------
 function cleanValue(value: any): string | null {
   if (value === null || value === undefined) return null;
-  let str = value.toString().trim();
-  // remove repeated underscores and leading punctuation like ":" or "-"
+  let str = String(value).trim();
+
+  // normalize unicode dashes and non-breaking spaces
+  str = str.replace(/[\u2010-\u2015\u2212]/g, "-").replace(/\u00A0/g, " ");
+
+  // remove leading punctuation / control chars (unicode-aware)
   str = str
-    .replace(/^[:\s\-_]+/, "")
+    .replace(/^[^\p{L}\p{N}]+/u, "")
     .replace(/_+/g, " ")
     .trim();
+
   if (!str) return null;
-  // still reject placeholders that are clearly blank lines
-  if (/^(?:______|: ?______|___+)$/.test(str)) return null;
+  if (/^(?:_{2,}|-+|—+|–+)$/.test(str)) return null;
   return str;
 }
 
@@ -54,12 +57,56 @@ function normalizeEarTag(raw: string | null) {
   return null;
 }
 
-// canonicalize for map keys (always trim & uppercase numeric-like tokens)
-function canonicalizeTag(raw: string | null) {
-  const n = normalizeEarTag(raw);
-  if (!n) return null;
-  // if numeric-only, remove leading zeros? (optional) — keep as-is to preserve IDs like "0759"
-  return n.toString().trim();
+function findSexInSheet(data: any[][]): "Female" | "Male" | null {
+  const maxRows = Math.min(20, data.length);
+  const maxCols = 12;
+
+  // 1) exact tokens anywhere near top-left
+  for (let r = 0; r < maxRows; r++) {
+    for (let c = 0; c < Math.min(maxCols, (data[r] || []).length); c++) {
+      const raw = cleanValue(data?.[r]?.[c]);
+      if (!raw) continue;
+      const lower = raw.toLowerCase();
+      if (/^(female|f|♀)$/i.test(lower)) return "Female";
+      if (/^(male|m|♂)$/i.test(lower)) return "Male";
+    }
+  }
+
+  // 2) label neighbors: find a 'sex' or 'gender' label and read adjacent cells
+  const labelRegex = /^\s*(sex|gender|sexe|sexo)\s*$/i;
+  for (let r = 0; r < maxRows; r++) {
+    for (let c = 0; c < Math.min(maxCols, (data[r] || []).length); c++) {
+      const raw = cleanValue(data?.[r]?.[c]);
+      if (!raw) continue;
+      if (labelRegex.test(raw)) {
+        const candidates = [
+          cleanValue(data?.[r]?.[c + 1]),
+          cleanValue(data?.[r + 1]?.[c]),
+          cleanValue(data?.[r]?.[c - 1]),
+          cleanValue(data?.[r - 1]?.[c]),
+        ];
+        for (const cand of candidates) {
+          if (!cand) continue;
+          if (/^f/i.test(cand)) return "Female";
+          if (/^m/i.test(cand)) return "Male";
+          if (/female/i.test(cand)) return "Female";
+          if (/male/i.test(cand)) return "Male";
+        }
+      }
+    }
+  }
+
+  // 3) fallback: search a slightly wider area for 'female'/'male' substrings
+  for (let r = 0; r < maxRows; r++) {
+    for (let c = 0; c < Math.min(40, (data[r] || []).length); c++) {
+      const raw = cleanValue(data?.[r]?.[c]);
+      if (!raw) continue;
+      if (/female/i.test(raw)) return "Female";
+      if (/male/i.test(raw)) return "Male";
+    }
+  }
+
+  return null;
 }
 
 // safe getter
@@ -112,6 +159,14 @@ function findEarTagInSheet(data: any[][]) {
   }
 
   return null;
+}
+
+// canonicalize for map keys (always trim & uppercase numeric-like tokens)
+function canonicalizeTag(raw: string | null) {
+  const n = normalizeEarTag(raw);
+  if (!n) return null;
+  // if numeric-only, remove leading zeros? (optional) — keep as-is to preserve IDs like "0759"
+  return n.toString().trim();
 }
 
 // Parse date from the form format (handles many orders and returns YYYY-MM-DD or null)
@@ -226,13 +281,6 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
     try {
       const data = sheet.data;
 
-      // Debug: Log the first few rows to understand the data structure
-      console.log(`Processing sheet: ${sheet.sheetName}`);
-      console.log("Sample data rows:");
-      for (let i = 0; i < 10; i++) {
-        console.log(`Row ${i}:`, (data[i] || []).join(" | "));
-      }
-
       // Extract the main animal (current record)
       const rawTag = findEarTagInSheet(data);
       const animalEarTag = canonicalizeTag(rawTag);
@@ -240,6 +288,14 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
         results.errors.push(`No ear tag found in sheet: ${sheet.sheetName}`);
         continue;
       }
+
+      console.log("DEBUG sex raw:", JSON.stringify(getCell(data, 4, 6)));
+      console.log(
+        "DEBUG chars:",
+        Array.from(String(getCell(data, 4, 6) ?? "")).map((ch) =>
+          ch.charCodeAt(0)
+        )
+      );
 
       // If animal already exists, skip
       if (processedTags.has(animalEarTag)) {
@@ -249,15 +305,8 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
 
       // Extract animal data from pedigree section (normalize dam/sire)
       const birthDate = parseFormDate(cleanValue(data[4]?.[2])); // Row 5, Column B
-      const sexRaw = cleanValue(data[4]?.[6]); // Row 5, Column G (index 6)
-      const sex =
-        sexRaw == null
-          ? null
-          : /^f/i.test(sexRaw)
-          ? "Female"
-          : /^m/i.test(sexRaw)
-          ? "Male"
-          : null;
+      const sex = findSexInSheet(data);
+
       const damRaw = cleanValue(data[5]?.[1]); // Row 6, Column B
       const sireRaw = cleanValue(data[5]?.[3]); // Row 6, Column D
       const damEarTag = canonicalizeTag(damRaw);
@@ -276,6 +325,8 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
         weight: weaningWeight,
       });
       processedTags.add(animalEarTag);
+      console.log("processsed tag to add");
+      console.log(processedTags.add(animalEarTag));
 
       // Process breeding records (rows 21-26 in the form)
       for (let rowIdx = 20; rowIdx <= 25; rowIdx++) {
@@ -296,6 +347,8 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
             birth_weight: null,
           });
 
+          console.log(allCalvingsToCreate);
+
           // Also create the calf animal if it doesn't exist
           if (!processedTags.has(calfTag)) {
             allAnimalsToCreate.push({
@@ -308,6 +361,7 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
               weight: null,
             });
             processedTags.add(calfTag);
+            console.log(processedTags.add(calfTag));
           } else {
             results.skipped++;
           }
