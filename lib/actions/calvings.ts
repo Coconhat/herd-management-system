@@ -4,6 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+export type CalvingWithDetails = Calving & {
+  animals: {
+    ear_tag: string;
+    name: string | null;
+  } | null;
+};
+
 export interface Calving {
   id: number;
   animal_id: number;
@@ -15,6 +22,33 @@ export interface Calving {
   notes?: string;
   user_id: string;
   created_at: string;
+}
+
+export async function getCalvingsWithDetails(): Promise<CalvingWithDetails[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("calvings")
+    .select(
+      `
+            *,
+            animals ( ear_tag, name )
+        `
+    )
+    .eq("user_id", user.id)
+    .order("calving_date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching detailed calvings:", error);
+    return [];
+  }
+
+  return data as CalvingWithDetails[];
 }
 
 export async function getCalvingsByAnimalId(
