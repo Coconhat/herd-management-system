@@ -180,15 +180,15 @@ function parseFormDate(dateStr: any): string | null {
     .replace(/\./g, "-")
     .replace(/\//g, "-")
     .split("-")
-    .map((p) => p.trim())
+    .map((p: any) => p.trim())
     .filter(Boolean);
   if (parts.length !== 3) return null;
 
   // If any part is 4-digit, that's the year
-  let yearIndex = parts.findIndex((p) => p.length === 4);
+  let yearIndex = parts.findIndex((p: any) => p.length === 4);
   if (yearIndex === -1) {
     // if any part > 31 (impossible day) it's likely the year
-    yearIndex = parts.findIndex((p) => {
+    yearIndex = parts.findIndex((p: any) => {
       const n = parseInt(p, 10);
       return !isNaN(n) && n > 31;
     });
@@ -203,7 +203,7 @@ function parseFormDate(dateStr: any): string | null {
   year = year.padStart(4, "0");
 
   // remaining two parts are month/day but order may vary — choose by heuristic
-  const others = parts.filter((_, i) => i !== yearIndex);
+  const others = parts.filter((_: any, i: any) => i !== yearIndex);
   if (others.length !== 2) return null;
   let [a, b] = others;
   const ai = parseInt(a, 10),
