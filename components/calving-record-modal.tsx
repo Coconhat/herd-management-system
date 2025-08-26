@@ -168,6 +168,7 @@ export function CalvingRecordModal({
                 id="calf_ear_tag"
                 name="calf_ear_tag"
                 placeholder="e.g., 201"
+                required
               />
             </div>
 
