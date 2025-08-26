@@ -15,6 +15,7 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronRight,
+  Upload,
 } from "lucide-react";
 
 // Navigation structure
@@ -46,6 +47,7 @@ const navigation = [
       },
     ],
   },
+  { name: "Upload", icon: Upload, current: false, href: "/upload" },
 ];
 
 // Desktop Sidebar Component
