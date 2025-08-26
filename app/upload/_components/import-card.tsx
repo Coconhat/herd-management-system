@@ -83,10 +83,7 @@ export function ImportCard() {
     <Card>
       <CardHeader>
         <CardTitle>Upload Animal Records File</CardTitle>
-        <CardDescription>
-          Upload a multi-sheet XLSX file where each sheet is a complete animal
-          record.
-        </CardDescription>
+        <CardDescription>temporary closed for maintenance</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -96,6 +93,7 @@ export function ImportCard() {
             accept=".xlsx"
             onChange={handleFileChange}
             className="max-w-xs"
+            disabled
           />
           <Button onClick={handleImport} disabled={!file || isPending}>
             <UploadCloud className="mr-2 h-4 w-4" />
