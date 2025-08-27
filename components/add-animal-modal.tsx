@@ -208,6 +208,15 @@ export function AddAnimalModal({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
+                  {animals.sex === "female" && (
+                    <div>
+                      <SelectItem value="fresh">Fresh</SelectItem>
+                      <SelectItem value="hit-detection">Pregnant</SelectItem>
+                      <SelectItem value="Pregnant">Pregnant</SelectItem>
+                      <SelectItem value="empty">Empty</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                    </div>
+                  )}
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Sold">Sold</SelectItem>
                   <SelectItem value="Deceased">Deceased</SelectItem>

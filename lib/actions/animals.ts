@@ -213,3 +213,16 @@ export async function getAnimalStats() {
     pregnantCows: pregnantCows || 0,
   };
 }
+
+export async function getClassification(animals: Animal[]) {
+  return animals.map((animal) => {
+    if (animal.birth_date) {
+      const age =
+        new Date().getFullYear() - new Date(animal.birth_date).getFullYear();
+      if (age < 1) return "Calf";
+      if (age < 3) return "Heifer";
+      return "Cow";
+    }
+    return "Unknown";
+  });
+}

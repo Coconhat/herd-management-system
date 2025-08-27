@@ -48,6 +48,24 @@ export function DashboardContent({ animals }: DashboardContentProps) {
     return new Date(dateString).toLocaleDateString();
   };
 
+  function getClassification(animal: Animal) {
+    if (animal.birth_date) {
+      const birth = new Date(animal.birth_date);
+      const today = new Date();
+      const diffTime = today.getTime() - birth.getTime();
+      const ageInDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (ageInDays >= 1 && ageInDays <= 90) return "Newly Calved";
+      if (ageInDays >= 91 && ageInDays <= 180) return "Weaning";
+      if (ageInDays >= 181 && ageInDays <= 360) return "Yearling";
+      if (ageInDays >= 361 && ageInDays <= 450) return "Heifer";
+      if (ageInDays >= 451 && ageInDays <= 540) return "Breedable Heifer";
+
+      return "Fully Grown";
+    }
+    return "Unknown";
+  }
+
   return (
     <>
       {/* Action Buttons and Search */}
@@ -90,9 +108,9 @@ export function DashboardContent({ animals }: DashboardContentProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Ear Tag</TableHead>
-                  <TableHead>Name</TableHead>
                   <TableHead>Sex</TableHead>
                   <TableHead>Age</TableHead>
+                  <TableHead>Classification</TableHead>
                   <TableHead>Birth Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -104,7 +122,6 @@ export function DashboardContent({ animals }: DashboardContentProps) {
                     <TableCell className="font-medium">
                       {animal.ear_tag}
                     </TableCell>
-                    <TableCell>{animal.name || "—"}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -116,6 +133,15 @@ export function DashboardContent({ animals }: DashboardContentProps) {
                     </TableCell>
                     <TableCell>
                       {animal.birth_date ? formatAge(animal.birth_date) : "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {animal.birth_date ? (
+                        <Badge variant="outline">
+                          {getClassification(animal)}
+                        </Badge>
+                      ) : (
+                        "N/A"
+                      )}
                     </TableCell>
                     <TableCell>{formatDate(animal.birth_date)}</TableCell>
                     <TableCell>
