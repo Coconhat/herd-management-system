@@ -225,7 +225,6 @@ export async function deleteAnimal(id: number) {
     }
 
     // 4) Clear dam_id / sire_id from other animals that reference this animal
-    //    (safer than deleting offspring)
     const { error: clearDamError } = await supabase
       .from("animals")
       .update({ dam_id: null })
@@ -258,10 +257,7 @@ export async function deleteAnimal(id: number) {
       throw animalError;
     }
 
-    // 6) Revalidate UI route(s)
-    revalidatePath("/"); // change if your dashboard route differs
-
-    // If you want, return info about what got deleted for confirming:
+    revalidatePath("/");
     return {
       deletedCalvings: deletedCalvings?.map((c: any) => c.id) ?? [],
       success: true,
