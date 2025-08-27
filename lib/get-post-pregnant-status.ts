@@ -54,7 +54,7 @@ export function getPostPregnantStatus(
 
   if (daysSince >= 0 && daysSince <= 48)
     return { label: "Fresh", variant: "default" };
-  if (daysSince >= 49)
+  if (daysSince >= 49 && daysSince <= 365)
     return { label: "Heat Detection", variant: "destructive" };
 
   return { label: "Open", variant: "outline" };
