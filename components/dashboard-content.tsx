@@ -26,12 +26,16 @@ import { AddAnimalModal } from "@/components/add-animal-modal";
 import { useToast } from "@/hooks/use-toast";
 import { formatAge } from "@/lib/utils";
 import Link from "next/link";
+import type { Calving } from "@/lib/types";
+import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
+import { getClassification } from "@/lib/get-classification";
 
 interface DashboardContentProps {
   animals: Animal[];
+  calvings: Calving[];
 }
 
-export function DashboardContent({ animals }: DashboardContentProps) {
+export function DashboardContent({ animals, calvings }: DashboardContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [calvingModalOpen, setCalvingModalOpen] = useState(false);
   const [addAnimalModalOpen, setAddAnimalModalOpen] = useState(false);
@@ -47,35 +51,6 @@ export function DashboardContent({ animals }: DashboardContentProps) {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString();
   };
-
-  // this function is used to determine the classification of an animal based on its age
-  // it returns a string representing the classification
-  // ADD THIS TO LIB FOLDER SOON!!!
-  function getClassification(animal: Animal): {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-  } {
-    if (animal.birth_date) {
-      const birth = new Date(animal.birth_date);
-      const today = new Date();
-      const diffTime = today.getTime() - birth.getTime();
-      const ageInDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (ageInDays >= 1 && ageInDays <= 90)
-        return { label: "Newly Calved", variant: "default" }; // green/primary
-      if (ageInDays >= 91 && ageInDays <= 180)
-        return { label: "Weaning", variant: "secondary" }; // gray
-      if (ageInDays >= 181 && ageInDays <= 360)
-        return { label: "Yearling", variant: "outline" }; // neutral border
-      if (ageInDays >= 361 && ageInDays <= 450)
-        return { label: "Heifer", variant: "default" }; // green
-      if (ageInDays >= 451 && ageInDays <= 540)
-        return { label: "Breedable Heifer", variant: "destructive" }; // red
-
-      return { label: "Fully Grown", variant: "secondary" }; // gray
-    }
-    return { label: "Unknown", variant: "outline" };
-  }
 
   return (
     <>
@@ -155,18 +130,27 @@ export function DashboardContent({ animals }: DashboardContentProps) {
                         : "N/A"}
                     </TableCell>
                     <TableCell>{formatDate(animal.birth_date)}</TableCell>
+
+                    {/* Status column now shows animal.status and postpartum/pregnancy badge for females */}
                     <TableCell>
-                      <Badge
-                        variant={
-                          animal.status === "Active" ? "default" : "secondary"
-                        }
-                        className={
-                          animal.status === "Active" ? "bg-primary" : ""
-                        }
-                      >
-                        {animal.status}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        {animal.sex === "Female"
+                          ? (() => {
+                              const { label, variant } = getPostPregnantStatus(
+                                animal,
+                                calvings
+                                // , manualStatusIfAny <- if you store manual selection on animal, pass it here
+                              );
+                              return (
+                                <Badge variant={variant} className="text-xs">
+                                  {label}
+                                </Badge>
+                              );
+                            })()
+                          : null}
+                      </div>
                     </TableCell>
+
                     <TableCell>
                       <Link href={`/animal/${animal.id}`}>
                         <Button variant="ghost" size="sm">
