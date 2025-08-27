@@ -1,33 +1,33 @@
-import { Suspense } from "react"
-import { notFound } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { ArrowLeft, Edit } from "lucide-react"
-import { getAnimalById } from "@/lib/actions/animals"
-import { AnimalProfileContent } from "@/components/animal-profile-content"
-import Link from "next/link"
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ArrowLeft, Edit } from "lucide-react";
+import { getAnimalByEarTag, getAnimalById } from "@/lib/actions/animals";
+import { AnimalProfileContent } from "@/components/animal-profile-content";
+import Link from "next/link";
 
 interface AnimalProfilePageProps {
   params: {
-    id: string
-  }
+    ear_tag: string;
+  };
 }
 
-async function AnimalData({ id }: { id: number }) {
-  const animal = await getAnimalById(id)
+async function AnimalData({ ear_tag }: { ear_tag: string }) {
+  const animal = await getAnimalByEarTag(ear_tag);
 
   if (!animal) {
-    notFound()
+    notFound();
   }
 
-  return <AnimalProfileContent animal={animal} />
+  return <AnimalProfileContent animal={animal} />;
 }
 
 export default function AnimalProfile({ params }: AnimalProfilePageProps) {
-  const animalId = Number.parseInt(params.id)
+  const animalEarTag = params.ear_tag;
 
-  if (isNaN(animalId)) {
-    notFound()
+  if (!animalEarTag) {
+    notFound();
   }
 
   return (
@@ -44,10 +44,18 @@ export default function AnimalProfile({ params }: AnimalProfilePageProps) {
                 </Button>
               </Link>
               <div>
-                <Suspense fallback={<div className="h-8 w-48 bg-muted animate-pulse rounded" />}>
-                  <h1 className="text-2xl font-bold text-foreground">Animal Profile</h1>
+                <Suspense
+                  fallback={
+                    <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+                  }
+                >
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Animal Profile
+                  </h1>
                 </Suspense>
-                <p className="text-muted-foreground">Animal ID: {animalId}</p>
+                <p className="text-muted-foreground">
+                  Animal Ear Tag: {animalEarTag}
+                </p>
               </div>
             </div>
             <Button variant="outline" size="sm">
@@ -83,7 +91,10 @@ export default function AnimalProfile({ params }: AnimalProfilePageProps) {
               <div className="space-y-4">
                 <div className="flex space-x-1 bg-muted p-1 rounded-lg">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-10 w-32 bg-background animate-pulse rounded" />
+                    <div
+                      key={i}
+                      className="h-10 w-32 bg-background animate-pulse rounded"
+                    />
                   ))}
                 </div>
                 <Card>
@@ -96,7 +107,10 @@ export default function AnimalProfile({ params }: AnimalProfilePageProps) {
                       {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex space-x-4">
                           {[...Array(6)].map((_, j) => (
-                            <div key={j} className="h-4 w-20 bg-muted animate-pulse rounded" />
+                            <div
+                              key={j}
+                              className="h-4 w-20 bg-muted animate-pulse rounded"
+                            />
                           ))}
                         </div>
                       ))}
@@ -107,9 +121,9 @@ export default function AnimalProfile({ params }: AnimalProfilePageProps) {
             </div>
           }
         >
-          <AnimalData id={animalId} />
+          <AnimalData ear_tag={animalEarTag} />
         </Suspense>
       </div>
     </div>
-  )
+  );
 }

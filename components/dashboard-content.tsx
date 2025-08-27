@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Ellipsis } from "lucide-react";
-import type { Animal } from "@/lib/actions/animals";
+import { deleteAnimal, type Animal } from "@/lib/actions/animals";
 import { CalvingRecordModal } from "@/components/calving-record-modal";
 import { AddAnimalModal } from "@/components/add-animal-modal";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,7 @@ import Link from "next/link";
 import type { Calving } from "@/lib/types";
 import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
+import DeleteAnimalModal from "./delete-animal-modal";
 
 interface DashboardContentProps {
   animals: Animal[];
@@ -46,6 +47,11 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [calvingModalOpen, setCalvingModalOpen] = useState(false);
   const [addAnimalModalOpen, setAddAnimalModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedAnimal, setSelectedAnimal] = useState<string | number | null>(
+    null
+  );
+
   const { toast } = useToast();
 
   const filteredAnimals = animals.filter(
@@ -167,14 +173,22 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem asChild>
-                            <Link href={`/animal/${animal.id}`}>
+                            <Link href={`/animal/${animal.ear_tag}`}>
                               View Details
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/animal/${animal.id}/edit`}>Edit</Link>
+                            <Link href={`/animal/${animal.ear_tag}/edit`}>
+                              Edit
+                            </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive">
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => {
+                              setDeleteModalOpen(true);
+                              setSelectedAnimal(animal.id);
+                            }}
+                          >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -198,6 +212,11 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
         open={addAnimalModalOpen}
         onOpenChange={setAddAnimalModalOpen}
         animals={animals}
+      />
+      <DeleteAnimalModal
+        animal={animals.find((a) => a.id === selectedAnimal) || null}
+        isOpen={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
       />
     </>
   );

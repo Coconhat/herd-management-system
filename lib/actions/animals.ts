@@ -18,6 +18,7 @@ export interface Animal {
   user_id: string;
   created_at: string;
   updated_at: string;
+  breed: string;
   calvings: Calving[];
 }
 
@@ -58,6 +59,31 @@ export async function getAnimalById(id: number): Promise<Animal | null> {
     .from("animals")
     .select("*, calvings(*)")
     .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching animal:", error);
+    return null;
+  }
+
+  return data;
+}
+export async function getAnimalByEarTag(
+  earTag: string
+): Promise<Animal | null> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  const { data, error } = await supabase
+    .from("animals")
+    .select("*, calvings(*)")
+    .eq("ear_tag", earTag)
     .single();
 
   if (error) {
@@ -154,18 +180,98 @@ export async function deleteAnimal(id: number) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) {
     redirect("/auth/login");
   }
 
-  const { error } = await supabase.from("animals").delete().eq("id", id);
+  try {
+    // 1) Delete calvings where this animal is the dam (calvings.animal_id)
+    const { error: calvingError, data: deletedCalvings } = await supabase
+      .from("calvings")
+      .delete()
+      .eq("animal_id", id)
+      .eq("user_id", user.id)
+      .select("id"); // return deleted ids for debugging
 
-  if (error) {
-    console.error("Error deleting animal:", error);
-    throw new Error("Failed to delete animal");
+    if (calvingError) {
+      console.error("Failed to delete calvings for animal:", calvingError);
+      throw calvingError;
+    }
+
+    // 2) (Optional) Delete health_records for this animal
+    const { error: healthError } = await supabase
+      .from("health_records")
+      .delete()
+      .eq("animal_id", id)
+      .eq("user_id", user.id);
+    if (healthError) {
+      console.error("Failed to delete health_records for animal:", healthError);
+      throw healthError;
+    }
+
+    // 3) (Optional) Delete breeding_records for this animal
+    const { error: breedingError } = await supabase
+      .from("breeding_records")
+      .delete()
+      .eq("animal_id", id)
+      .eq("user_id", user.id);
+    if (breedingError) {
+      console.error(
+        "Failed to delete breeding_records for animal:",
+        breedingError
+      );
+      throw breedingError;
+    }
+
+    // 4) Clear dam_id / sire_id from other animals that reference this animal
+    //    (safer than deleting offspring)
+    const { error: clearDamError } = await supabase
+      .from("animals")
+      .update({ dam_id: null })
+      .eq("dam_id", id)
+      .eq("user_id", user.id);
+    if (clearDamError) {
+      console.error("Failed to clear dam_id refs:", clearDamError);
+      throw clearDamError;
+    }
+
+    const { error: clearSireError } = await supabase
+      .from("animals")
+      .update({ sire_id: null })
+      .eq("sire_id", id)
+      .eq("user_id", user.id);
+    if (clearSireError) {
+      console.error("Failed to clear sire_id refs:", clearSireError);
+      throw clearSireError;
+    }
+
+    // 5) Finally delete the animal itself
+    const { error: animalError } = await supabase
+      .from("animals")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (animalError) {
+      console.error("Error deleting animal:", animalError);
+      throw animalError;
+    }
+
+    // 6) Revalidate UI route(s)
+    revalidatePath("/"); // change if your dashboard route differs
+
+    // If you want, return info about what got deleted for confirming:
+    return {
+      deletedCalvings: deletedCalvings?.map((c: any) => c.id) ?? [],
+      success: true,
+    };
+  } catch (err: any) {
+    console.error("deleteAnimal failed:", err);
+    throw new Error(
+      err?.message || "Failed to delete animal and related records"
+    );
   }
-
-  revalidatePath("/");
 }
 
 export async function getAnimalStats() {
