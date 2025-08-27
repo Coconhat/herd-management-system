@@ -48,22 +48,33 @@ export function DashboardContent({ animals }: DashboardContentProps) {
     return new Date(dateString).toLocaleDateString();
   };
 
-  function getClassification(animal: Animal) {
+  // this function is used to determine the classification of an animal based on its age
+  // it returns a string representing the classification
+  // ADD THIS TO LIB FOLDER SOON!!!
+  function getClassification(animal: Animal): {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  } {
     if (animal.birth_date) {
       const birth = new Date(animal.birth_date);
       const today = new Date();
       const diffTime = today.getTime() - birth.getTime();
       const ageInDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      if (ageInDays >= 1 && ageInDays <= 90) return "Newly Calved";
-      if (ageInDays >= 91 && ageInDays <= 180) return "Weaning";
-      if (ageInDays >= 181 && ageInDays <= 360) return "Yearling";
-      if (ageInDays >= 361 && ageInDays <= 450) return "Heifer";
-      if (ageInDays >= 451 && ageInDays <= 540) return "Breedable Heifer";
+      if (ageInDays >= 1 && ageInDays <= 90)
+        return { label: "Newly Calved", variant: "default" }; // green/primary
+      if (ageInDays >= 91 && ageInDays <= 180)
+        return { label: "Weaning", variant: "secondary" }; // gray
+      if (ageInDays >= 181 && ageInDays <= 360)
+        return { label: "Yearling", variant: "outline" }; // neutral border
+      if (ageInDays >= 361 && ageInDays <= 450)
+        return { label: "Heifer", variant: "default" }; // green
+      if (ageInDays >= 451 && ageInDays <= 540)
+        return { label: "Breedable Heifer", variant: "destructive" }; // red
 
-      return "Fully Grown";
+      return { label: "Fully Grown", variant: "secondary" }; // gray
     }
-    return "Unknown";
+    return { label: "Unknown", variant: "outline" };
   }
 
   return (
@@ -135,13 +146,13 @@ export function DashboardContent({ animals }: DashboardContentProps) {
                       {animal.birth_date ? formatAge(animal.birth_date) : "N/A"}
                     </TableCell>
                     <TableCell>
-                      {animal.birth_date ? (
-                        <Badge variant="outline">
-                          {getClassification(animal)}
-                        </Badge>
-                      ) : (
-                        "N/A"
-                      )}
+                      {animal.birth_date
+                        ? (() => {
+                            const { label, variant } =
+                              getClassification(animal);
+                            return <Badge variant={variant}>{label}</Badge>;
+                          })()
+                        : "N/A"}
                     </TableCell>
                     <TableCell>{formatDate(animal.birth_date)}</TableCell>
                     <TableCell>
