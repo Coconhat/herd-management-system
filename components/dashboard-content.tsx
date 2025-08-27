@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+
+import {
   Card,
   CardContent,
   CardDescription,
@@ -19,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Ellipsis } from "lucide-react";
 import type { Animal } from "@/lib/actions/animals";
 import { CalvingRecordModal } from "@/components/calving-record-modal";
 import { AddAnimalModal } from "@/components/add-animal-modal";
@@ -152,11 +159,26 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
                     </TableCell>
 
                     <TableCell>
-                      <Link href={`/animal/${animal.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
-                      </Link>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Ellipsis />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/animal/${animal.id}`}>
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/animal/${animal.id}/edit`}>Edit</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
