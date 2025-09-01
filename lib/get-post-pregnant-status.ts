@@ -3,6 +3,7 @@ import type { Calving } from "@/lib/types";
 
 type ManualPregStatus = "Pregnant" | "Empty" | "Open" | null;
 
+//DONT USE THIS OUTDATED!!!
 export function getPostPregnantStatus(
   animal: Animal,
   calvings: Calving[] = [], // default to empty array

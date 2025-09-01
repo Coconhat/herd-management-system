@@ -28,7 +28,6 @@ import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
 import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
 import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding";
 import { formatAge, formatWeight } from "@/lib/utils";
-import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 
 interface AnimalProfileContentProps {
   animal: Animal;
@@ -121,20 +120,11 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
               <label className="text-sm font-medium text-muted-foreground mr-4">
                 Status
               </label>
-
-              {animal.sex === "Female"
-                ? (() => {
-                    const { label, variant } = getPostPregnantStatus(
-                      animal,
-                      calvings
-                    );
-                    return (
-                      <Badge variant={variant} className="text-xs">
-                        {label}
-                      </Badge>
-                    );
-                  })()
-                : null}
+              <Badge
+                variant={animal.sex === "Female" ? "secondary" : "outline"}
+              >
+                {animal.sex === "Female" ? animal.status : null}
+              </Badge>
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">

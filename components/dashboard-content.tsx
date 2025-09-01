@@ -147,20 +147,15 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
                     {/* Status column now shows animal.status and postpartum/pregnancy badge for females */}
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        {animal.sex === "Female"
-                          ? (() => {
-                              const { label, variant } = getPostPregnantStatus(
-                                animal,
-                                calvings
-                                // , manualStatusIfAny <- if you store manual selection on animal, pass it here
-                              );
-                              return (
-                                <Badge variant={variant} className="text-xs">
-                                  {label}
-                                </Badge>
-                              );
-                            })()
-                          : null}
+                        <Badge
+                          variant={
+                            animal.status === "Pregnant"
+                              ? "secondary"
+                              : "outline"
+                          }
+                        >
+                          {animal.sex === "Female" ? animal.status : null}
+                        </Badge>
                       </div>
                     </TableCell>
 
@@ -206,7 +201,13 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
       <CalvingRecordModal
         open={calvingModalOpen}
         onOpenChange={setCalvingModalOpen}
-        animals={animals}
+        pregnantAnimals={animals.filter((a) => {
+          if (a.sex === "Female") {
+            const { label } = getPostPregnantStatus(a, calvings);
+            return label === "Pregnant";
+          }
+          return false;
+        })}
       />
       <AddAnimalModal
         open={addAnimalModalOpen}
