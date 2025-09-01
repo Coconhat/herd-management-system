@@ -306,9 +306,9 @@ export async function getAnimalStats() {
 
   // Get pregnant cows (confirmed pregnant in breeding records)
   const { count: pregnantCows } = await supabase
-    .from("breeding_records")
+    .from("animals")
     .select("*", { count: "exact", head: true })
-    .eq("confirmed_pregnant", true);
+    .eq("status", "Pregnant");
 
   return {
     totalAnimals: totalAnimals || 0,
