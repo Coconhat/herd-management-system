@@ -110,7 +110,7 @@ export default function EditAnimalForm({
           title: "Update Successful",
           description: `${earTag} has been updated.`,
         });
-        router.push(`/animal/${animal.id}`);
+        router.push(`/animal/${animal.ear_tag}`);
         router.refresh(); // Important: tell Next.js to re-fetch data on the profile page
       } catch (error) {
         toast({
