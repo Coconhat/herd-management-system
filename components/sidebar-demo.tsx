@@ -32,6 +32,8 @@ const navigation = [
       { name: "Record Milking", icon: TrendingUp, href: "/record/milking" },
     ],
   },
+  { name: "Pregnancy", icon: Home, current: false, href: "/pregnancy" },
+
   {
     name: "Inventory",
     icon: FileText,

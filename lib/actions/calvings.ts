@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { addDays, parseISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -30,65 +31,141 @@ export async function createCalvingFromPregnancy(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Authentication required.");
-  // --- 1. GATHER DATA FROM THE FORM ---
+
   const damId = Number(formData.get("animal_id"));
-  const sireId = Number(formData.get("sire_ear_tag")) || null;
   const breedingRecordId = Number(formData.get("breeding_record_id"));
-  const calvingDate = formData.get("calving_date") as string;
-  const calfEarTag = formData.get("calf_ear_tag") as string;
-  if (!damId || !breedingRecordId || !calvingDate || !calfEarTag) {
+  const calvingDateStr = formData.get("calving_date") as string;
+  const calfEarTag = (formData.get("calf_ear_tag") as string) || "";
+  const calfName = (formData.get("calf_name") as string) || null;
+  const calfSex = (formData.get("calf_sex") as "Male" | "Female") || null;
+  const birthWeight = formData.get("birth_weight")
+    ? Number(formData.get("birth_weight"))
+    : null;
+  const complications = (formData.get("complications") as string) || null;
+  const notes = (formData.get("notes") as string) || null;
+
+  if (!damId || !breedingRecordId || !calvingDateStr) {
     throw new Error("Missing required information to record calving.");
   }
-  // --- 2. CREATE THE CALF as a new animal ---
-  const newAnimalData = {
-    user_id: user.id,
-    ear_tag: calfEarTag.trim(),
-    name: (formData.get("calf_name") as string) || null,
-    sex: formData.get("calf_sex") as "Male" | "Female",
-    birth_date: calvingDate,
-    dam_id: damId,
-    sire_ear_tag: sireId,
-    status: "Active" as const,
-  };
-  const { data: newAnimal, error: animalError } = await supabase
-    .from("animals")
-    .insert(newAnimalData)
-    .select("id")
-    .single();
-  if (animalError) {
-    console.error("Error creating new calf animal:", animalError);
-    throw new Error(
-      `Failed to create new calf in inventory: ${animalError.message}`
-    );
-  }
-  // --- 3. CREATE THE CALVING event record ---
-  const outcome = (formData.get("complications") as string) || "Live Birth";
+
+  // Step 1: insert calving record
   const calvingData = {
     user_id: user.id,
-    animal_id: damId, // The mother
-    breeding_id: breedingRecordId, // Link to the pregnancy record
-    calving_date: calvingDate,
-    calf_ear_tag: calfEarTag.trim(),
-    calf_sex: newAnimalData.sex,
-    birth_weight: Number(formData.get("birth_weight")) || null,
-    complications: outcome === "Live Birth" ? null : outcome,
-    assistance_required: outcome === "Assisted",
+    animal_id: damId,
+    breeding_id: breedingRecordId,
+    calving_date: calvingDateStr,
+    calf_ear_tag: calfEarTag ? calfEarTag.trim() : null,
+    calf_sex: calfSex,
+    birth_weight: birthWeight,
+    complications: complications === "Live Birth" ? null : complications,
+    notes,
   };
-  const { error: calvingError } = await supabase
+
+  const { data: newCalving, error: calvingError } = await supabase
     .from("calvings")
-    .insert(calvingData);
+    .insert(calvingData)
+    .select("id")
+    .single();
+
   if (calvingError) {
     console.error("Error creating calving record:", calvingError);
-    // You might want to delete the calf that was just created to avoid orphaned records.
-    // await supabase.from('animals').delete().eq('id', newAnimal.id);
     throw new Error(`Failed to create calving event: ${calvingError.message}`);
   }
-  // --- 4. (OPTIONAL BUT RECOMMENDED) UPDATE the original breeding record ---
-  // This helps "close the loop" on the pregnancy. You could mark it as 'Completed'.
-  // For now, we will leave it, as the presence of a linked calving record implies completion.
-  // --- 5. REVALIDATE paths to refresh the UI ---
-  revalidatePath("/record/breeding", "layout");
+
+  // Step 2: optionally create the calf as a new animal (when ear tag provided)
+  if (calfEarTag && calfEarTag.trim() !== "") {
+    const newAnimalData = {
+      user_id: user.id,
+      ear_tag: calfEarTag.trim(),
+      name: calfName?.trim() || null,
+      sex: calfSex || null,
+      birth_date: calvingDateStr,
+      dam_id: damId,
+      notes: `Born from calving event #${newCalving.id}`,
+      status: "Active" as const,
+    };
+
+    const { error: animalError } = await supabase
+      .from("animals")
+      .insert(newAnimalData);
+    if (animalError) {
+      console.error("Error creating calf animal:", animalError);
+      // Do not abort the entire operation — calving is recorded, but surface the error.
+      throw new Error(
+        "Calving recorded but failed to create calf in inventory."
+      );
+    }
+  }
+
+  // Step 3: update the dam's status to Empty and set reopen_date = calving_date + 60 days
+  let reopenDateIso: string | null = null;
+  try {
+    const calvingDate = parseISO(calvingDateStr);
+    const reopenDate = addDays(calvingDate, 60);
+    reopenDateIso = reopenDate.toISOString().split("T")[0];
+  } catch (err) {
+    // fallback to now + 60 days if parsing fails (shouldn't normally)
+    reopenDateIso = addDays(new Date(), 60).toISOString().split("T")[0];
+  }
+
+  const { error: updateAnimalErr } = await supabase
+    .from("animals")
+    .update({
+      status: "Empty",
+      reopen_date: reopenDateIso,
+      expected_calving_date: null,
+    })
+    .eq("id", damId);
+
+  if (updateAnimalErr) {
+    console.error("Error updating dam after calving:", updateAnimalErr);
+    throw new Error("Calving recorded but failed to update dam status.");
+  }
+
+  // Step 4: create a notification for when the animal should become Active again (reopen)
+  try {
+    await supabase.from("notifications").insert({
+      user_id: user.id,
+      animal_id: damId,
+      title: "Cow ready for breeding",
+      body: `Animal ${damId} will be available for breeding on ${reopenDateIso}.`,
+      scheduled_for: reopenDateIso,
+      channel: "in_app",
+      metadata: { calving_id: newCalving.id, dam_id: damId },
+      created_at: new Date().toISOString(),
+      read: false,
+      sent: false,
+    });
+  } catch (notifErr) {
+    // If notifications table missing or insert fails, just log and continue.
+    console.warn("Failed to create reopen notification (non-fatal):", notifErr);
+  }
+
+  // Step 5: Mark the breeding record as no longer pregnant after calving
+  const { error: breedingUpdateErr } = await supabase
+    .from("breeding_records")
+    .update({
+      confirmed_pregnant: false, // No longer pregnant after calving
+      pd_result: "Empty", // Reset pregnancy diagnosis result
+    })
+    .eq("id", breedingRecordId);
+
+  if (breedingUpdateErr) {
+    console.error(
+      "Error updating breeding record after calving:",
+      breedingUpdateErr
+    );
+    // Non-fatal error, continue with the process
+    console.warn("Breeding record may still show as active after calving");
+  }
+
+  // Step 6: revalidate UI paths
+  revalidatePath("/"); // adjust as needed
   revalidatePath(`/animal/${damId}`);
+  revalidatePath("/record/breeding", "layout");
+  revalidatePath("/pregnancy"); // Make sure the pregnancy page is updated
+
+  return { calvingId: newCalving.id, reopenDate: reopenDateIso };
 }
 
 export async function getCalvingsWithDetails(): Promise<CalvingWithDetails[]> {
@@ -238,7 +315,7 @@ export async function getPregnantAnimals() {
     redirect("/auth/login");
   }
 
-  // Get animals that have confirmed pregnancies
+  // get animals that have status "Pregnant" and have a breeding_record flagged as confirmed_pregnant = true
   const { data, error } = await supabase
     .from("animals")
     .select(
@@ -246,12 +323,13 @@ export async function getPregnantAnimals() {
       id,
       ear_tag,
       name,
-      breeding_records!inner(confirmed_pregnant)
+      status,
+      breeding_records ( id, breeding_date, expected_calving_date, pd_result, confirmed_pregnant )
     `
     )
-    .eq("status", "Active")
     .eq("sex", "Female")
-    .eq("breeding_records.confirmed_pregnant", true);
+    .eq("status", "Pregnant") // Only include animals with status "Pregnant"
+    .filter("breeding_records.confirmed_pregnant", "eq", true);
 
   if (error) {
     console.error("Error fetching pregnant animals:", error);

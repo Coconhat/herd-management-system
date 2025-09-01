@@ -26,7 +26,7 @@ import type { CalvingWithDetails } from "@/lib/actions/calvings";
 import { getAnimals } from "@/lib/actions/animals";
 import type { Animal } from "@/lib/actions/animals";
 import { CalvingRecordModal } from "@/components/calving-record-modal";
-import { formatWeight } from "@/lib/utils";
+import { formatWeight, getPregnancyCheckDueDate } from "@/lib/utils";
 import type { BreedingRecord } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { addDays, isAfter, parseISO, set } from "date-fns";
@@ -232,22 +232,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         new Date(b.breeding_date).getTime() -
         new Date(a.breeding_date).getTime()
     );
-
-  // helper for pregnancy check due date (prefer stored value, else +29)
-  const getPregnancyCheckDueDate = (rec: BreedingRecord) => {
-    if (rec.pregnancy_check_due_date) {
-      try {
-        return parseISO(rec.pregnancy_check_due_date);
-      } catch {
-        /* fallthrough */
-      }
-    }
-    try {
-      return addDays(parseISO(rec.breeding_date), 29);
-    } catch {
-      return null;
-    }
-  };
 
   // helper for expected calving (prefer stored, else +283)
   const getExpectedCalvingDate = (rec: BreedingRecord) => {

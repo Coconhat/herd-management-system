@@ -1,5 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { BreedingRecord } from "./types";
+import { addDays, parseISO } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -46,4 +48,20 @@ export function formatAge(birthDate: string): string {
   return `${years} year${years !== 1 ? "s" : ""}, ${months} month${
     months !== 1 ? "s" : ""
   }`;
+}
+
+// helper for pregnancy check due date (prefer stored value, else +29)
+export function getPregnancyCheckDueDate(rec: BreedingRecord) {
+  if (rec.pregnancy_check_due_date) {
+    try {
+      return parseISO(rec.pregnancy_check_due_date);
+    } catch {
+      /* fallthrough */
+    }
+  }
+  try {
+    return addDays(parseISO(rec.breeding_date), 29);
+  } catch {
+    return null;
+  }
 }
