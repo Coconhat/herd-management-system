@@ -187,4 +187,3 @@ export async function updateBreedingPDResult(
   revalidatePath("/record/breeding", "layout");
   if (animalId) revalidatePath(`/animal/${animalId}`);
 }
-export { BreedingRecord };

@@ -300,9 +300,65 @@ export async function createCalving(formData: FormData) {
     }
   }
 
-  // --- Step 4: Revalidate paths to update the UI ---
+  // --- Step 4: Update the dam's status to Empty and set reopen_date
+  let reopenDateIso: string | null = null;
+  try {
+    const calvingDateObj = parseISO(calvingDate);
+    const reopenDate = addDays(calvingDateObj, 60);
+    reopenDateIso = reopenDate.toISOString().split("T")[0];
+  } catch (err) {
+    // fallback to now + 60 days if parsing fails
+    reopenDateIso = addDays(new Date(), 60).toISOString().split("T")[0];
+  }
+
+  const { error: updateAnimalErr } = await supabase
+    .from("animals")
+    .update({
+      status: "Empty",
+      reopen_date: reopenDateIso,
+      expected_calving_date: null,
+    })
+    .eq("id", damId);
+
+  if (updateAnimalErr) {
+    console.error("Error updating dam after calving:", updateAnimalErr);
+    throw new Error("Calving recorded but failed to update dam status.");
+  }
+
+  // --- Step 5: If there's an active pregnancy, mark it as completed
+  const { data: breedingRecords, error: brFetchError } = await supabase
+    .from("breeding_records")
+    .select("id")
+    .eq("animal_id", damId)
+    .eq("confirmed_pregnant", true)
+    .limit(1);
+
+  if (!brFetchError && breedingRecords && breedingRecords.length > 0) {
+    const breedingRecordId = breedingRecords[0].id;
+
+    const { error: breedingUpdateErr } = await supabase
+      .from("breeding_records")
+      .update({
+        confirmed_pregnant: false,
+        pd_result: "Empty",
+      })
+      .eq("id", breedingRecordId);
+
+    if (breedingUpdateErr) {
+      console.error(
+        "Error updating breeding record after calving:",
+        breedingUpdateErr
+      );
+      // Non-fatal error, continue with the process
+      console.warn("Breeding record may still show as active after calving");
+    }
+  }
+
+  // --- Step 6: Revalidate paths to update the UI ---
   revalidatePath("/");
-  revalidatePath(`/animal/${calvingData.animal_id}`);
+  revalidatePath(`/animal/${damId}`);
+  revalidatePath("/record/breeding", "layout");
+  revalidatePath("/pregnancy"); // Make sure the pregnancy page is updated
 }
 
 export async function getPregnantAnimals() {
@@ -334,6 +390,11 @@ export async function getPregnantAnimals() {
   if (error) {
     console.error("Error fetching pregnant animals:", error);
     return [];
+  }
+
+  // Log message if no pregnant animals found (helpful for debugging)
+  if (!data || data.length === 0) {
+    console.info("No pregnant animals found in the system.");
   }
 
   return data || [];
