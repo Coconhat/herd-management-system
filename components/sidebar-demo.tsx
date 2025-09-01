@@ -27,12 +27,11 @@ const navigation = [
     current: false,
     isDropdown: true,
     children: [
-      { name: "Record Calving", icon: PawPrint, href: "/calving" },
+      { name: "Record Breeding", icon: PawPrint, href: "/record/breeding" },
       { name: "Record Animal", icon: Heart, href: "/record/animal" },
       { name: "Record Milking", icon: TrendingUp, href: "/record/milking" },
     ],
   },
-  { name: "Pregnancy", icon: Heart, current: false, href: "/pregnancy" },
   {
     name: "Inventory",
     icon: FileText,

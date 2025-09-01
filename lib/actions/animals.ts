@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Calving } from "../types";
+import { BreedingRecord } from "../types";
 
 export interface Animal {
   id: number;
@@ -20,6 +21,7 @@ export interface Animal {
   updated_at: string;
   breed: string;
   calvings: Calving[];
+  breeding_records: BreedingRecord[];
 }
 
 export async function getAnimals(): Promise<Animal[]> {
@@ -327,4 +329,44 @@ export async function getClassification(animals: Animal[]) {
     }
     return "Unknown";
   });
+}
+
+/**
+ * Fetches all active animals and eagerly loads their breeding and calving records.
+ * This is the primary data-fetching function for the Breeding Center page.
+ * It provides all the necessary data for calculating statuses and displaying history.
+ * @returns A promise that resolves to an array of Animal objects, each with its relations.
+ */
+export async function getAnimalsWithBreedingData(): Promise<Animal[]> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  // The key is in the .select() statement.
+  // It fetches all columns from `animals` (*), and for each animal,
+  // it fetches all matching records from the `breeding_records` and `calvings` tables.
+  const { data, error } = await supabase
+    .from("animals")
+    .select(
+      `
+      *,
+      breeding_records ( * ),
+      calvings ( * )
+    `
+    )
+    .eq("user_id", user.id)
+    .eq("status", "Active") // We typically only care about active animals for breeding
+    .order("ear_tag", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching animals with breeding data:", error);
+    throw new Error("Could not load breeding data. Please try again.");
+  }
+
+  return data || [];
 }

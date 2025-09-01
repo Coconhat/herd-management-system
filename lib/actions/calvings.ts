@@ -24,6 +24,73 @@ export interface Calving {
   created_at: string;
 }
 
+export async function createCalvingFromPregnancy(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Authentication required.");
+  // --- 1. GATHER DATA FROM THE FORM ---
+  const damId = Number(formData.get("animal_id"));
+  const sireId = Number(formData.get("sire_ear_tag")) || null;
+  const breedingRecordId = Number(formData.get("breeding_record_id"));
+  const calvingDate = formData.get("calving_date") as string;
+  const calfEarTag = formData.get("calf_ear_tag") as string;
+  if (!damId || !breedingRecordId || !calvingDate || !calfEarTag) {
+    throw new Error("Missing required information to record calving.");
+  }
+  // --- 2. CREATE THE CALF as a new animal ---
+  const newAnimalData = {
+    user_id: user.id,
+    ear_tag: calfEarTag.trim(),
+    name: (formData.get("calf_name") as string) || null,
+    sex: formData.get("calf_sex") as "Male" | "Female",
+    birth_date: calvingDate,
+    dam_id: damId,
+    sire_ear_tag: sireId,
+    status: "Active" as const,
+  };
+  const { data: newAnimal, error: animalError } = await supabase
+    .from("animals")
+    .insert(newAnimalData)
+    .select("id")
+    .single();
+  if (animalError) {
+    console.error("Error creating new calf animal:", animalError);
+    throw new Error(
+      `Failed to create new calf in inventory: ${animalError.message}`
+    );
+  }
+  // --- 3. CREATE THE CALVING event record ---
+  const outcome = (formData.get("complications") as string) || "Live Birth";
+  const calvingData = {
+    user_id: user.id,
+    animal_id: damId, // The mother
+    breeding_id: breedingRecordId, // Link to the pregnancy record
+    calving_date: calvingDate,
+    calf_ear_tag: calfEarTag.trim(),
+    calf_sex: newAnimalData.sex,
+    birth_weight: Number(formData.get("birth_weight")) || null,
+    complications: outcome === "Live Birth" ? null : outcome,
+    assistance_required: outcome === "Assisted",
+  };
+  const { error: calvingError } = await supabase
+    .from("calvings")
+    .insert(calvingData);
+  if (calvingError) {
+    console.error("Error creating calving record:", calvingError);
+    // You might want to delete the calf that was just created to avoid orphaned records.
+    // await supabase.from('animals').delete().eq('id', newAnimal.id);
+    throw new Error(`Failed to create calving event: ${calvingError.message}`);
+  }
+  // --- 4. (OPTIONAL BUT RECOMMENDED) UPDATE the original breeding record ---
+  // This helps "close the loop" on the pregnancy. You could mark it as 'Completed'.
+  // For now, we will leave it, as the presence of a linked calving record implies completion.
+  // --- 5. REVALIDATE paths to refresh the UI ---
+  revalidatePath("/record/breeding", "layout");
+  revalidatePath(`/animal/${damId}`);
+}
+
 export async function getCalvingsWithDetails(): Promise<CalvingWithDetails[]> {
   const supabase = await createClient();
   const {
@@ -89,7 +156,7 @@ export async function createCalving(formData: FormData) {
 
   // --- Step 1: Extract all necessary data from the form ---
   const damId = Number.parseInt(formData.get("animal_id") as string);
-  const sireIdString = formData.get("sire_id") as string;
+  const sireIdString = formData.get("sire_ear_tag") as string;
   const calvingDate = formData.get("calving_date") as string;
   const calfEarTag = formData.get("calf_ear_tag") as string | null;
   const calfName = formData.get("calf_name") as string | null;
@@ -138,7 +205,7 @@ export async function createCalving(formData: FormData) {
       birth_date: calvingDate,
       status: "Active" as const,
       dam_id: damId,
-      sire_id: sireId, // ✨ FIX: Use the processed sireId variable here.
+      sire_ear_tag: sireId, // ✨ FIX: Use the processed sireId variable here.
       notes: `Born from calving event #${newCalvingRecord.id}.`,
       user_id: user.id,
     };

@@ -23,10 +23,10 @@ import { Calendar, Heart, Stethoscope, FileText, Edit } from "lucide-react";
 import type { Animal } from "@/lib/actions/animals";
 import type { Calving } from "@/lib/actions/calvings";
 import type { HealthRecord } from "@/lib/actions/health-records";
-import type { BreedingRecord } from "@/lib/actions/breeding-records";
+import type { BreedingRecord } from "@/lib/actions/breeding";
 import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
 import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
-import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding-records";
+import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding";
 import { formatAge, formatWeight } from "@/lib/utils";
 import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 

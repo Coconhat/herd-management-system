@@ -13,6 +13,32 @@ export interface Animal {
   updated_at: string;
 }
 
+export interface BreedingRecord {
+  id: number;
+  animal_id: number;
+  breeding_date: string;
+  sire_ear_tag?: string;
+  breeding_method?: "Natural" | "AI";
+  notes?: string;
+  user_id: string;
+  created_at: string;
+
+  pd_result: "Pregnant" | "Empty" | "Unchecked";
+
+  // Automatically calculated dates for reminders and workflow
+  heat_check_date: string; // Approx. 21 days after breeding
+  pregnancy_check_due_date: string; // Approx. 60 days after breeding
+  expected_calving_date: string; // Approx. 283 days after breeding
+
+  // The final boolean status, derived from pd_result for easy querying
+  confirmed_pregnant: boolean;
+}
+
+/**
+ * Fetches all breeding records for a specific animal.
+ * @param animalId The numeric ID of the animal.
+ * @returns A promise that resolves to an array of BreedingRecord objects.
+ */
 export interface Calving {
   id: number;
   animal_id: number;
@@ -34,19 +60,6 @@ export interface HealthRecord {
   treatment?: string;
   veterinarian?: string;
   cost?: number;
-  notes?: string;
-  created_at: string;
-}
-
-export interface BreedingRecord {
-  id: number;
-  animal_id: number;
-  breeding_date: string;
-  sire_ear_tag?: string;
-  breeding_method: "Natural" | "AI";
-  expected_calving_date?: string;
-  confirmed_pregnant?: boolean;
-  pregnancy_check_date?: string;
   notes?: string;
   created_at: string;
 }

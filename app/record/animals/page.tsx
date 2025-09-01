@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import { getCalvingStats } from "@/lib/actions/stats";
-import { CalvingHistoryTable } from "@/app/calving/_components/history-table";
+import { CalvingHistoryTable } from "@/app/record/breeding/_components/history-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardDriveDownload, Heart, BarChart3, PieChart } from "lucide-react";
 import {
   CalvingsByMonthChart,
   SirePerformanceChart,
-} from "@/app/calving/_components/calving-charts";
+} from "@/app/record/breeding/_components/calving-charts";
 
 // Server Component to fetch and display the KPI cards
 async function StatCards() {

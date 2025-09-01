@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -54,6 +55,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <div className="text-center">
+            <div>
+              <Image
+                src="/farm-logo.jpg"
+                alt="Logo"
+                width={100}
+                height={100}
+                className="mx-auto rounded-full"
+              />
+            </div>
             <h1 className="text-3xl font-bold text-foreground">
               Herd Management
             </h1>

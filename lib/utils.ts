@@ -1,43 +1,49 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function validateEarTag(earTag: string): boolean {
-  return earTag.trim().length > 0 && /^[A-Za-z0-9]+$/.test(earTag.trim())
+  return earTag.trim().length > 0 && /^[A-Za-z0-9]+$/.test(earTag.trim());
 }
 
 export function formatWeight(weight: number | string): string {
-  if (!weight) return "N/A"
-  const numWeight = typeof weight === "string" ? Number.parseFloat(weight) : weight
-  return isNaN(numWeight) ? "N/A" : `${numWeight.toFixed(1)} lbs`
+  if (!weight) return "N/A";
+  const numWeight =
+    typeof weight === "string" ? Number.parseFloat(weight) : weight;
+  return isNaN(numWeight) ? "N/A" : `${numWeight.toFixed(1)} lbs`;
 }
 
-export function calculateAge(birthDate: string): { years: number; months: number } {
-  if (!birthDate) return { years: 0, months: 0 }
+export function calculateAge(birthDate: string): {
+  years: number;
+  months: number;
+} {
+  if (!birthDate) return { years: 0, months: 0 };
 
-  const birth = new Date(birthDate)
-  const today = new Date()
+  const birth = new Date(birthDate);
+  const today = new Date();
 
-  let years = today.getFullYear() - birth.getFullYear()
-  let months = today.getMonth() - birth.getMonth()
+  let years = today.getFullYear() - birth.getFullYear();
+  let months = today.getMonth() - birth.getMonth();
 
   if (months < 0) {
-    years--
-    months += 12
+    years--;
+    months += 12;
   }
 
-  return { years, months }
+  return { years, months };
 }
 
 export function formatAge(birthDate: string): string {
-  const { years, months } = calculateAge(birthDate)
+  const { years, months } = calculateAge(birthDate);
 
-  if (years === 0 && months === 0) return "Less than 1 month"
-  if (years === 0) return `${months} month${months !== 1 ? "s" : ""}`
-  if (months === 0) return `${years} year${years !== 1 ? "s" : ""}`
+  if (years === 0 && months === 0) return "Less than 1 month";
+  if (years === 0) return `${months} month${months !== 1 ? "s" : ""}`;
+  if (months === 0) return `${years} year${years !== 1 ? "s" : ""}`;
 
-  return `${years} year${years !== 1 ? "s" : ""}, ${months} month${months !== 1 ? "s" : ""}`
+  return `${years} year${years !== 1 ? "s" : ""}, ${months} month${
+    months !== 1 ? "s" : ""
+  }`;
 }
