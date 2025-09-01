@@ -70,13 +70,6 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
       {/* Action Buttons and Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex gap-2">
-          <Button
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => setCalvingModalOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Record New Calving
-          </Button>
           <Button variant="outline" onClick={() => setAddAnimalModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add New Animal
@@ -197,18 +190,6 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
         </CardContent>
       </Card>
 
-      {/* Modals */}
-      <CalvingRecordModal
-        open={calvingModalOpen}
-        onOpenChange={setCalvingModalOpen}
-        pregnantAnimals={animals.filter((a) => {
-          if (a.sex === "Female") {
-            const { label } = getPostPregnantStatus(a, calvings);
-            return label === "Pregnant";
-          }
-          return false;
-        })}
-      />
       <AddAnimalModal
         open={addAnimalModalOpen}
         onOpenChange={setAddAnimalModalOpen}

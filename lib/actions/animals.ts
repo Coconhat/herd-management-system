@@ -285,8 +285,7 @@ export async function getAnimalStats() {
   // Get total animals
   const { count: totalAnimals } = await supabase
     .from("animals")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "Active");
+    .select("*", { count: "exact", head: true });
 
   // Get female animals for breeding
   const { count: femaleAnimals } = await supabase
