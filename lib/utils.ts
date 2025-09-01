@@ -15,7 +15,7 @@ export function formatWeight(weight: number | string): string {
   if (!weight) return "N/A";
   const numWeight =
     typeof weight === "string" ? Number.parseFloat(weight) : weight;
-  return isNaN(numWeight) ? "N/A" : `${numWeight.toFixed(1)} lbs`;
+  return isNaN(numWeight) ? "N/A" : `${numWeight.toFixed(1)} kgs`;
 }
 
 export function calculateAge(birthDate: string): {
