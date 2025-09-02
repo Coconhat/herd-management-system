@@ -33,7 +33,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { addMilkingRecord } from "@/lib/actions/milking";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   SelectContent,
   Select,
@@ -81,6 +81,14 @@ type FormValues = z.infer<typeof formSchema>;
 export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+
+  // NEW: search state for filtering animals by ear_tag or name
+  const [search, setSearch] = useState("");
+
+  // Clear search whenever the dialog opens (optional but nice UX)
+  useEffect(() => {
+    if (open) setSearch("");
+  }, [open]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -161,7 +169,26 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      {/* NEW: Search input inside the dropdown */}
+                      <div className="px-3 pt-2 pb-1">
+                        <Input
+                          placeholder="Search by ear tag or name..."
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          // small styling so it doesn't dominate the dropdown
+                          className="mb-2"
+                        />
+                      </div>
+
+                      {/* Filtered & sorted list */}
                       {animals
+                        .filter((a) => {
+                          const q = search.trim().toLowerCase();
+                          if (!q) return true;
+                          const ear = a.ear_tag.toLowerCase();
+                          const name = (a.name || "").toLowerCase();
+                          return ear.includes(q) || name.includes(q);
+                        })
                         .sort((a, b) => a.ear_tag.localeCompare(b.ear_tag))
                         .map((animal) => (
                           <SelectItem
@@ -171,6 +198,19 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
                             {animal.ear_tag} - {animal.name || "Unnamed"}
                           </SelectItem>
                         ))}
+
+                      {/* Show a friendly empty state when nothing matches */}
+                      {animals.filter((a) => {
+                        const q = search.trim().toLowerCase();
+                        if (!q) return true;
+                        const ear = a.ear_tag.toLowerCase();
+                        const name = (a.name || "").toLowerCase();
+                        return ear.includes(q) || name.includes(q);
+                      }).length === 0 && (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No animals found
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -236,8 +276,6 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
                 </FormItem>
               )}
             />
-
-            {/* Additional optional fields removed for now */}
 
             <FormField
               control={form.control}
