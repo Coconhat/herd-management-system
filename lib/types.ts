@@ -64,10 +64,20 @@ export interface HealthRecord {
   created_at: string;
 }
 
+export interface MilkingRecord {
+  id: number;
+  animal_id: number;
+  milking_date: string;
+  milk_yield?: number;
+  notes?: string;
+  created_at: string;
+}
+
 export interface AnimalWithDetails extends Animal {
   calvings?: Calving[];
   health_records?: HealthRecord[];
   breeding_records?: BreedingRecord[];
+  milking_records?: MilkingRecord[];
   dam?: Animal;
   sire?: Animal;
 }
