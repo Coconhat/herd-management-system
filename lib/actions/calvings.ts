@@ -180,9 +180,9 @@ export async function getCalvingsWithDetails(): Promise<CalvingWithDetails[]> {
     .from("calvings")
     .select(
       `
-            *,
-            animals ( ear_tag, name )
-        `
+              *,
+              animals ( ear_tag, name )
+          `
     )
     .eq("user_id", user.id)
     .order("calving_date", { ascending: false });
@@ -376,12 +376,12 @@ export async function getPregnantAnimals() {
     .from("animals")
     .select(
       `
-      id,
-      ear_tag,
-      name,
-      status,
-      breeding_records ( id, breeding_date, expected_calving_date, pd_result, confirmed_pregnant )
-    `
+        id,
+        ear_tag,
+        name,
+        status,
+        breeding_records ( id, breeding_date, expected_calving_date, pd_result, confirmed_pregnant )
+      `
     )
     .eq("sex", "Female")
     .eq("status", "Pregnant") // Only include animals with status "Pregnant"
