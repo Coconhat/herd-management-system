@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useTransition, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,92 +30,31 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { createAnimal } from "@/lib/actions/animals";
-import { useToast } from "@/hooks/use-toast";
 import type { Animal } from "@/lib/actions/animals";
-
-const commonBreeds = [
-  "Holstein Friesian",
-  "Jersey",
-  "Kiwi Cross",
-  "Sahiwal",
-  "Gir",
-  "Other",
-];
-
-interface AddAnimalModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  animals: Animal[];
-}
+import { useModals } from "@/hooks/use-modals";
 
 export function AddAnimalModal({
   open,
   onOpenChange,
   animals,
-}: AddAnimalModalProps) {
-  const [birthDate, setBirthDate] = useState<Date>();
-  const [isPending, startTransition] = useTransition();
-  const [earTagError, setEarTagError] = useState<string | null>(null);
-  const { toast } = useToast();
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  animals: Animal[];
+}) {
+  const {
+    birthDate,
+    setBirthDate,
+    isPending,
+    earTagError,
+    validateEarTag,
+    handleSubmit,
+    femaleAnimals,
+    maleAnimals,
+    commonBreeds,
+  } = useModals({ open, onOpenChange, animals });
 
-  const femaleAnimals = animals.filter(
-    (animal) => animal.sex === "Female" && animal.status === "Active"
-  );
-  const maleAnimals = animals.filter(
-    (animal) => animal.sex === "Male" && animal.status === "Active"
-  );
-
-  const validateEarTag = (earTag: string) => {
-    if (!earTag) {
-      setEarTagError("Ear tag is required.");
-      return;
-    }
-    const isDuplicate = animals.some(
-      (animal) => animal.ear_tag.toLowerCase() === earTag.toLowerCase().trim()
-    );
-    if (isDuplicate) {
-      setEarTagError("An animal with this ear tag already exists.");
-    } else {
-      setEarTagError(null);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (earTagError) return;
-
-    const formData = new FormData(e.currentTarget);
-    if (birthDate) {
-      formData.set("birth_date", birthDate.toISOString().split("T")[0]);
-    }
-
-    startTransition(async () => {
-      try {
-        await createAnimal(formData);
-        const earTag = formData.get("ear_tag") as string;
-        toast({
-          title: "Animal Added Successfully",
-          description: `Animal ${earTag} has been added to your herd.`,
-        });
-        onOpenChange(false);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description:
-            error instanceof Error ? error.message : "Failed to add animal.",
-          variant: "destructive",
-        });
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (!open) {
-      setBirthDate(undefined);
-      setEarTagError(null);
-    }
-  }, [open]);
+  const [selectedSex, setSelectedSex] = useState<string | null>(null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,24 +70,32 @@ export function AddAnimalModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ear_tag">Ear Tag *</Label>
+              {/* validate on blur to avoid flickery errors while typing */}
               <Input
                 id="ear_tag"
                 name="ear_tag"
                 placeholder="e.g., 181"
                 required
-                onChange={(e) => validateEarTag(e.target.value)}
+                onBlur={(e) => validateEarTag(e.target.value)}
               />
               <p className="text-sm font-medium text-destructive">
                 {earTagError}
               </p>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" placeholder="e.g., Buttercup" />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="sex">Sex</Label>
-              <Select name="sex">
+              <Label htmlFor="sex">Sex *</Label>
+              {/* sex select now sets selectedSex */}
+              <Select
+                name="sex"
+                onValueChange={(val) => setSelectedSex(val)}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select sex" />
                 </SelectTrigger>
@@ -201,28 +148,32 @@ export function AddAnimalModal({
                 </PopoverContent>
               </Popover>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
+              {/* status select: female-only statuses are conditionally rendered inside SelectContent */}
               <Select name="status" defaultValue="Active">
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {animals.sex === "female" && (
-                    <div>
-                      <SelectItem value="fresh">Fresh</SelectItem>
-                      <SelectItem value="hit-detection">Pregnant</SelectItem>
+                  {selectedSex === "Female" && (
+                    <>
+                      <SelectItem value="Fresh">Fresh</SelectItem>
                       <SelectItem value="Pregnant">Pregnant</SelectItem>
-                      <SelectItem value="empty">Empty</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                    </div>
+                      <SelectItem value="Empty">Empty</SelectItem>
+                      <SelectItem value="Open">Open</SelectItem>
+                    </>
                   )}
+
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Sold">Sold</SelectItem>
                   <SelectItem value="Deceased">Deceased</SelectItem>
+                  <SelectItem value="Culled">Culled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="dam_id">Dam (Mother)</Label>
               <Select name="dam_id">
@@ -232,13 +183,14 @@ export function AddAnimalModal({
                 <SelectContent>
                   <SelectItem value="none">Unknown</SelectItem>
                   {femaleAnimals.map((a) => (
-                    <SelectItem key={a.id} value={a.id.toString()}>{`${
-                      a.ear_tag
-                    } - ${a.name || "Unnamed"}`}</SelectItem>
+                    <SelectItem key={a.id} value={a.id.toString()}>
+                      {`${a.ear_tag} - ${a.name || "Unnamed"}`}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="sire_id">Sire (Father)</Label>
               <Select name="sire_id">
@@ -248,14 +200,15 @@ export function AddAnimalModal({
                 <SelectContent>
                   <SelectItem value="none">Unknown</SelectItem>
                   {maleAnimals.map((a) => (
-                    <SelectItem key={a.id} value={a.id.toString()}>{`${
-                      a.ear_tag
-                    } - ${a.name || "Unnamed"}`}</SelectItem>
+                    <SelectItem key={a.id} value={a.id.toString()}>
+                      {`${a.ear_tag} - ${a.name || "Unnamed"}`}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
@@ -264,6 +217,7 @@ export function AddAnimalModal({
               placeholder="Any additional notes about this animal..."
             />
           </div>
+
           <DialogFooter>
             <Button
               type="button"

@@ -14,7 +14,15 @@ export interface Animal {
   sex?: "Male" | "Female";
   dam_id?: number;
   sire_id?: number;
-  status: "Active" | "Sold" | "Deceased" | "Culled" | "Pregnant";
+  status:
+    | "Active"
+    | "Sold"
+    | "Deceased"
+    | "Culled"
+    | "Pregnant"
+    | "Fresh"
+    | "Open"
+    | "Empty";
   notes?: string;
   user_id: string;
   created_at: string;

@@ -1,18 +1,3 @@
-export interface Animal {
-  id: number;
-  ear_tag: string;
-  name?: string;
-  breed?: string;
-  birth_date?: string;
-  sex?: "Male" | "Female";
-  dam_id?: number;
-  sire_id?: number;
-  status: "Active" | "Sold" | "Deceased" | "Culled";
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface BreedingRecord {
   id: number;
   animal_id: number;
