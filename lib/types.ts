@@ -1,3 +1,5 @@
+import { Animal } from "./actions/animals";
+
 export interface BreedingRecord {
   id: number;
   animal_id: number;
@@ -65,4 +67,8 @@ export interface AnimalWithDetails extends Animal {
   milking_records?: MilkingRecord[];
   dam?: Animal;
   sire?: Animal;
+  getClassification?: (animal: Animal) => {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  };
 }

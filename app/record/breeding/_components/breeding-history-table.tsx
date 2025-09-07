@@ -52,9 +52,7 @@ export function RecordBreedingModal({
 
   // Only allow animals that are open for breeding. Accept both "Open" and "Active" statuses
   const openFemales = animals.filter(
-    (a) =>
-      a.sex === "Female" &&
-      (a.status === "Open" || a.status === "Active" || a.status === "Available")
+    (a) => a.sex === "Female" && (a.status === "Open" || a.status === "Active")
   );
   const activeSires = animals.filter((a) => a.sex === "Male");
 

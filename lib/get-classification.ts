@@ -1,4 +1,4 @@
-import { Animal } from "./types";
+import { Animal } from "./actions/animals";
 
 export function getClassification(animal: Animal): {
   label: string;
