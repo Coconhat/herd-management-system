@@ -5,7 +5,10 @@ import {
   getAnimalStats,
   getAnimalsWithBreedingData,
 } from "@/lib/actions/animals";
-import { getCalvingsWithDetails } from "@/lib/actions/calvings";
+import {
+  getCalvingsWithDetails,
+  getPregnantAnimals,
+} from "@/lib/actions/calvings";
 import InventoryAnimalsPage from "@/components/inventory-animal-page";
 
 export default async function Page() {
@@ -13,8 +16,14 @@ export default async function Page() {
   const animals = (await getAnimalsWithBreedingData()) || [];
   const calvings = (await getCalvingsWithDetails()) || [];
   const stats = await getAnimalStats();
+  const pregnantAnimals = await getPregnantAnimals();
 
   return (
-    <InventoryAnimalsPage animals={animals} calvings={calvings} stats={stats} />
+    <InventoryAnimalsPage
+      animals={animals}
+      calvings={calvings}
+      stats={stats}
+      pregnantAnimals={pregnantAnimals}
+    />
   );
 }

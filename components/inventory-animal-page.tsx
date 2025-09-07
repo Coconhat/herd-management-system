@@ -48,12 +48,14 @@ interface Props {
   animals?: Animal[]; // optional and will default to []
   calvings?: Calving[];
   stats?: Awaited<ReturnType<typeof getAnimalStats>>;
+  pregnantAnimals?: Animal[];
 }
 
 export default function InventoryAnimalsPage({
   animals = [],
   calvings = [],
   stats,
+  pregnantAnimals = [],
 }: Props) {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -103,15 +105,6 @@ export default function InventoryAnimalsPage({
     });
     return Object.entries(months).map(([k, v]) => ({ month: k, count: v }));
   }, [calvings]);
-
-  const pregnantAnimals = useMemo(() => {
-    return (animals || [])
-      .filter((a) => a?.sex === "Female" && a?.status === "Pregnant")
-      .map((a) => ({
-        ...(a as any),
-        expected_calving_date: (a as any)?.expected_calving_date || null,
-      }));
-  }, [animals]);
 
   const inseminated = useMemo(() => {
     return (animals || []).filter(
@@ -282,8 +275,8 @@ export default function InventoryAnimalsPage({
               </TableHeader>
               <TableBody>
                 {pregnantAnimals.map((p) => {
-                  const status = getStatusFor(p as Animal);
-                  const expected = (status as any).expected_calving_date;
+                  const expected =
+                    p.breeding_records?.[0]?.expected_calving_date || null;
                   const days =
                     expected && !Number.isNaN(new Date(expected).getTime())
                       ? Math.ceil(
@@ -291,6 +284,7 @@ export default function InventoryAnimalsPage({
                             (1000 * 60 * 60 * 24)
                         )
                       : null;
+
                   return (
                     <TableRow key={p.id}>
                       <TableCell>{p.ear_tag}</TableCell>
@@ -302,13 +296,12 @@ export default function InventoryAnimalsPage({
                       </TableCell>
                       <TableCell>{days !== null ? `${days}d` : "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={status.variant as any}>
-                          {status.label}
-                        </Badge>
+                        <Badge variant="secondary">Pregnant</Badge>
                       </TableCell>
                     </TableRow>
                   );
                 })}
+
                 {pregnantAnimals.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-6">
