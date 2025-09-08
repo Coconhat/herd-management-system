@@ -7,6 +7,7 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AddAnimalModal } from "@/components/add-animal-modal";
-import { Plus } from "lucide-react";
+import { Plus, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import {
   ResponsiveContainer,
@@ -36,13 +37,27 @@ import {
   LineChart,
   Line,
   Legend,
+  LabelList,
 } from "recharts";
 
 import { getAnimalStats, type Animal } from "@/lib/actions/animals";
 import type { Calving } from "@/lib/types";
 import { getReproStatus } from "@/lib/repro-status";
 import { getAnimalsWithBreedingData } from "@/lib/actions/animals";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "./ui/chart";
 const CHART_COLORS = ["#1F2937", "#0EA5A4", "#7C3AED", "#F59E0B", "#EF4444"];
+
+const chartConfig = {
+  desktop: {
+    label: "Desktop",
+    color: "var(--chart-1)",
+  },
+} satisfies ChartConfig;
 
 interface Props {
   animals?: Animal[]; // optional and will default to []
@@ -242,17 +257,42 @@ export default function InventoryAnimalsPage({
             <CardTitle>Status counts</CardTitle>
             <CardDescription>Counts by status</CardDescription>
           </CardHeader>
-          <CardContent className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={statusCounts}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <ReTooltip />
-                <Bar dataKey="value" fill={CHART_COLORS[1]} />
+          <CardContent>
+            <ChartContainer config={chartConfig}>
+              <BarChart
+                accessibilityLayer
+                data={statusCounts}
+                margin={{
+                  top: 20,
+                }}
+              >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Bar dataKey="value" fill={CHART_COLORS[1]} radius={8}>
+                  <LabelList
+                    position="top"
+                    offset={12}
+                    className="fill-foreground"
+                    fontSize={12}
+                  />
+                </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
+          <CardFooter className="flex-col items-start gap-2 text-sm">
+            <div className="text-muted-foreground leading-none">
+              Showing total status for the whole farm
+            </div>
+          </CardFooter>
         </Card>
 
         {/* calving trend */}
