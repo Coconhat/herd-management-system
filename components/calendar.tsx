@@ -4,10 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
-import {
-  getAllBreedingRecords,
-  getBreedingRecordsByAnimalId,
-} from "@/lib/actions/breeding";
+import { getAllBreedingRecords } from "@/lib/actions/breeding";
 import {
   format,
   parseISO,
@@ -15,8 +12,10 @@ import {
   addDays,
   isSameDay,
 } from "date-fns";
+import Link from "next/link"; // Import Link for navigation
 
-interface BreedingRecord {
+// Step 1: Update the interface to match the actual data from the server
+interface BreedingRecordWithAnimal {
   id: number;
   animal_id: number;
   breeding_date: string;
@@ -24,22 +23,28 @@ interface BreedingRecord {
   pregnancy_check_due_date: string;
   expected_calving_date: string;
   pd_result: "Pregnant" | "Empty" | "Unchecked";
-  confirmed_pregnant: boolean;
-  returned_to_heat: boolean;
-  // Add other fields as necessary
+  animals: {
+    ear_tag: string;
+    name: string | null;
+  } | null; // The nested animal object (can be null if animal was deleted)
 }
 
 interface CalendarEvent {
   date: Date;
   type: "breeding" | "heat_check" | "pregnancy_check" | "expected_calving";
   animal_id: number;
+  ear_tag: string; // Add ear_tag for direct use
   title: string;
   color: string;
 }
 
-export function CalendarWidget({ animalId }: { animalId?: number }) {
+export function CalendarWidget() {
+  // Removed animalId prop as it wasn't used for fetching
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [breedingRecords, setBreedingRecords] = useState<BreedingRecord[]>([]);
+  // Step 2: Use the correct, more descriptive interface for your state
+  const [breedingRecords, setBreedingRecords] = useState<
+    BreedingRecordWithAnimal[]
+  >([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,22 +52,25 @@ export function CalendarWidget({ animalId }: { animalId?: number }) {
     const fetchBreedingRecords = async () => {
       try {
         setLoading(true);
-        let records: BreedingRecord[] = [];
+        // The server action already fetches records with animal data nested
+        const records = await getAllBreedingRecords();
 
-        records = await getAllBreedingRecords();
+        // The type assertion helps TypeScript understand the shape of the data
+        setBreedingRecords(records as BreedingRecordWithAnimal[]);
 
-        setBreedingRecords(records);
-
-        // Convert breeding records to calendar events
         const events: CalendarEvent[] = [];
+        (records as BreedingRecordWithAnimal[]).forEach((record) => {
+          // Step 3: Use the ear_tag from the nested 'animals' object for the title
+          // Provide a fallback to the ID in case the animal data is missing (e.g., deleted animal)
+          const earTag = record.animals?.ear_tag || `ID #${record.animal_id}`;
 
-        records.forEach((record) => {
           // Breeding date
           events.push({
             date: parseISO(record.breeding_date),
             type: "breeding",
             animal_id: record.animal_id,
-            title: `Breeding - Animal #${record.animal_id}`,
+            ear_tag: earTag,
+            title: `Breeding - ${earTag}`, // Use the earTag here
             color: "blue",
           });
 
@@ -72,7 +80,8 @@ export function CalendarWidget({ animalId }: { animalId?: number }) {
               date: parseISO(record.pregnancy_check_due_date),
               type: "pregnancy_check",
               animal_id: record.animal_id,
-              title: `Pregnancy Check - Animal #${record.animal_id}`,
+              ear_tag: earTag,
+              title: `PD Check - ${earTag}`, // And here
               color: "purple",
             });
           }
@@ -83,7 +92,8 @@ export function CalendarWidget({ animalId }: { animalId?: number }) {
               date: parseISO(record.expected_calving_date),
               type: "expected_calving",
               animal_id: record.animal_id,
-              title: `Expected Calving - Animal #${record.animal_id}`,
+              ear_tag: earTag,
+              title: `Expected Calving - ${earTag}`, // And here
               color: "green",
             });
           }
@@ -98,33 +108,23 @@ export function CalendarWidget({ animalId }: { animalId?: number }) {
     };
 
     fetchBreedingRecords();
-  }, [animalId]);
+  }, []);
 
-  // Function to determine if a date has events
-  const hasEvents = (checkDate: Date) => {
-    return calendarEvents.some((event) => isSameDay(event.date, checkDate));
-  };
+  const hasEvents = (checkDate: Date) =>
+    calendarEvents.some((event) => isSameDay(event.date, checkDate));
+  const getEventsForDate = (selectedDate: Date) =>
+    calendarEvents.filter((event) => isSameDay(event.date, selectedDate));
 
-  // Get events for selected date
-  const getEventsForDate = (selectedDate: Date) => {
-    return calendarEvents.filter((event) =>
-      isSameDay(event.date, selectedDate)
-    );
-  };
-
-  // Get upcoming events (next 30 days)
   const getUpcomingEvents = () => {
     const today = new Date();
     const thirtyDaysFromNow = addDays(today, 30);
-
     return calendarEvents
       .filter((event) =>
         isWithinInterval(event.date, { start: today, end: thirtyDaysFromNow })
       )
       .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .slice(0, 5); // Show only first 5 upcoming events
+      .slice(0, 5);
   };
-
   const getEventColor = (type: string) => {
     switch (type) {
       case "breeding":
