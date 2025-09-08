@@ -127,18 +127,23 @@ export default function InventoryAnimalsPage({
   return (
     <div className="space-y-6">
       {/* header */}
-      <div className="flex items-center gap-4 justify-between">
+      <div className="flex items-center gap-4 ml-3 mt-6">
+        <Link href="/">
+          <Button>Back</Button>
+        </Link>
         <h1 className="text-2xl font-semibold">Animal Inventory</h1>
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search by tag or name"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs"
-          />
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Animal
-          </Button>
+        <div className="flex justify-end flex-1 mr-5">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search by tag or name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-xs"
+            />
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Animal
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -150,7 +155,7 @@ export default function InventoryAnimalsPage({
             <CardDescription>Overview of herd size</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalAnimals}</div>
+            <div className="text-3xl font-bold">{stats?.totalAnimals}</div>
           </CardContent>
         </Card>
 
@@ -160,7 +165,7 @@ export default function InventoryAnimalsPage({
             <CardDescription>Currently confirmed pregnant</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.pregnantCows}</div>
+            <div className="text-3xl font-bold">{stats?.pregnantCows}</div>
           </CardContent>
         </Card>
 
@@ -170,7 +175,7 @@ export default function InventoryAnimalsPage({
             <CardDescription>Recent productivity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.recentCalvings}</div>
+            <div className="text-3xl font-bold">{stats?.recentCalvings}</div>
           </CardContent>
         </Card>
       </div>
