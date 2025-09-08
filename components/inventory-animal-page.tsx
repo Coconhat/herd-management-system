@@ -41,15 +41,15 @@ import {
 } from "recharts";
 
 import { getAnimalStats, type Animal } from "@/lib/actions/animals";
-import type { Calving } from "@/lib/types";
-import { getReproStatus } from "@/lib/repro-status";
-import { getAnimalsWithBreedingData } from "@/lib/actions/animals";
+import type { Calving, BreedingRecord } from "@/lib/types";
+import { getCombinedStatus } from "@/lib/status-helper";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "./ui/chart";
+
 const CHART_COLORS = ["#1F2937", "#0EA5A4", "#7C3AED", "#F59E0B", "#EF4444"];
 
 const chartConfig = {
@@ -60,10 +60,11 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 interface Props {
-  animals?: Animal[]; // optional and will default to []
+  animals?: Animal[];
   calvings?: Calving[];
   stats?: Awaited<ReturnType<typeof getAnimalStats>>;
   pregnantAnimals?: Animal[];
+  breedingRecords?: BreedingRecord[];
 }
 
 export default function InventoryAnimalsPage({
@@ -71,30 +72,28 @@ export default function InventoryAnimalsPage({
   calvings = [],
   stats,
   pregnantAnimals = [],
+  breedingRecords = [],
 }: Props) {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
 
-  const getStatusFor = (a: Animal) =>
-    // guard in case getReproStatus expects fields
-    getReproStatus?.(
-      a as any,
-      calvings || [],
-      (a as any).breeding_records || []
-    ) ?? null;
+  // Helper function to get combined status for an animal
+  const getCombinedStatusFor = (animal: Animal) => {
+    const breedingRecords = (animal as any)?.breeding_records || [];
+    return getCombinedStatus(animal, breedingRecords);
+  };
 
+  // Updated status counts using combined status
   const statusCounts = useMemo(() => {
     const map = new Map<string, number>();
 
-    (animals || []).forEach((a) => {
-      if (a?.sex !== "Female") return; // Dashboard only shows status for females
+    (animals || []).forEach((animal) => {
+      if (animal?.sex !== "Female") return; // Dashboard only shows status for females
 
-      const raw = (a?.status ?? "Unknown").toString().trim();
-      const normalized = raw.length
-        ? raw[0].toUpperCase() + raw.slice(1).toLowerCase()
-        : "Unknown";
+      const statusInfo = getCombinedStatusFor(animal);
+      const statusLabel = statusInfo.label;
 
-      map.set(normalized, (map.get(normalized) || 0) + 1);
+      map.set(statusLabel, (map.get(statusLabel) || 0) + 1);
     });
 
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
@@ -278,7 +277,7 @@ export default function InventoryAnimalsPage({
           </CardContent>
           <CardFooter className="flex-col items-start gap-2 text-sm">
             <div className="text-muted-foreground leading-none">
-              Showing total status for the whole farm
+              Showing combined status for female animals
             </div>
           </CardFooter>
         </Card>
@@ -328,28 +327,38 @@ export default function InventoryAnimalsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pregnantAnimals.map((p) => {
-                  const expected =
-                    p.breeding_records?.[0]?.expected_calving_date || null;
-                  const days =
-                    expected && !Number.isNaN(new Date(expected).getTime())
-                      ? Math.ceil(
-                          (new Date(expected).getTime() - Date.now()) /
-                            (1000 * 60 * 60 * 24)
-                        )
-                      : null;
+                {pregnantAnimals.map((animal) => {
+                  const confirmedBreedingRecord = (
+                    animal.breeding_records as BreedingRecord[] | undefined
+                  )?.find(
+                    (r) => r.confirmed_pregnant && r.expected_calving_date
+                  );
+
+                  let daysLeft = "—";
+                  if (confirmedBreedingRecord?.expected_calving_date) {
+                    const timeLeft =
+                      new Date(
+                        confirmedBreedingRecord.expected_calving_date
+                      ).getTime() - Date.now();
+                    const days = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+                    if (!isNaN(days)) {
+                      daysLeft = days.toString();
+                    }
+                  }
 
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell>{p.ear_tag}</TableCell>
+                    <TableRow key={animal.id}>
+                      <TableCell>{animal.ear_tag}</TableCell>
                       <TableCell>
-                        {expected
-                          ? new Date(expected).toLocaleDateString()
+                        {confirmedBreedingRecord?.expected_calving_date
+                          ? new Date(
+                              confirmedBreedingRecord.expected_calving_date
+                            ).toLocaleDateString()
                           : "—"}
                       </TableCell>
-                      <TableCell>{days !== null ? `${days}d` : "—"}</TableCell>
+                      <TableCell>{daysLeft}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">Pregnant</Badge>
+                        <Badge variant="default">Pregnant</Badge>
                       </TableCell>
                     </TableRow>
                   );
@@ -357,7 +366,7 @@ export default function InventoryAnimalsPage({
 
                 {pregnantAnimals.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6">
+                    <TableCell colSpan={4} className="text-center py-6">
                       No pregnant cows found.
                     </TableCell>
                   </TableRow>
@@ -378,12 +387,12 @@ export default function InventoryAnimalsPage({
                 <TableRow>
                   <TableHead>Ear Tag</TableHead>
                   <TableHead>Latest Record</TableHead>
-                  <TableHead>PD Result</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {inseminated.map((a) => {
-                  const status = getStatusFor(a as Animal);
+                  const statusInfo = getCombinedStatusFor(a);
                   const brs = (a as any).breeding_records || [];
                   const latest = brs.length ? brs[0] : null;
                   return (
@@ -395,8 +404,8 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={status.variant as any}>
-                          {status.label}
+                        <Badge variant={statusInfo.variant}>
+                          {statusInfo.label}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -404,7 +413,7 @@ export default function InventoryAnimalsPage({
                 })}
                 {inseminated.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6">
+                    <TableCell colSpan={3} className="text-center py-6">
                       No insemination records found.
                     </TableCell>
                   </TableRow>
@@ -435,7 +444,31 @@ export default function InventoryAnimalsPage({
               </TableHeader>
               <TableBody>
                 {filtered.map((a) => {
-                  const status = getStatusFor(a as Animal);
+                  const statusInfo = getCombinedStatusFor(a);
+
+                  // Calculate days until due for pregnant animals
+                  let daysUntilDue = null;
+                  if (statusInfo.status === "Pregnant") {
+                    const breedingRecords = (a as any)?.breeding_records || [];
+                    const latestBreeding = breedingRecords.sort(
+                      (a: BreedingRecord, b: BreedingRecord) =>
+                        new Date(b.breeding_date).getTime() -
+                        new Date(a.breeding_date).getTime()
+                    )[0];
+
+                    if (latestBreeding?.expected_calving_date) {
+                      const expectedDate = new Date(
+                        latestBreeding.expected_calving_date
+                      );
+                      if (!isNaN(expectedDate.getTime())) {
+                        daysUntilDue = Math.ceil(
+                          (expectedDate.getTime() - Date.now()) /
+                            (1000 * 60 * 60 * 24)
+                        );
+                      }
+                    }
+                  }
+
                   return (
                     <TableRow key={a.id}>
                       <TableCell>{a.ear_tag}</TableCell>
@@ -452,11 +485,9 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={status.variant as any}>
-                          {status.label}
-                          {status.days_until_due != null
-                            ? ` — ${status.days_until_due}d`
-                            : ""}
+                        <Badge variant={statusInfo.variant}>
+                          {statusInfo.label}
+                          {daysUntilDue !== null ? ` — ${daysUntilDue}d` : ""}
                         </Badge>
                       </TableCell>
                       <TableCell>…actions…</TableCell>
