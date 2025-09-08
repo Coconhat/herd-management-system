@@ -187,3 +187,65 @@ export async function updateBreedingPDResult(
   revalidatePath("/record/breeding", "layout");
   if (animalId) revalidatePath(`/animal/${animalId}`);
 }
+
+// for calendar
+
+// Add this function to your breeding actions file
+
+export async function getAllBreedingRecords(): Promise<BreedingRecord[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const { data, error } = await supabase
+    .from("breeding_records")
+    .select(
+      `
+      *,
+      animals (
+        ear_tag,
+        name
+      )
+    `
+    )
+    .eq("user_id", user.id)
+    .order("breeding_date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all breeding records:", error);
+    return [];
+  }
+  return (data as BreedingRecord[]) || [];
+}
+
+export async function getBreedingRecordsWithAnimalInfo(): Promise<
+  BreedingRecord[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const { data, error } = await supabase
+    .from("breeding_records")
+    .select(
+      `
+      *,
+      animals (
+        ear_tag,
+        name
+      )
+    `
+    )
+    .eq("user_id", user.id)
+    .order("expected_calving_date", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching breeding records with animal info:", error);
+    return [];
+  }
+  return (data as BreedingRecord[]) || [];
+}
