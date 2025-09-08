@@ -95,18 +95,6 @@ export default function InventoryAnimalsPage({
         : "Unknown";
 
       map.set(normalized, (map.get(normalized) || 0) + 1);
-      console.table(
-        Array.from(
-          new Map(
-            (animals || []).map((a) => [
-              a.status || "Unknown",
-              (animals || []).filter(
-                (x) => x.status === (a.status || "Unknown")
-              ).length,
-            ])
-          )
-        )
-      );
     });
 
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
@@ -334,7 +322,6 @@ export default function InventoryAnimalsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Ear Tag</TableHead>
-                  <TableHead>Name</TableHead>
                   <TableHead>Expected Calving</TableHead>
                   <TableHead>Days Until Due</TableHead>
                   <TableHead>Status</TableHead>
@@ -355,7 +342,6 @@ export default function InventoryAnimalsPage({
                   return (
                     <TableRow key={p.id}>
                       <TableCell>{p.ear_tag}</TableCell>
-                      <TableCell>{p.name || "—"}</TableCell>
                       <TableCell>
                         {expected
                           ? new Date(expected).toLocaleDateString()
@@ -391,7 +377,6 @@ export default function InventoryAnimalsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Ear Tag</TableHead>
-                  <TableHead>Name</TableHead>
                   <TableHead>Latest Record</TableHead>
                   <TableHead>PD Result</TableHead>
                 </TableRow>
@@ -404,7 +389,6 @@ export default function InventoryAnimalsPage({
                   return (
                     <TableRow key={a.id}>
                       <TableCell>{a.ear_tag}</TableCell>
-                      <TableCell>{a.name || "—"}</TableCell>
                       <TableCell>
                         {latest
                           ? new Date(latest.breeding_date).toLocaleDateString()
@@ -443,7 +427,6 @@ export default function InventoryAnimalsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Tag</TableHead>
-                  <TableHead>Name</TableHead>
                   <TableHead>Sex</TableHead>
                   <TableHead>Birth Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -456,7 +439,6 @@ export default function InventoryAnimalsPage({
                   return (
                     <TableRow key={a.id}>
                       <TableCell>{a.ear_tag}</TableCell>
-                      <TableCell>{a.name || "—"}</TableCell>
                       <TableCell>
                         <Badge
                           variant={a.sex === "Female" ? "secondary" : "outline"}
