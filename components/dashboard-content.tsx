@@ -37,13 +37,19 @@ import type { Calving } from "@/lib/types";
 import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "./delete-animal-modal";
+import { getCombinedStatus } from "@/lib/status-helper";
 
 interface DashboardContentProps {
   animals: Animal[];
   calvings: Calving[];
+  breedingRecords?: any[];
 }
 
-export function DashboardContent({ animals, calvings }: DashboardContentProps) {
+export function DashboardContent({
+  animals,
+  calvings,
+  breedingRecords,
+}: DashboardContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [calvingModalOpen, setCalvingModalOpen] = useState(false);
   const [addAnimalModalOpen, setAddAnimalModalOpen] = useState(false);
@@ -215,15 +221,25 @@ export function DashboardContent({ animals, calvings }: DashboardContentProps) {
                     {/* Status column now shows animal.status and postpartum/pregnancy badge for females */}
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        <Badge
-                          variant={
-                            animal.status === "Pregnant"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {animal.sex === "Female" ? animal.status : null}
-                        </Badge>
+                        {(() => {
+                          // Get breeding records for this animal
+                          const animalBreedingRecords =
+                            breedingRecords?.filter(
+                              (record) => record.animal_id === animal.id
+                            ) || [];
+
+                          // Get combined status
+                          const statusInfo = getCombinedStatus(
+                            animal,
+                            animalBreedingRecords
+                          );
+
+                          return (
+                            <Badge variant={statusInfo.variant}>
+                              {statusInfo.label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </TableCell>
 

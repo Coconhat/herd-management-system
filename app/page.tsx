@@ -13,6 +13,7 @@ import { UserNav } from "@/components/user-nav";
 import { CalendarWidget } from "@/components/calendar";
 import { DesktopSidebar, MobileSidebar } from "@/components/sidebar-demo";
 import { getCalvingsWithDetails } from "@/lib/actions/calvings";
+import { getBreedingRecordsWithAnimalInfo } from "@/lib/actions/breeding";
 
 async function StatsCards() {
   const stats = await getAnimalStats();
@@ -89,7 +90,14 @@ async function StatsCards() {
 async function AnimalsData() {
   const animals = await getAnimals();
   const calvings = await getCalvingsWithDetails();
-  return <DashboardContent animals={animals} calvings={calvings} />;
+  const breedingRecords = await getBreedingRecordsWithAnimalInfo();
+  return (
+    <DashboardContent
+      animals={animals}
+      calvings={calvings}
+      breedingRecords={breedingRecords}
+    />
+  );
 }
 
 export default function Dashboard() {
