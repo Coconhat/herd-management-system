@@ -68,28 +68,6 @@ export default function InventoryAnimalsPage({
       (a as any).breeding_records || []
     ) ?? null;
 
-  const hasRecentHeat = (a: Animal, days = 7) => {
-    const brs = (a as any)?.breeding_records || [];
-    if (!Array.isArray(brs)) return false;
-    const now = Date.now();
-    return brs.some((r: any) => {
-      const h = r.heat_date || r.heat_detected_date || r.heat_detected;
-      if (!h) return false;
-      const t = new Date(h).getTime();
-      return !Number.isNaN(t) && now - t <= days * 24 * 60 * 60 * 1000;
-    });
-  };
-
-  const recentCalvingWithinDays = (a: Animal, days = 30) => {
-    const calvs = (a as any)?.calvings || [];
-    if (!Array.isArray(calvs)) return false;
-    const now = Date.now();
-    return calvs.some((c: any) => {
-      const t = new Date(c.calving_date).getTime();
-      return !Number.isNaN(t) && now - t <= days * 24 * 60 * 60 * 1000;
-    });
-  };
-
   const statusCounts = useMemo(() => {
     const map = new Map<string, number>();
 
