@@ -1,10 +1,7 @@
 // app/inventory/animals/page.tsx (server)
 import React from "react";
 
-import {
-  getAnimalStats,
-  getAnimalsWithBreedingData,
-} from "@/lib/actions/animals";
+import { getAnimals, getAnimalStats } from "@/lib/actions/animals";
 import {
   getCalvingsWithDetails,
   getPregnantAnimals,
@@ -13,7 +10,7 @@ import InventoryAnimalsPage from "@/components/inventory-animal-page";
 
 export default async function Page() {
   // fetch server-side so the client receives populated arrays
-  const animals = (await getAnimalsWithBreedingData()) || [];
+  const animals = (await getAnimals()) || [];
   const calvings = (await getCalvingsWithDetails()) || [];
   const stats = await getAnimalStats();
   const pregnantAnimals = await getPregnantAnimals();

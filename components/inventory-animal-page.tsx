@@ -41,7 +41,7 @@ import {
 import { getAnimalStats, type Animal } from "@/lib/actions/animals";
 import type { Calving } from "@/lib/types";
 import { getReproStatus } from "@/lib/repro-status";
-
+import { getAnimalsWithBreedingData } from "@/lib/actions/animals";
 const CHART_COLORS = ["#1F2937", "#0EA5A4", "#7C3AED", "#F59E0B", "#EF4444"];
 
 interface Props {
@@ -60,6 +60,65 @@ export default function InventoryAnimalsPage({
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
 
+  const getStatusFor = (a: Animal) =>
+    // guard in case getReproStatus expects fields
+    getReproStatus?.(
+      a as any,
+      calvings || [],
+      (a as any).breeding_records || []
+    ) ?? null;
+
+  const hasRecentHeat = (a: Animal, days = 7) => {
+    const brs = (a as any)?.breeding_records || [];
+    if (!Array.isArray(brs)) return false;
+    const now = Date.now();
+    return brs.some((r: any) => {
+      const h = r.heat_date || r.heat_detected_date || r.heat_detected;
+      if (!h) return false;
+      const t = new Date(h).getTime();
+      return !Number.isNaN(t) && now - t <= days * 24 * 60 * 60 * 1000;
+    });
+  };
+
+  const recentCalvingWithinDays = (a: Animal, days = 30) => {
+    const calvs = (a as any)?.calvings || [];
+    if (!Array.isArray(calvs)) return false;
+    const now = Date.now();
+    return calvs.some((c: any) => {
+      const t = new Date(c.calving_date).getTime();
+      return !Number.isNaN(t) && now - t <= days * 24 * 60 * 60 * 1000;
+    });
+  };
+
+  const statusCounts = useMemo(() => {
+    const map = new Map<string, number>();
+
+    (animals || []).forEach((a) => {
+      if (a?.sex !== "Female") return; // Dashboard only shows status for females
+
+      const raw = (a?.status ?? "Unknown").toString().trim();
+      const normalized = raw.length
+        ? raw[0].toUpperCase() + raw.slice(1).toLowerCase()
+        : "Unknown";
+
+      map.set(normalized, (map.get(normalized) || 0) + 1);
+      console.table(
+        Array.from(
+          new Map(
+            (animals || []).map((a) => [
+              a.status || "Unknown",
+              (animals || []).filter(
+                (x) => x.status === (a.status || "Unknown")
+              ).length,
+            ])
+          )
+        )
+      );
+    });
+
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+  }, [animals]);
+
   // Derived stats (defensive)
   const sexDistribution = useMemo(() => {
     const male = (animals || []).filter((a) => a?.sex === "Male").length;
@@ -70,17 +129,6 @@ export default function InventoryAnimalsPage({
       { name: "Male", value: male },
       { name: "Unknown", value: unknown },
     ];
-  }, [animals]);
-
-  const statusCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    (animals || []).forEach((a) =>
-      map.set(
-        a?.status || "Unknown",
-        (map.get(a?.status || "Unknown") || 0) + 1
-      )
-    );
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
   }, [animals]);
 
   const calvingTrend = useMemo(() => {
@@ -119,10 +167,6 @@ export default function InventoryAnimalsPage({
       (a?.ear_tag || "").toLowerCase().includes(search.toLowerCase()) ||
       (a?.name || "").toLowerCase().includes(search.toLowerCase())
   );
-
-  // Helper to get repro status per-animal (so we don't call with undefined)
-  const getStatusFor = (a: Animal) =>
-    getReproStatus(a as any, calvings || [], (a as any).breeding_records || []);
 
   return (
     <div className="space-y-6">

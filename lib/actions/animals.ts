@@ -126,8 +126,12 @@ export async function createAnimal(formData: FormData) {
       ? Number.parseInt(formData.get("sire_id") as string)
       : null,
     status:
-      (formData.get("status") as "Active" | "Sold" | "Deceased" | "Culled") ||
-      "Active",
+      (formData.get("status") as
+        | "Active"
+        | "Sold"
+        | "Deceased"
+        | "Culled"
+        | "Empty") || "Active",
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
   };
@@ -164,8 +168,13 @@ export async function updateAnimal(id: number, formData: FormData) {
       ? Number.parseInt(formData.get("sire_id") as string)
       : null,
     status:
-      (formData.get("status") as "Active" | "Sold" | "Deceased" | "Culled") ||
-      "Active",
+      (formData.get("status") as
+        | "Active"
+        | "Sold"
+        | "Deceased"
+        | "Culled"
+        | "Empty"
+        | "Open") || "Active",
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),
   };
