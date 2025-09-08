@@ -135,11 +135,17 @@ export default function InventoryAnimalsPage({
   }, [calvings]);
 
   const inseminated = useMemo(() => {
-    return (animals || []).filter(
-      (a) =>
-        Array.isArray((a as any)?.breeding_records) &&
-        (a as any).breeding_records.length > 0
-    );
+    return (animals || []).filter((animal) => {
+      const breedingRecords = (animal as any)?.breeding_records as
+        | BreedingRecord[]
+        | undefined;
+
+      if (!Array.isArray(breedingRecords) || breedingRecords.length === 0) {
+        return false;
+      }
+
+      return breedingRecords.some((br) => br.pd_result === "Unchecked");
+    });
   }, [animals]);
 
   const filtered = (animals || []).filter(

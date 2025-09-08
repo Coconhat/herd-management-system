@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Check, X, CalendarCheck } from "lucide-react";
-import type { Animal, BreedingRecord } from "@/lib/types";
+import type { BreedingRecord } from "@/lib/types";
 import { differenceInDays, parseISO } from "date-fns";
 import { updateBreedingPDResult } from "@/lib/actions/breeding";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
+import { Animal } from "@/lib/actions/animals";
 
 // Animal type must include breeding_records for this to work
 type AnimalWithBreeding = Animal & { breeding_records: BreedingRecord[] };
@@ -30,7 +31,7 @@ export function BreedingActionDashboard({
 
   const needsPDCheck = animals.filter((a) =>
     a.breeding_records.some(
-      (br) =>
+      (br: any) =>
         br.pd_result === "Unchecked" &&
         differenceInDays(today, parseISO(br.pregnancy_check_due_date)) >= 0
     )
@@ -38,7 +39,7 @@ export function BreedingActionDashboard({
 
   const needsHeatCheck = animals.filter((a) =>
     a.breeding_records.some(
-      (br) =>
+      (br: any) =>
         br.returned_to_heat === null &&
         differenceInDays(today, parseISO(br.heat_check_date)) >= 0 &&
         br.pd_result === "Unchecked" // Only show if not yet checked for pregnancy
@@ -100,7 +101,7 @@ export function BreedingActionDashboard({
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="success"
+                        variant="default"
                         onClick={() => handleUpdatePD(record.id, "Pregnant")}
                       >
                         <Check className="mr-2 h-4 w-4" />

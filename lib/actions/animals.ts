@@ -41,10 +41,15 @@ export async function getAnimals(): Promise<Animal[]> {
   if (!user) {
     redirect("/auth/login");
   }
-
   const { data, error } = await supabase
     .from("animals")
-    .select("*, calvings(*)")
+    .select(
+      `
+      *,
+      calvings ( * ),
+      breeding_records ( * )
+    `
+    )
     .order("created_at", { ascending: false });
 
   if (error) {
