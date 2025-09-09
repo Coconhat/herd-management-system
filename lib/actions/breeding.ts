@@ -86,6 +86,7 @@ export async function createBreedingRecord(formData: FormData) {
  * @param breedingRecordId The ID of the breeding_records entry to update.
  * @param result The outcome of the check: 'Pregnant' or 'Empty'.
  */
+// in your breeding actions file (server)
 export async function updateBreedingPDResult(
   breedingRecordId: number,
   result: "Pregnant" | "Empty"
@@ -98,7 +99,7 @@ export async function updateBreedingPDResult(
 
   const checkDateISO = new Date().toISOString().split("T")[0];
 
-  // 1) Update breeding_records
+  // 1) Update the breeding_records pd_result/pregnancy_check_date first (and keep other fields for later)
   const { data: brData, error: brError } = await supabase
     .from("breeding_records")
     .update({
@@ -110,19 +111,19 @@ export async function updateBreedingPDResult(
     .select("id, animal_id, breeding_date")
     .single();
 
-  if (brError) {
+  if (brError || !brData) {
     console.error("Error updating PD result (breeding_records):", brError);
     throw new Error("Failed to update pregnancy diagnosis result.");
   }
 
-  const animalId = brData?.animal_id;
-  const breedingDateStr = brData?.breeding_date;
+  const animalId = brData.animal_id;
+  const breedingDateStr = brData.breeding_date;
   if (!animalId) {
     console.error("No animal_id returned from breeding_records update");
     throw new Error("Updated PD result but missing animal reference.");
   }
 
-  // 2) Update animals depending on result
+  // Branch: Pregnant
   if (result === "Pregnant") {
     const breedingDate = breedingDateStr
       ? parseISO(breedingDateStr)
@@ -131,6 +132,7 @@ export async function updateBreedingPDResult(
       .toISOString()
       .split("T")[0];
 
+    // Update animal to Pregnant and clear any post-PD helper dates on the breeding record
     const { error: animalErr } = await supabase
       .from("animals")
       .update({
@@ -145,8 +147,25 @@ export async function updateBreedingPDResult(
       throw new Error("Updated PD result but failed to update animal status.");
     }
 
-    // 3) Attempt to create a notification/reminder for expected calving.
-    // This is wrapped in try/catch so it won't fail if you don't have a notifications table.
+    // Clear post-PD helper dates on the breeding record (if any)
+    const { error: brClearErr } = await supabase
+      .from("breeding_records")
+      .update({
+        post_pd_treatment_due_date: null,
+        keep_in_breeding_until: null,
+        confirmed_pregnant: true,
+      })
+      .eq("id", breedingRecordId);
+
+    if (brClearErr) {
+      console.warn(
+        "Failed to clear post-PD helper fields after Pregnant:",
+        brClearErr
+      );
+      // non-fatal
+    }
+
+    // Attempt to create a notification/reminder for expected calving (non-fatal)
     try {
       await supabase.from("notifications").insert({
         user_id: user.id,
@@ -158,15 +177,33 @@ export async function updateBreedingPDResult(
         read: false,
       });
     } catch (notifErr) {
-      // If you don't have a notifications table or insert fails, just log it — don't throw.
       console.warn(
         "Could not create calving notification (table may not exist):",
         notifErr
       );
     }
   } else {
-    // Empty -> set status to 'Empty' and reopen_date 60 days from now
+    // Branch: Empty
     const reopenDate = addDays(new Date(), 60).toISOString().split("T")[0];
+    const postPdDue = addDays(new Date(), 29).toISOString().split("T")[0];
+
+    // Persist the post-PD helper dates to the breeding record
+    const { error: brUpdateErr } = await supabase
+      .from("breeding_records")
+      .update({
+        post_pd_treatment_due_date: postPdDue,
+        keep_in_breeding_until: postPdDue,
+        confirmed_pregnant: false,
+      })
+      .eq("id", breedingRecordId);
+
+    if (brUpdateErr) {
+      console.error(
+        "Error updating breeding_record with post-PD dates:",
+        brUpdateErr
+      );
+      // continue — not fatal
+    }
 
     const { error: animalErr } = await supabase
       .from("animals")
@@ -183,9 +220,9 @@ export async function updateBreedingPDResult(
     }
   }
 
-  // Revalidate UI
+  // Always revalidate affected pages so UI reflects the changes
   revalidatePath("/record/breeding", "layout");
-  if (animalId) revalidatePath(`/animal/${animalId}`);
+  revalidatePath(`/animal/${animalId}`);
 }
 
 // for calendar

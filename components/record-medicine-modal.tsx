@@ -25,7 +25,7 @@ import {
   type Medicine,
 } from "@/lib/actions/medicines";
 import { useToast } from "@/components/ui/use-toast"; // Ensure correct import path
-import { isBefore, parseISO } from "date-fns";
+import { isBefore, parseISO, startOfToday } from "date-fns";
 
 interface RecordMedicineModalProps {
   open: boolean;

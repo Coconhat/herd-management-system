@@ -1,178 +1,33 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { addDays, isAfter, parseISO, startOfToday, isValid } from "date-fns";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-
-import { getCalvingsWithDetails } from "@/lib/actions/calvings";
-import type { CalvingWithDetails } from "@/lib/actions/calvings";
-import { getAnimals } from "@/lib/actions/animals";
-import type { Animal } from "@/lib/actions/animals";
-import { CalvingRecordModal } from "@/components/calving-record-modal";
-import { formatWeight, getPregnancyCheckDueDate } from "@/lib/utils";
-import type { BreedingRecord } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
-import { addDays, isAfter, parseISO, set } from "date-fns";
-import { updateBreedingPDResult } from "@/lib/actions/breeding";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { RecordBreedingModal } from "./breeding-history-table";
-
-export function CalvingHistoryTable() {
-  const [records, setRecords] = useState<CalvingWithDetails[]>([]);
-  const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [calvingModalOpen, setCalvingModalOpen] = useState(false);
-
-  // fetch calvings + animals on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const [calvingData, animalsData] = await Promise.all([
-        getCalvingsWithDetails(),
-        getAnimals(),
-      ]);
-      setRecords(calvingData);
-      setAllAnimals(animalsData);
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
-
-  const filteredRecords = records.filter(
-    (record) =>
-      record.calf_ear_tag?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.animals?.ear_tag?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  return (
-    <>
-      <CalvingRecordModal
-        open={calvingModalOpen}
-        onOpenChange={setCalvingModalOpen}
-        animals={allAnimals}
-      />
-
-      <Card className="h-full">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <CardTitle>Calving History</CardTitle>
-              <CardDescription>
-                Search and manage all calving events.
-              </CardDescription>
-            </div>
-            <Button onClick={() => setCalvingModalOpen(true)}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Record New Calving
-            </Button>
-          </div>
-          <Input
-            placeholder="Search by calf or dam ear tag..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mt-4"
-          />
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-auto border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Calving Date</TableHead>
-                  <TableHead>Dam</TableHead>
-                  <TableHead>Calf Ear Tag</TableHead>
-                  <TableHead>Calf Sex</TableHead>
-                  <TableHead>Birth Wt.</TableHead>
-                  <TableHead>Outcome</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      Loading records...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredRecords.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      No records found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredRecords.map((rec) => (
-                    <TableRow key={rec.id}>
-                      <TableCell>{formatDate(rec.calving_date)}</TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/animal/${rec.animal_id}`}
-                          className="hover:underline text-primary font-medium"
-                        >
-                          {rec.animals?.ear_tag}{" "}
-                          {rec.animals?.name && `(${rec.animals.name})`}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {rec.calf_ear_tag || "—"}
-                      </TableCell>
-                      <TableCell>{rec.calf_sex || "—"}</TableCell>
-                      <TableCell>
-                        {formatWeight(rec.birth_weight?.toString() || "")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            rec.complications ? "destructive" : "default"
-                          }
-                          className={!rec.complications ? "bg-green-600" : ""}
-                        >
-                          {rec.complications || "Live Birth"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------
-   BREEDING HISTORY TABLE (updated with Confirm PD button & dialog)
-   Drop-in replacement for your previous BreedingHistoryTable function.
------------------------------------------------------------------- */
+import { RecordMedicineModal } from "@/components/record-medicine-modal";
+import { getPregnancyCheckDueDate } from "@/lib/utils";
+import { updateBreedingPDResult } from "@/lib/actions/breeding";
+import { useToast } from "@/hooks/use-toast";
+import type { Animal } from "@/lib/actions/animals";
+import type { BreedingRecord } from "@/lib/types";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 type AnimalWithBreeding = Animal & { breeding_records: BreedingRecord[] };
 
@@ -195,8 +50,23 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
   const [activeRecord, setActiveRecord] = useState<BreedingRecord | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  //state to warn user if click before due date
+  // optimistic overrides (partial fields)
+  const [localOverrides, setLocalOverrides] = useState<
+    Record<number, Partial<BreedingRecord>>
+  >({});
+  // pinnedRecords hold full records that might be removed by server fetches — keep them visible
+  const [pinnedRecords, setPinnedRecords] = useState<
+    Record<number, BreedingRecord>
+  >({});
 
+  // medicine modal state
+  const [recordMedicineModalOpen, setRecordMedicineModalOpen] = useState(false);
+  const [selectedBreedingRecordId, setSelectedBreedingRecordId] = useState<
+    number | null
+  >(null);
+  const [selectedAnimalId, setSelectedAnimalId] = useState<number | null>(null);
+
+  // early warning
   const [warnEarlyDialog, setWarnEarlyDialog] = useState(false);
   const [pendingRecord, setPendingRecord] = useState<BreedingRecord | null>(
     null
@@ -208,7 +78,7 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     const pdDueDate = getPregnancyCheckDueDate(rec);
     const today = new Date();
 
-    //if not due yet, warn user
+    // if not due yet, warn user
     if (pdDueDate !== null && isAfter(pdDueDate, today)) {
       setPendingRecord(rec);
       setWarnEarlyDialog(true);
@@ -219,19 +89,79 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     setDialogOpen(true);
   };
 
-  // Flatten all breeding records from all animals into one list
-  const allBreedingRecords = animals
+  // Build flattened list, apply local overrides
+  const baseBreedingRecords = animals
     .flatMap((animal) =>
       animal.breeding_records.map((record) => ({
         ...record,
-        dam_ear_tag: animal.ear_tag, // Add dam info for display
+        dam_ear_tag: animal.ear_tag,
+        dam_id: animal.id,
       }))
     )
+    .map((r) => {
+      const override = localOverrides[r.id];
+      return override ? ({ ...r, ...override } as BreedingRecord) : r;
+    })
     .sort(
       (a, b) =>
         new Date(b.breeding_date).getTime() -
         new Date(a.breeding_date).getTime()
     );
+
+  // Combine with pinnedRecords that are not present in baseBreedingRecords
+  const combinedBreedingRecords = [
+    ...baseBreedingRecords,
+    ...Object.values(pinnedRecords).filter(
+      (p) => !baseBreedingRecords.some((r) => r.id === p.id)
+    ),
+  ];
+
+  // Clean up pinnedRecords when server returns the record (present in baseBreedingRecords)
+  useEffect(() => {
+    if (!Object.keys(pinnedRecords).length) return;
+    const presentIds = new Set(baseBreedingRecords.map((r) => r.id));
+    const nextPinned = { ...pinnedRecords };
+    let changed = false;
+    for (const idStr of Object.keys(pinnedRecords)) {
+      const id = Number(idStr);
+      // If server returned the record, and the returned record has a post_pd_treatment_due_date,
+      // we can stop pinning. If server returned the record but without the helper date, keep pinned
+      const returned = baseBreedingRecords.find((r) => r.id === id);
+      if (returned) {
+        const hasHelper =
+          (returned as any).post_pd_treatment_due_date ||
+          (returned as any).keep_in_breeding_until;
+        if (hasHelper) {
+          delete nextPinned[id];
+          changed = true;
+        } else {
+          // If server returned it and it's already Pregnant (or not Empty), unpin
+          if (returned.pd_result !== "Empty") {
+            delete nextPinned[id];
+            changed = true;
+          }
+        }
+      } else {
+        // if not returned, check if pinned record expired (past its own keep date)
+        const p = pinnedRecords[id];
+        const keepStr =
+          (p as any).keep_in_breeding_until ||
+          (p as any).post_pd_treatment_due_date;
+        if (keepStr) {
+          const keep = parseISO(keepStr);
+          if (isValid(keep) && startOfToday() > keep) {
+            delete nextPinned[id];
+            changed = true;
+          }
+        }
+      }
+    }
+    if (changed) setPinnedRecords(nextPinned);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    baseBreedingRecords.map((r) => r.id).join(","),
+    JSON.stringify(pinnedRecords),
+  ]);
 
   // helper for expected calving (prefer stored, else +283)
   const getExpectedCalvingDate = (rec: BreedingRecord) => {
@@ -249,45 +179,106 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     }
   };
 
-  const today = new Date();
+  const today = startOfToday();
 
+  // Updated: optimistic update + pinning to avoid disappearance
   const handleConfirm = async (result: "Pregnant" | "Empty") => {
     if (!activeRecord) return;
     setIsProcessing(true);
 
+    // optimistic local override so UI updates immediately (pre-server)
+    const todayISO = new Date().toISOString().split("T")[0];
+
+    if (result === "Pregnant") {
+      const expectedCalving = addDays(parseISO(activeRecord.breeding_date), 283)
+        .toISOString()
+        .split("T")[0];
+
+      setLocalOverrides((prev) => ({
+        ...prev,
+        [activeRecord.id]: {
+          pd_result: "Pregnant",
+          pregnancy_check_date: todayISO,
+          expected_calving_date: expectedCalving,
+        },
+      }));
+
+      // remove any pinned copy if exists
+      setPinnedRecords((p) => {
+        if (!p[activeRecord.id]) return p;
+        const copy = { ...p };
+        delete copy[activeRecord.id];
+        return copy;
+      });
+    } else {
+      // Empty: keep in breeding list for 29 days and show post-PD button
+      const postPdDate = addDays(new Date(), 29).toISOString().split("T")[0];
+
+      // partial override for server-synced cases
+      setLocalOverrides((prev) => ({
+        ...prev,
+        [activeRecord.id]: {
+          pd_result: "Empty",
+          pregnancy_check_date: todayISO,
+          expected_calving_date: null,
+          post_pd_treatment_due_date: postPdDate,
+          keep_in_breeding_until: postPdDate,
+        } as Partial<BreedingRecord>,
+      }));
+
+      // Pin a *full* record copy so it won't vanish if server fetch excludes it temporarily
+      setPinnedRecords((prev) => ({
+        ...prev,
+        [activeRecord.id]: {
+          ...activeRecord,
+          pd_result: "Empty",
+          pregnancy_check_date: todayISO,
+          expected_calving_date: null,
+          post_pd_treatment_due_date: postPdDate,
+          keep_in_breeding_until: postPdDate,
+        } as unknown as BreedingRecord,
+      }));
+    }
+
     try {
       await updateBreedingPDResult(activeRecord.id, result);
 
-      // optimistic UI: update the local record's pd_result & dates in-memory
-      // NOTE: this won't persist across full-page refreshes — server revalidation will handle that.
-      allBreedingRecords.forEach((r) => {
-        if (r.id === activeRecord.id) {
-          r.pd_result = result;
-          r.pregnancy_check_date = new Date().toISOString().split("T")[0];
-          if (result === "Pregnant") {
-            r.expected_calving_date = addDays(parseISO(r.breeding_date), 283)
-              .toISOString()
-              .split("T")[0];
-          } else {
-            r.expected_calving_date = null;
-          }
-        }
-      });
-
-      toast({
-        title: "Success",
-        description: `Record ${activeRecord.id} marked as ${result}.`,
-      });
-
-      // If pregnant, tell user we scheduled a 9-month reminder (server side)
+      // success toasts
       if (result === "Pregnant") {
+        toast({
+          title: "Success",
+          description: `Record ${activeRecord.id} marked as Pregnant.`,
+        });
         toast({
           title: "Reminder scheduled",
           description:
             "A reminder for expected calving (≈9 months) has been scheduled.",
         });
+      } else {
+        // Immediately open the medicine modal for the newly marked Empty record
+        setSelectedBreedingRecordId(activeRecord.id);
+        setSelectedAnimalId(activeRecord.animal_id ?? activeRecord.animal_id);
+        setRecordMedicineModalOpen(true);
+
+        toast({
+          title: "Marked Not Pregnant",
+          description:
+            "This breeding was marked Not Pregnant. You can provide Post-PD Treatment within 29 days.",
+        });
       }
     } catch (err) {
+      // revert optimistic update on error
+      setLocalOverrides((prev) => {
+        const copy = { ...prev };
+        delete copy[activeRecord.id];
+        return copy;
+      });
+      setPinnedRecords((p) => {
+        const copy = { ...p };
+        delete copy[activeRecord.id];
+        return copy;
+      });
+
       console.error(err);
       toast({
         title: "Error",
@@ -298,7 +289,36 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
       setIsProcessing(false);
       setDialogOpen(false);
       setActiveRecord(null);
+      setPendingRecord(null);
     }
+  };
+
+  // Determine visibility and whether to show Post-PD Treatment button
+  const isRecordVisible = (rec: BreedingRecord) => {
+    // If not an Empty record, always visible
+    if (rec.pd_result !== "Empty") return true;
+
+    const keepUntilStr =
+      (rec as any).keep_in_breeding_until ||
+      (rec as any).post_pd_treatment_due_date;
+
+    if (!keepUntilStr) return true; // fallback: keep visible
+
+    const keepUntil = parseISO(keepUntilStr);
+    if (!isValid(keepUntil)) return true; // fallback: keep visible on parse errors
+
+    // Keep visible while today <= keepUntil (inclusive)
+    return today <= keepUntil;
+  };
+
+  const isPostPdButtonVisible = (rec: BreedingRecord) => {
+    if (rec.pd_result !== "Empty") return false;
+    const dueStr = (rec as any).post_pd_treatment_due_date;
+    if (!dueStr) return false;
+    const due = parseISO(dueStr);
+    if (!isValid(due)) return false;
+    // Show button while today <= due (inclusive)
+    return today <= due;
   };
 
   return (
@@ -307,6 +327,14 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         animals={animals}
+      />
+
+      {/* medicine modal */}
+      <RecordMedicineModal
+        open={recordMedicineModalOpen}
+        onOpenChange={setRecordMedicineModalOpen}
+        animalId={selectedAnimalId ?? 0}
+        breedingRecordId={selectedBreedingRecordId ?? undefined}
       />
 
       {/* Early warning dialog */}
@@ -396,10 +424,13 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allBreedingRecords.map((rec) => {
+              {combinedBreedingRecords.map((rec) => {
+                // apply visibility rule
+                if (!isRecordVisible(rec)) return null;
+
                 const pdDueDate = getPregnancyCheckDueDate(rec);
                 const expectedCalving = getExpectedCalvingDate(rec);
-                const isDueForPD =
+                const dueForPD =
                   rec.pd_result === "Unchecked" &&
                   pdDueDate !== null &&
                   !isAfter(pdDueDate, today); // pdDueDate <= today
@@ -410,12 +441,12 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
                       {new Date(rec.breeding_date).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Link
+                      <a
                         href={`/animal/${rec.dam_ear_tag}`}
                         className="hover:underline"
                       >
                         {rec.dam_ear_tag}
-                      </Link>
+                      </a>
                     </TableCell>
                     <TableCell>{rec.sire_ear_tag || "N/A"}</TableCell>
                     <TableCell>{rec.breeding_method || "—"}</TableCell>
@@ -435,10 +466,24 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
                         ? pdDueDate.toLocaleDateString()
                         : "—"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-2">
                       <Button size="sm" onClick={() => openConfirmPD(rec)}>
                         Confirm PD
                       </Button>
+
+                      {isPostPdButtonVisible(rec) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedBreedingRecordId(rec.id);
+                            setSelectedAnimalId(rec.dam_id ?? rec.animal_id);
+                            setRecordMedicineModalOpen(true);
+                          }}
+                        >
+                          Post-PD Treatment
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
