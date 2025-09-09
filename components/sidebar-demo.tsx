@@ -53,9 +53,11 @@ const navigation = [
 
 // Desktop Sidebar Component
 export function DesktopSidebar() {
-  const [expandedItems, setExpandedItems] = useState({});
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
+    {}
+  );
 
-  const toggleExpanded = (itemName) => {
+  const toggleExpanded = (itemName: string) => {
     setExpandedItems((prev) => ({
       ...prev,
       [itemName]: !prev[itemName],
@@ -75,7 +77,7 @@ export function DesktopSidebar() {
           <nav className="flex-1 px-2 space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
-              const isExpanded = expandedItems[item.name];
+              const isExpanded = !!expandedItems[item.name];
 
               return (
                 <div key={item.name}>
@@ -83,18 +85,19 @@ export function DesktopSidebar() {
                     <>
                       <button
                         onClick={() => toggleExpanded(item.name)}
-                        className="w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                        className="w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
                       >
                         <div className="flex items-center">
-                          <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                          {item.name}
+                          <Icon className="mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-150 group-hover:text-primary" />
+                          <span className="truncate">{item.name}</span>
                         </div>
                         {isExpanded ? (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-4 w-4 transition-colors group-hover:text-primary" />
                         ) : (
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-4 w-4 transition-colors group-hover:text-primary" />
                         )}
                       </button>
+
                       {isExpanded && (
                         <div className="ml-6 mt-1 space-y-1">
                           {item.children.map((child) => {
@@ -103,10 +106,10 @@ export function DesktopSidebar() {
                               <a
                                 key={child.name}
                                 href={child.href}
-                                className="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                                className="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out text-muted-foreground hover:text-primary hover:bg-primary/10"
                               >
-                                <ChildIcon className="mr-3 h-4 w-4 flex-shrink-0" />
-                                {child.name}
+                                <ChildIcon className="mr-3 h-4 w-4 flex-shrink-0 transition-colors group-hover:text-primary" />
+                                <span className="truncate">{child.name}</span>
                               </a>
                             );
                           })}
@@ -117,16 +120,22 @@ export function DesktopSidebar() {
                     <a
                       href={item.href}
                       className={`
-                        group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                        group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out
                         ${
                           item.current
                             ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                         }
                       `}
                     >
-                      <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                      {item.name}
+                      <Icon
+                        className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-150 ${
+                          item.current
+                            ? "text-primary-foreground"
+                            : "group-hover:text-primary"
+                        }`}
+                      />
+                      <span className="truncate">{item.name}</span>
                     </a>
                   )}
                 </div>
@@ -136,7 +145,7 @@ export function DesktopSidebar() {
         </div>
         <div className="flex-shrink-0 p-4 border-t">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4 w-4 transition-colors group-hover:text-primary" />
             <span>3 notifications</span>
           </div>
         </div>
@@ -147,9 +156,11 @@ export function DesktopSidebar() {
 
 // Mobile Sidebar Component
 export function MobileSidebar() {
-  const [expandedItems, setExpandedItems] = useState({});
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
+    {}
+  );
 
-  const toggleExpanded = (itemName) => {
+  const toggleExpanded = (itemName: string) => {
     setExpandedItems((prev) => ({
       ...prev,
       [itemName]: !prev[itemName],
@@ -175,7 +186,7 @@ export function MobileSidebar() {
             <nav className="px-2 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
-                const isExpanded = expandedItems[item.name];
+                const isExpanded = !!expandedItems[item.name];
 
                 return (
                   <div key={item.name}>
@@ -183,16 +194,16 @@ export function MobileSidebar() {
                       <>
                         <button
                           onClick={() => toggleExpanded(item.name)}
-                          className="w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                          className="w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out text-muted-foreground hover:text-primary hover:bg-primary/10"
                         >
                           <div className="flex items-center">
-                            <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                            {item.name}
+                            <Icon className="mr-3 h-5 w-5 flex-shrink-0 transition-colors group-hover:text-primary" />
+                            <span className="truncate">{item.name}</span>
                           </div>
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4 transition-colors group-hover:text-primary" />
                           ) : (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4 transition-colors group-hover:text-primary" />
                           )}
                         </button>
                         {isExpanded && (
@@ -203,10 +214,10 @@ export function MobileSidebar() {
                                 <a
                                   key={child.name}
                                   href={child.href}
-                                  className="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                                  className="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out text-muted-foreground hover:text-primary hover:bg-primary/10"
                                 >
-                                  <ChildIcon className="mr-3 h-4 w-4 flex-shrink-0" />
-                                  {child.name}
+                                  <ChildIcon className="mr-3 h-4 w-4 flex-shrink-0 transition-colors group-hover:text-primary" />
+                                  <span className="truncate">{child.name}</span>
                                 </a>
                               );
                             })}
@@ -217,16 +228,22 @@ export function MobileSidebar() {
                       <a
                         href={item.href}
                         className={`
-                          group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                          group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out
                           ${
                             item.current
                               ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                           }
                         `}
                       >
-                        <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                        {item.name}
+                        <Icon
+                          className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-150 ${
+                            item.current
+                              ? "text-primary-foreground"
+                              : "group-hover:text-primary"
+                          }`}
+                        />
+                        <span className="truncate">{item.name}</span>
                       </a>
                     )}
                   </div>
@@ -236,7 +253,7 @@ export function MobileSidebar() {
           </div>
           <div className="flex-shrink-0 p-4 border-t">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Bell className="h-4 w-4" />
+              <Bell className="h-4 w-4 transition-colors group-hover:text-primary" />
               <span>3 notifications</span>
             </div>
           </div>
