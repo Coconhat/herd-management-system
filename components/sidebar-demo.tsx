@@ -28,7 +28,7 @@ const navigation = [
     isDropdown: true,
     children: [
       { name: "Record Breeding", icon: PawPrint, href: "/record/breeding" },
-      { name: "Record Animal", icon: Heart, href: "/record/animal" },
+      { name: "Record Animal", icon: Heart, href: "/record/animals" },
       { name: "Record Milking", icon: TrendingUp, href: "/record/milking" },
     ],
   },
