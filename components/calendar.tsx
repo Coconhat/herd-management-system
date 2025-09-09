@@ -55,7 +55,7 @@ export function CalendarWidget() {
         const records = await getAllBreedingRecords();
 
         const events: CalendarEvent[] = [];
-        (records as BreedingRecordWithAnimal[]).forEach((record) => {
+        (records as unknown as BreedingRecordWithAnimal[]).forEach((record) => {
           const earTag = record.animals?.ear_tag || `ID #${record.animal_id}`;
 
           // Event 1: Breeding Date (Always show this as it's a historical fact)
