@@ -222,17 +222,7 @@ export function DashboardContent({
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         {(() => {
-                          // Get breeding records for this animal
-                          const animalBreedingRecords =
-                            breedingRecords?.filter(
-                              (record) => record.animal_id === animal.id
-                            ) || [];
-
-                          // Get combined status
-                          const statusInfo = getCombinedStatus(
-                            animal,
-                            animalBreedingRecords
-                          );
+                          const statusInfo = getCombinedStatus(animal);
 
                           return (
                             <Badge variant={statusInfo.variant}>
