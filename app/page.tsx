@@ -7,7 +7,11 @@ import {
   Heart,
   TrendingUp,
 } from "lucide-react";
-import { getAnimals, getAnimalStats } from "@/lib/actions/animals";
+import {
+  getAnimals,
+  getAnimalStats,
+  getAnimalsWithBreedingData,
+} from "@/lib/actions/animals";
 import { DashboardContent } from "@/components/dashboard-content";
 import { UserNav } from "@/components/user-nav";
 import { CalendarWidget } from "@/components/calendar";
@@ -17,6 +21,19 @@ import { getBreedingRecordsWithAnimalInfo } from "@/lib/actions/breeding";
 
 async function StatsCards() {
   const stats = await getAnimalStats();
+
+  const allAnimals = await getAnimalsWithBreedingData();
+
+  const allBreedingRecords = allAnimals.flatMap((animal) =>
+    (animal.breeding_records || []).map((record) => ({
+      ...record,
+      animals: {
+        // Ensure the 'animals' object structure matches the widget's expectation
+        ear_tag: animal.ear_tag,
+        name: animal.name,
+      },
+    }))
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -100,7 +117,19 @@ async function AnimalsData() {
   );
 }
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  // Fetch animals with breeding data for the calendar widget
+  const allAnimals = await getAnimalsWithBreedingData();
+  const allBreedingRecords = allAnimals.flatMap((animal) =>
+    (animal.breeding_records || []).map((record) => ({
+      ...record,
+      animals: {
+        ear_tag: animal.ear_tag,
+        name: animal.name ?? null,
+      },
+    }))
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
@@ -203,7 +232,7 @@ export default function Dashboard() {
 
           {/* Right sidebar with calendar */}
           <div className="hidden xl:block w-80 border-l bg-card/50 p-6">
-            <CalendarWidget />
+            <CalendarWidget records={allBreedingRecords} />
           </div>
         </div>
       </div>

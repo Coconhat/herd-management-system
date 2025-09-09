@@ -4,29 +4,20 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { getAllBreedingRecords } from "@/lib/actions/breeding";
 import {
   format,
   parseISO,
   isWithinInterval,
   addDays,
   isSameDay,
+  isBefore,
+  startOfDay,
+  endOfDay,
 } from "date-fns";
-import Link from "next/link"; // Import Link for navigation
+import { BreedingRecord } from "@/lib/types";
 
-// Step 1: Update the interface to match the actual data from the server
-interface BreedingRecordWithAnimal {
-  id: number;
-  animal_id: number;
-  breeding_date: string;
-  pregnancy_check_due_date: string;
-  expected_calving_date: string;
-  pd_result: "Pregnant" | "Empty" | "Unchecked";
-  confirmed_pregnant: boolean; // This is crucial for tracking completed pregnancies
-  animals: {
-    ear_tag: string;
-    name: string | null;
-  } | null;
+interface BreedingRecordWithAnimal extends BreedingRecord {
+  animals: { ear_tag: string; name: string | null } | null;
 }
 
 interface CalendarEvent {
@@ -36,95 +27,92 @@ interface CalendarEvent {
   ear_tag: string;
   title: string;
   color: string;
+  completed: boolean;
 }
 
-export function CalendarWidget() {
-  // Removed animalId prop as it wasn't used for fetching
+interface CalendarWidgetProps {
+  records: BreedingRecordWithAnimal[];
+}
+
+export function CalendarWidget({ records }: CalendarWidgetProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  // Step 2: Use the correct, more descriptive interface for your state
-  const [breedingRecords, setBreedingRecords] = useState<
-    BreedingRecordWithAnimal[]
-  >([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBreedingRecords = async () => {
-      try {
-        setLoading(true);
-        const records = await getAllBreedingRecords();
+    const events: CalendarEvent[] = [];
+    const today = new Date();
 
-        const events: CalendarEvent[] = [];
-        (records as unknown as BreedingRecordWithAnimal[]).forEach((record) => {
-          const earTag = record.animals?.ear_tag || `ID #${record.animal_id}`;
+    records.forEach((record) => {
+      const earTag = record.animals?.ear_tag || `ID #${record.animal_id}`;
 
-          // Event 1: Breeding Date (Always show this as it's a historical fact)
-          events.push({
-            date: parseISO(record.breeding_date),
-            type: "breeding",
-            ear_tag: earTag,
-            title: `Bred: ${earTag}`,
-            animal_id: record.animal_id,
-            color: "blue",
-          });
+      // 1. Breeding Date (Historical)
+      const breedingDate = parseISO(record.breeding_date);
+      events.push({
+        date: breedingDate,
+        type: "breeding",
+        ear_tag: earTag,
+        title: `Bred: ${earTag}`,
+        animal_id: record.animal_id,
+        color: "blue",
+        completed: isBefore(breedingDate, today),
+      });
 
-          // **THE FIX for PD Checks**:
-          // Only show the pregnancy check event if the status is still "Unchecked".
-          if (
-            record.pregnancy_check_due_date &&
-            record.pd_result === "Unchecked"
-          ) {
-            events.push({
-              date: parseISO(record.pregnancy_check_due_date),
-              type: "pregnancy_check",
-              ear_tag: earTag,
-              title: `PD Check Due: ${earTag}`,
-              animal_id: record.animal_id,
-              color: "purple",
-            });
-          }
+      // 2. PD Check Due
+      if (record.pregnancy_check_due_date) {
+        const pdDate = parseISO(record.pregnancy_check_due_date);
+        const pdCompleted = record.pd_result !== "Unchecked";
 
-          // **THE FIX for Calving**:
-          // Only show the expected calving event if the animal is currently confirmed pregnant.
-          // Your server action sets `confirmed_pregnant` to `false` after a calving.
-          if (record.expected_calving_date && record.confirmed_pregnant) {
-            events.push({
-              date: parseISO(record.expected_calving_date),
-              type: "expected_calving",
-              ear_tag: earTag,
-              title: `Expected Calving: ${earTag}`,
-              animal_id: record.animal_id,
-              color: "green",
-            });
-          }
+        events.push({
+          date: pdDate,
+          type: "pregnancy_check",
+          ear_tag: earTag,
+          title: `PD Check: ${earTag}`,
+          animal_id: record.animal_id,
+          color: "purple",
+          completed: pdCompleted,
         });
-
-        setCalendarEvents(events);
-      } catch (error) {
-        console.error("Error fetching breeding records:", error);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchBreedingRecords();
-  }, []);
+      // 3. Expected Calving
+      if (record.expected_calving_date && record.confirmed_pregnant) {
+        const calvingDate = parseISO(record.expected_calving_date);
+        // For calving, we'll consider it completed if it's in the past
+        events.push({
+          date: calvingDate,
+          type: "expected_calving",
+          ear_tag: earTag,
+          title: `Expected Calving: ${earTag}`,
+          animal_id: record.animal_id,
+          color: "green",
+          completed: isBefore(calvingDate, today),
+        });
+      }
+    });
+
+    setCalendarEvents(events);
+  }, [records]);
 
   const hasEvents = (checkDate: Date) =>
     calendarEvents.some((event) => isSameDay(event.date, checkDate));
+
   const getEventsForDate = (selectedDate: Date) =>
     calendarEvents.filter((event) => isSameDay(event.date, selectedDate));
 
   const getUpcomingEvents = () => {
-    const today = new Date();
-    const thirtyDaysFromNow = addDays(today, 30);
+    const today = startOfDay(new Date());
+    const thirtyDaysFromNow = endOfDay(addDays(today, 30));
+
     return calendarEvents
-      .filter((event) =>
-        isWithinInterval(event.date, { start: today, end: thirtyDaysFromNow })
+      .filter(
+        (event) =>
+          isWithinInterval(event.date, {
+            start: today,
+            end: thirtyDaysFromNow,
+          }) && !event.completed
       )
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .slice(0, 5);
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
   };
+
   const getEventColor = (type: string) => {
     switch (type) {
       case "breeding":
@@ -155,27 +143,7 @@ export function CalendarWidget() {
     }
   };
 
-  if (loading) {
-    return (
-      <Card className="w-full max-w-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5" />
-            Schedule
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-64 bg-gray-200 rounded-md"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const upcomingEvents = getUpcomingEvents();
 
   return (
     <Card className="w-full max-w-sm">
@@ -222,7 +190,15 @@ export function CalendarWidget() {
                     )}`}
                   ></div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium">{event.title}</p>
+                    <p
+                      className={`text-xs font-medium ${
+                        event.completed
+                          ? "line-through text-muted-foreground"
+                          : ""
+                      }`}
+                    >
+                      {event.title}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {format(event.date, "MMM dd, yyyy")}
                     </p>
@@ -233,12 +209,14 @@ export function CalendarWidget() {
           </div>
         )}
 
-        {/* Upcoming Events */}
+        {/* Upcoming Events - Now shows all events for the next 30 days */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium">Upcoming Events</h4>
-          <div className="space-y-2">
-            {getUpcomingEvents().length > 0 ? (
-              getUpcomingEvents().map((event, index) => (
+          <h4 className="text-sm font-medium">
+            Upcoming Events (Next 30 Days)
+          </h4>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event, index) => (
                 <div
                   key={index}
                   className={`flex items-center gap-2 p-2 rounded-md border-l-4 ${getEventColor(
@@ -260,7 +238,7 @@ export function CalendarWidget() {
               ))
             ) : (
               <p className="text-xs text-muted-foreground">
-                No upcoming events
+                No upcoming events in the next 30 days
               </p>
             )}
           </div>
@@ -274,7 +252,6 @@ export function CalendarWidget() {
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span>Breeding</span>
             </div>
-
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
               <span>PD Check</span>
