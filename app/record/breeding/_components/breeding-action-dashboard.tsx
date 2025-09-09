@@ -11,8 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { differenceInDays, parseISO } from "date-fns";
-import type { Animal } from "@/lib/actions/animals"; // Assuming Animal type is defined
-import type { BreedingRecord } from "@/lib/types"; // Assuming BreedingRecord type is defined
+import type { Animal } from "@/lib/actions/animals";
+import type { BreedingRecord } from "@/lib/types";
 import { updateBreedingPDResult } from "@/lib/actions/breeding";
 import { useToast } from "@/components/ui/use-toast";
 import { RecordMedicineModal } from "@/components/record-medicine-modal";
@@ -44,6 +44,11 @@ export function BreedingActionDashboard({
     )
   );
 
+  // If there are no actions required, don't render anything
+  if (needsPDCheck.length === 0) {
+    return null;
+  }
+
   const handleUpdatePD = async (
     breedingRecordId: number,
     animalId: number,
@@ -71,7 +76,7 @@ export function BreedingActionDashboard({
 
   return (
     <>
-      <Card>
+      <Card className="border-yellow-200 bg-yellow-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="text-yellow-500" /> Action Required
@@ -95,18 +100,26 @@ export function BreedingActionDashboard({
                   return (
                     <div
                       key={record.id}
-                      className="flex items-center justify-between p-2 bg-muted rounded-md"
+                      className="flex items-center justify-between p-3 bg-yellow-100 rounded-md border border-yellow-200"
                     >
-                      <Link
-                        href={`/animal/${animal.ear_tag}`}
-                        className="font-medium hover:underline"
-                      >
-                        {animal.ear_tag}
-                      </Link>
-                      <span className="text-sm text-muted-foreground">
-                        Bred on:{" "}
-                        {new Date(record.breeding_date).toLocaleDateString()}
-                      </span>
+                      <div className="flex-1">
+                        <Link
+                          href={`/animal/${animal.ear_tag}`}
+                          className="font-medium hover:underline text-blue-600"
+                        >
+                          {animal.ear_tag}
+                        </Link>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Bred on:{" "}
+                          {new Date(record.breeding_date).toLocaleDateString()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Due:{" "}
+                          {new Date(
+                            record.pregnancy_check_due_date
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
