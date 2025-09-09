@@ -116,7 +116,24 @@ export function getReproStatus(
     }
 
     if (activeBR.pd_result === "Empty") {
-      return { label: "Empty", variant: "destructive" };
+      const emptySince = activeBR.breeding_date
+        ? parseISO(activeBR.breeding_date)
+        : parseISO(activeBR.pregnancy_check_due_date!); // fallback if no explicit PD date
+      const daysEmpty = differenceInDays(today, emptySince);
+
+      if (daysEmpty < 60) {
+        return {
+          label: "Empty",
+          variant: "destructive",
+          details: { days_empty: daysEmpty, breeding_record_id: activeBR.id },
+        };
+      } else {
+        return {
+          label: "Open",
+          variant: "outline",
+          details: { days_empty: daysEmpty },
+        };
+      }
     }
   }
 

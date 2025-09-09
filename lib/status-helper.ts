@@ -1,9 +1,9 @@
 // status-helper.ts
 import { differenceInDays, parseISO, isValid } from "date-fns";
-import type { Animal, BreedingRecord, Calving } from "./types";
+import type { BreedingRecord, Calving } from "./types";
+import type { Animal } from "./actions/animals";
 
 export type CombinedStatus =
-  | "Active"
   | "Pregnant"
   | "Fresh"
   | "Empty"
