@@ -19,21 +19,21 @@ interface BreedingRecordWithAnimal {
   id: number;
   animal_id: number;
   breeding_date: string;
-  heat_check_date: string;
   pregnancy_check_due_date: string;
   expected_calving_date: string;
   pd_result: "Pregnant" | "Empty" | "Unchecked";
+  confirmed_pregnant: boolean; // This is crucial for tracking completed pregnancies
   animals: {
     ear_tag: string;
     name: string | null;
-  } | null; // The nested animal object (can be null if animal was deleted)
+  } | null;
 }
 
 interface CalendarEvent {
   date: Date;
   type: "breeding" | "heat_check" | "pregnancy_check" | "expected_calving";
   animal_id: number;
-  ear_tag: string; // Add ear_tag for direct use
+  ear_tag: string;
   title: string;
   color: string;
 }
@@ -52,48 +52,48 @@ export function CalendarWidget() {
     const fetchBreedingRecords = async () => {
       try {
         setLoading(true);
-        // The server action already fetches records with animal data nested
         const records = await getAllBreedingRecords();
-
-        // The type assertion helps TypeScript understand the shape of the data
-        setBreedingRecords(records as BreedingRecordWithAnimal[]);
 
         const events: CalendarEvent[] = [];
         (records as BreedingRecordWithAnimal[]).forEach((record) => {
-          // Step 3: Use the ear_tag from the nested 'animals' object for the title
-          // Provide a fallback to the ID in case the animal data is missing (e.g., deleted animal)
           const earTag = record.animals?.ear_tag || `ID #${record.animal_id}`;
 
-          // Breeding date
+          // Event 1: Breeding Date (Always show this as it's a historical fact)
           events.push({
             date: parseISO(record.breeding_date),
             type: "breeding",
-            animal_id: record.animal_id,
             ear_tag: earTag,
-            title: `Breeding - ${earTag}`, // Use the earTag here
+            title: `Bred: ${earTag}`,
+            animal_id: record.animal_id,
             color: "blue",
           });
 
-          // Pregnancy check date
-          if (record.pregnancy_check_due_date) {
+          // **THE FIX for PD Checks**:
+          // Only show the pregnancy check event if the status is still "Unchecked".
+          if (
+            record.pregnancy_check_due_date &&
+            record.pd_result === "Unchecked"
+          ) {
             events.push({
               date: parseISO(record.pregnancy_check_due_date),
               type: "pregnancy_check",
-              animal_id: record.animal_id,
               ear_tag: earTag,
-              title: `PD Check - ${earTag}`, // And here
+              title: `PD Check Due: ${earTag}`,
+              animal_id: record.animal_id,
               color: "purple",
             });
           }
 
-          // Expected calving date (only if pregnant)
-          if (record.expected_calving_date && record.pd_result === "Pregnant") {
+          // **THE FIX for Calving**:
+          // Only show the expected calving event if the animal is currently confirmed pregnant.
+          // Your server action sets `confirmed_pregnant` to `false` after a calving.
+          if (record.expected_calving_date && record.confirmed_pregnant) {
             events.push({
               date: parseISO(record.expected_calving_date),
               type: "expected_calving",
-              animal_id: record.animal_id,
               ear_tag: earTag,
-              title: `Expected Calving - ${earTag}`, // And here
+              title: `Expected Calving: ${earTag}`,
+              animal_id: record.animal_id,
               color: "green",
             });
           }
