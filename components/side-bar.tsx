@@ -12,6 +12,8 @@ import {
   Boxes,
   HeartPulse,
   LayoutDashboard,
+  Settings,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -72,6 +74,17 @@ const navItems = [
         label: "Medicine Inventory",
         href: "#", // Replace with your actual route e.g., "/inventory/medicine"
         icon: <BarChart3 className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    label: "Admin",
+    icon: <Settings className="h-4 w-4" />,
+    children: [
+      {
+        label: "Email Whitelist",
+        href: "/admin/email-whitelist",
+        icon: <Shield className="h-4 w-4" />,
       },
     ],
   },

@@ -1,60 +1,93 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [repeatPassword, setRepeatPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault();
+    const supabase = createClient();
+    setIsLoading(true);
+    setError(null);
 
     if (password !== repeatPassword) {
-      setError("Passwords do not match")
-      setIsLoading(false)
-      return
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
     }
 
     try {
+      // First check if email is whitelisted
+      const whitelistResponse = await fetch("/api/auth/check-whitelist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const whitelistData = await whitelistResponse.json();
+
+      if (!whitelistData.isWhitelisted) {
+        setError(
+          whitelistData.message ||
+            "This email is not authorized to create an account."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // If email is whitelisted, proceed with registration
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/`,
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+            `${window.location.origin}/`,
         },
-      })
-      if (error) throw error
-      router.push("/auth/sign-up-success")
+      });
+      if (error) throw error;
+      router.push("/auth/sign-up-success");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">Herd Management</h1>
-            <p className="text-muted-foreground mt-2">Create your account to get started</p>
+            <h1 className="text-3xl font-bold text-foreground">
+              Herd Management
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Create your account to get started
+            </p>
           </div>
 
           <Card>
@@ -107,7 +140,10 @@ export default function SignUpPage() {
                 </div>
                 <div className="mt-4 text-center text-sm">
                   Already have an account?{" "}
-                  <Link href="/auth/login" className="underline underline-offset-4">
+                  <Link
+                    href="/auth/login"
+                    className="underline underline-offset-4"
+                  >
                     Login
                   </Link>
                 </div>
@@ -117,5 +153,5 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
