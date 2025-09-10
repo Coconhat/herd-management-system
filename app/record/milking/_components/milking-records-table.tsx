@@ -48,8 +48,10 @@ export function MilkingRecordsTable({
 }: MilkingRecordsTableProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [internalSelectedWeek, setInternalSelectedWeek] = useState<Date>(new Date());
-  
+  const [internalSelectedWeek, setInternalSelectedWeek] = useState<Date>(
+    new Date()
+  );
+
   // Use prop if provided, otherwise use internal state
   const selectedWeek = propSelectedWeek || internalSelectedWeek;
   const setSelectedWeek = onWeekChange || setInternalSelectedWeek;

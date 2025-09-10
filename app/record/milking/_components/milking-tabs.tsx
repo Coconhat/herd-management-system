@@ -21,7 +21,11 @@ interface MilkingTabsProps {
   animals: AnimalWithMilkingRecords[];
 }
 
-export function MilkingTabs({ sortedRecords, allMilkingRecords, animals }: MilkingTabsProps) {
+export function MilkingTabs({
+  sortedRecords,
+  allMilkingRecords,
+  animals,
+}: MilkingTabsProps) {
   const [activeTab, setActiveTab] = useState("excel");
   const [selectedWeek, setSelectedWeek] = useState<Date>(new Date());
   const [selectedQuarter, setSelectedQuarter] = useState<Date>(new Date());
@@ -70,7 +74,9 @@ export function MilkingTabs({ sortedRecords, allMilkingRecords, animals }: Milki
       case "excel":
         return `Week of ${selectedWeek.toLocaleDateString()}`;
       case "analytics":
-        return `Q${Math.ceil((selectedQuarter.getMonth() + 1) / 3)} ${selectedQuarter.getFullYear()}`;
+        return `Q${Math.ceil(
+          (selectedQuarter.getMonth() + 1) / 3
+        )} ${selectedQuarter.getFullYear()}`;
       default:
         return undefined;
     }
@@ -122,10 +128,7 @@ export function MilkingTabs({ sortedRecords, allMilkingRecords, animals }: Milki
         </TabsContent>
 
         <TabsContent value="all" className="pt-4">
-          <PrintableWrapper
-            id="all-records-export"
-            title="All Milking Records"
-          >
+          <PrintableWrapper id="all-records-export" title="All Milking Records">
             <MilkingRecordsTable
               records={sortedRecords}
               animals={animals}
@@ -177,7 +180,9 @@ export function MilkingTabs({ sortedRecords, allMilkingRecords, animals }: Milki
           <PrintableWrapper
             id="analytics-export"
             title="Quarterly Production Analytics"
-            subtitle={`Q${Math.ceil((selectedQuarter.getMonth() + 1) / 3)} ${selectedQuarter.getFullYear()}`}
+            subtitle={`Q${Math.ceil(
+              (selectedQuarter.getMonth() + 1) / 3
+            )} ${selectedQuarter.getFullYear()}`}
           >
             <QuarterlyCharts
               milkingRecords={allMilkingRecords}

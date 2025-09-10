@@ -33,7 +33,9 @@
   --sidebar: oklch(0.98 0 0); /* Light gray sidebar */
   --sidebar-foreground: oklch(0.35 0 0); /* Dark gray sidebar text */
   --sidebar-primary: oklch(1 0 0); /* White sidebar primary */
-  --sidebar-primary-foreground: oklch(0.35 0 0); /* Dark gray sidebar primary text */
+  --sidebar-primary-foreground: oklch(
+    0.35 0 0
+  ); /* Dark gray sidebar primary text */
   --sidebar-accent: oklch(0.65 0.2 270); /* Purple sidebar accent */
   --sidebar-accent-foreground: oklch(1 0 0); /* White sidebar accent text */
   --sidebar-border: oklch(0.9 0 0); /* Light sidebar border */
@@ -105,7 +107,8 @@
     page-break-after: auto;
   }
 
-  th, td {
+  th,
+  td {
     border: 1px solid #e5e7eb;
     padding: 4px 8px;
     font-size: 11px;

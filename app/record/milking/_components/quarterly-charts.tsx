@@ -45,7 +45,9 @@ export function QuarterlyCharts({
   onQuarterChange,
   selectedQuarter: propSelectedQuarter,
 }: QuarterlyChartsProps) {
-  const [internalSelectedQuarter, setInternalSelectedQuarter] = useState<Date>(new Date());
+  const [internalSelectedQuarter, setInternalSelectedQuarter] = useState<Date>(
+    new Date()
+  );
   const [chartType, setChartType] = useState<"production" | "animals">(
     "production"
   );

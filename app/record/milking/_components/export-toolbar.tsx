@@ -39,23 +39,56 @@ interface ExportToolbarProps {
   enableComprehensivePrint?: boolean;
 }
 
-export function ExportToolbar({ data, elementId, title = "Milking Records" }: ExportToolbarProps) {
+export function ExportToolbar({
+  data,
+  elementId,
+  title = "Milking Records",
+  enableComprehensivePrint = false,
+}: ExportToolbarProps) {
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [showComprehensiveView, setShowComprehensiveView] = useState(false);
   const { toast } = useToast();
 
-  const handleExport = async (type: "pdf" | "print" | "csv" | "quarterly") => {
+  const handleExport = async (
+    type:
+      | "pdf"
+      | "print"
+      | "csv"
+      | "quarterly"
+      | "comprehensive-print"
+      | "comprehensive-pdf"
+  ) => {
     setIsExporting(type);
-    
+
     try {
       switch (type) {
         case "pdf":
-          const pdfFilename = `${title.toLowerCase().replace(/\s+/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
-          await exportToPDF(elementId, pdfFilename);
-          toast({
-            title: "PDF Generated",
-            description: `Successfully exported ${title} to PDF`,
-          });
-          break;
+          // Wait a bit for any dynamic content to render
+          setTimeout(async () => {
+            try {
+              const pdfFilename = `${title
+                .toLowerCase()
+                .replace(/\s+/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+              await exportToPDF(elementId, pdfFilename);
+              toast({
+                title: "PDF Generated",
+                description: `Successfully exported ${title} to PDF`,
+              });
+            } catch (error) {
+              console.error("PDF export error:", error);
+              toast({
+                title: "PDF Export Failed",
+                description:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to generate PDF",
+                variant: "destructive",
+              });
+            } finally {
+              setIsExporting(null);
+            }
+          }, 100);
+          return; // Don't set isExporting to null immediately
 
         case "print":
           printElement(elementId);
@@ -63,6 +96,52 @@ export function ExportToolbar({ data, elementId, title = "Milking Records" }: Ex
             title: "Print Dialog Opened",
             description: "Print dialog has been opened in a new window",
           });
+          break;
+
+        case "comprehensive-print":
+          const comprehensiveId = `comprehensive-print-${Date.now()}`;
+          setShowComprehensiveView(true);
+
+          // Wait for the component to render
+          setTimeout(() => {
+            printElement(comprehensiveId);
+            setShowComprehensiveView(false);
+            toast({
+              title: "Comprehensive Print Opened",
+              description: "Complete production history print dialog opened",
+            });
+          }, 500);
+          break;
+
+        case "comprehensive-pdf":
+          const comprehensivePdfId = `comprehensive-pdf-${Date.now()}`;
+          setShowComprehensiveView(true);
+
+          // Wait for the component to render then generate PDF
+          setTimeout(async () => {
+            try {
+              const pdfFilename = `comprehensive_milking_report_${format(
+                new Date(),
+                "yyyy-MM-dd"
+              )}.pdf`;
+              await exportToPDF(comprehensivePdfId, pdfFilename);
+              toast({
+                title: "Comprehensive PDF Generated",
+                description: "Complete production history exported to PDF",
+              });
+            } catch (error) {
+              toast({
+                title: "PDF Export Failed",
+                description:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to generate comprehensive PDF",
+                variant: "destructive",
+              });
+            } finally {
+              setShowComprehensiveView(false);
+            }
+          }, 1000);
           break;
 
         case "csv":
@@ -85,106 +164,152 @@ export function ExportToolbar({ data, elementId, title = "Milking Records" }: Ex
       console.error(`Error during ${type} export:`, error);
       toast({
         title: "Export Failed",
-        description: error instanceof Error ? error.message : `Failed to export ${type}`,
+        description:
+          error instanceof Error ? error.message : `Failed to export ${type}`,
         variant: "destructive",
       });
     } finally {
-      setIsExporting(null);
+      if (type !== "pdf") {
+        // PDF handling is done in setTimeout
+        setIsExporting(null);
+      }
     }
   };
 
   const isLoading = (type: string) => isExporting === type;
 
   return (
-    <div className="flex items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" disabled={!!isExporting}>
-            {isExporting ? (
+    <>
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={!!isExporting}>
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => handleExport("pdf")}
+              disabled={isLoading("pdf")}
+              className="cursor-pointer"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              {isLoading("pdf") ? "Generating PDF..." : "Export as PDF"}
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => handleExport("csv")}
+              disabled={isLoading("csv")}
+              className="cursor-pointer"
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              {isLoading("csv") ? "Generating CSV..." : "Export as CSV"}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => handleExport("print")}
+              disabled={isLoading("print")}
+              className="cursor-pointer"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              {isLoading("print") ? "Opening Print..." : "Print Current View"}
+            </DropdownMenuItem>
+
+            {enableComprehensivePrint && (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="mr-2 h-4 w-4" />
-                Export
+                <DropdownMenuItem
+                  onClick={() => handleExport("comprehensive-print")}
+                  disabled={isLoading("comprehensive-print")}
+                  className="cursor-pointer"
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  {isLoading("comprehensive-print")
+                    ? "Preparing..."
+                    : "Print All Records"}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => handleExport("comprehensive-pdf")}
+                  disabled={isLoading("comprehensive-pdf")}
+                  className="cursor-pointer"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  {isLoading("comprehensive-pdf")
+                    ? "Generating..."
+                    : "Complete PDF Report"}
+                </DropdownMenuItem>
               </>
             )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          
-          <DropdownMenuItem
-            onClick={() => handleExport("pdf")}
-            disabled={isLoading("pdf")}
-            className="cursor-pointer"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            {isLoading("pdf") ? "Generating PDF..." : "Export as PDF"}
-          </DropdownMenuItem>
 
-          <DropdownMenuItem
-            onClick={() => handleExport("csv")}
-            disabled={isLoading("csv")}
-            className="cursor-pointer"
-          >
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            {isLoading("csv") ? "Generating CSV..." : "Export as CSV"}
-          </DropdownMenuItem>
+            {data.viewMode === "analytics" && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleExport("quarterly")}
+                  disabled={isLoading("quarterly")}
+                  className="cursor-pointer"
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  {isLoading("quarterly")
+                    ? "Generating Report..."
+                    : "Quarterly Report (PDF)"}
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          <DropdownMenuSeparator />
+        {/* Quick action buttons */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleExport("print")}
+          disabled={isLoading("print")}
+          className="hidden sm:flex"
+        >
+          <Printer className="mr-2 h-4 w-4" />
+          Print
+        </Button>
 
-          <DropdownMenuItem
-            onClick={() => handleExport("print")}
-            disabled={isLoading("print")}
-            className="cursor-pointer"
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            {isLoading("print") ? "Opening Print..." : "Print"}
-          </DropdownMenuItem>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleExport("pdf")}
+          disabled={isLoading("pdf")}
+          className="hidden md:flex"
+        >
+          <FileText className="mr-2 h-4 w-4" />
+          PDF
+        </Button>
+      </div>
 
-          {data.viewMode === "analytics" && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleExport("quarterly")}
-                disabled={isLoading("quarterly")}
-                className="cursor-pointer"
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                {isLoading("quarterly") ? "Generating Report..." : "Quarterly Report (PDF)"}
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Quick action buttons */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handleExport("print")}
-        disabled={isLoading("print")}
-        className="hidden sm:flex"
-      >
-        <Printer className="mr-2 h-4 w-4" />
-        Print
-      </Button>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handleExport("pdf")}
-        disabled={isLoading("pdf")}
-        className="hidden md:flex"
-      >
-        <FileText className="mr-2 h-4 w-4" />
-        PDF
-      </Button>
-    </div>
+      {/* Comprehensive Print View - Hidden but rendered for printing */}
+      {showComprehensiveView &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <ComprehensivePrintView
+            records={data.records}
+            animals={data.animals}
+            id={`comprehensive-${Date.now()}`}
+          />,
+          document.body
+        )}
+    </>
   );
 }
 
@@ -195,7 +320,12 @@ interface PrintableWrapperProps {
   subtitle?: string;
 }
 
-export function PrintableWrapper({ children, id, title, subtitle }: PrintableWrapperProps) {
+export function PrintableWrapper({
+  children,
+  id,
+  title,
+  subtitle,
+}: PrintableWrapperProps) {
   return (
     <div id={id} className="print:p-4">
       {/* Print header - only visible when printing */}
@@ -208,12 +338,10 @@ export function PrintableWrapper({ children, id, title, subtitle }: PrintableWra
           </p>
         </div>
       </div>
-      
+
       {/* Content */}
-      <div className="print:text-sm">
-        {children}
-      </div>
-      
+      <div className="print:text-sm">{children}</div>
+
       {/* Print footer - only visible when printing */}
       <div className="hidden print:block print:mt-4 print:pt-2 print:border-t">
         <div className="text-center text-xs text-gray-500">
