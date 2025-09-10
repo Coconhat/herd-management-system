@@ -28,6 +28,17 @@ import { updateAnimal } from "@/lib/actions/animals"; // We use our server actio
 import { useToast } from "@/hooks/use-toast";
 import type { Animal } from "@/lib/actions/animals";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { deleteAnimal } from "@/lib/actions/animals";
 
 const commonBreeds = [
   "Holstein Friesian",
@@ -51,6 +62,7 @@ export default function EditAnimalForm({
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [initialAnimal] = useState(animal); // Store the initial state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Form state for each editable field
   const [earTag, setEarTag] = useState(animal.ear_tag);
@@ -88,6 +100,45 @@ export default function EditAnimalForm({
     sireId !== (initialAnimal.sire_id?.toString() || "none") ||
     notes !== (initialAnimal.notes || "");
 
+  // Check if the status change requires deletion
+  const isTerminalStatus = ["Sold", "Deceased", "Culled"].includes(status);
+  const wasTerminalStatus = ["Sold", "Deceased", "Culled"].includes(
+    initialAnimal.status
+  );
+  const statusChangedToTerminal = isTerminalStatus && !wasTerminalStatus;
+
+  const handleStatusChange = (newStatus: string) => {
+    setStatus(newStatus as typeof status);
+
+    // If changing to a terminal status, show delete confirmation
+    if (
+      ["Sold", "Deceased", "Culled"].includes(newStatus) &&
+      !["Sold", "Deceased", "Culled"].includes(initialAnimal.status)
+    ) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    startTransition(async () => {
+      try {
+        await deleteAnimal(animal.id);
+        toast({
+          title: "Animal Removed",
+          description: `${earTag} has been removed from the farm.`,
+        });
+        router.push("/inventory/animals");
+        router.refresh();
+      } catch (error) {
+        toast({
+          title: "Delete Failed",
+          description: "Could not remove animal. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -99,23 +150,28 @@ export default function EditAnimalForm({
     if (sex) formData.append("sex", sex);
     formData.append("breed", breed);
     formData.append("status", status);
-    formData.append("dam_id", damId);
-    formData.append("sire_id", sireId);
+    formData.append("dam_id", damId === "none" ? "" : damId);
+    formData.append("sire_id", sireId === "none" ? "" : sireId);
     formData.append("notes", notes);
 
     startTransition(async () => {
       try {
+        console.log("Submitting form with data:", Object.fromEntries(formData));
         await updateAnimal(animal.id, formData);
         toast({
           title: "Update Successful",
-          description: `${earTag} has been updated.`,
+          description: `${earTag} has been updated successfully.`,
         });
-        router.push(`/animal/${animal.ear_tag}`);
+        router.push(`/animal/${earTag}`);
         router.refresh(); // Important: tell Next.js to re-fetch data on the profile page
       } catch (error) {
+        console.error("Failed to update animal:", error);
         toast({
           title: "Update Failed",
-          description: "Could not save changes. Please try again.",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Could not save changes. Please try again.",
           variant: "destructive",
         });
       }
@@ -174,7 +230,10 @@ export default function EditAnimalForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="sex">Sex</Label>
-              <Select value={sex || ""} onValueChange={setSex}>
+              <Select
+                value={sex || ""}
+                onValueChange={(value) => setSex(value as "Male" | "Female")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select sex" />
                 </SelectTrigger>
@@ -242,14 +301,18 @@ export default function EditAnimalForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={handleStatusChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Sold">Sold</SelectItem>
                   <SelectItem value="Deceased">Deceased</SelectItem>
+                  <SelectItem value="Culled">Culled</SelectItem>
+                  <SelectItem value="Fresh">Fresh</SelectItem>
+                  <SelectItem value="Pregnant">Pregnant</SelectItem>
+                  <SelectItem value="Empty">Empty</SelectItem>
+                  <SelectItem value="Open">Open</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -277,6 +340,49 @@ export default function EditAnimalForm({
           {isPending ? "Saving..." : "Save Changes"}
         </Button>
       </CardFooter>
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Animal from Farm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've marked {earTag} ({name || "Unnamed"}) as{" "}
+              {status.toLowerCase()}. This typically means the animal is no
+              longer part of the active herd.
+              <br />
+              <br />
+              <strong>
+                Do you want to remove this animal from the farm records?
+              </strong>
+              <br />
+              <br />
+              <span className="text-sm text-muted-foreground">
+                This action will permanently delete the animal and all
+                associated records (calvings, breeding records, etc.). This
+                cannot be undone.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                // Reset status back to original if user cancels
+                setStatus(initialAnimal.status);
+                setShowDeleteConfirm(false);
+              }}
+            >
+              Keep in Records
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove from Farm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }

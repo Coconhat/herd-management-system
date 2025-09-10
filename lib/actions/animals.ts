@@ -166,12 +166,18 @@ export async function updateAnimal(id: number, formData: FormData) {
     name: (formData.get("name") as string) || null,
     birth_date: (formData.get("birth_date") as string) || null,
     sex: (formData.get("sex") as "Male" | "Female") || null,
-    dam_id: formData.get("dam_id")
-      ? Number.parseInt(formData.get("dam_id") as string)
-      : null,
-    sire_id: formData.get("sire_id")
-      ? Number.parseInt(formData.get("sire_id") as string)
-      : null,
+    dam_id:
+      formData.get("dam_id") &&
+      formData.get("dam_id") !== "" &&
+      formData.get("dam_id") !== "none"
+        ? Number.parseInt(formData.get("dam_id") as string)
+        : null,
+    sire_id:
+      formData.get("sire_id") &&
+      formData.get("sire_id") !== "" &&
+      formData.get("sire_id") !== "none"
+        ? Number.parseInt(formData.get("sire_id") as string)
+        : null,
     status:
       (formData.get("status") as
         | "Active"
@@ -184,18 +190,26 @@ export async function updateAnimal(id: number, formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
+  // Debug logging
+  console.log("Updating animal with data:", animalData);
+
+  const { data, error } = await supabase
     .from("animals")
     .update(animalData)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select();
 
   if (error) {
     console.error("Error updating animal:", error);
     throw new Error("Failed to update animal");
   }
 
+  console.log("Animal updated successfully:", data);
+
   revalidatePath("/");
-  revalidatePath(`/animal/${id}`);
+  revalidatePath("/inventory/animals");
+  revalidatePath(`/animal/${animalData.ear_tag}`);
 }
 
 export async function deleteAnimal(id: number) {
