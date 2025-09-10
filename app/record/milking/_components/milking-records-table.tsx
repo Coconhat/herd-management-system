@@ -35,16 +35,24 @@ interface MilkingRecordsTableProps {
   records: MilkingRecord[];
   animals: Animal[];
   viewMode?: "table" | "excel";
+  onWeekChange?: (week: Date) => void;
+  selectedWeek?: Date;
 }
 
 export function MilkingRecordsTable({
   records,
   animals,
   viewMode = "table",
+  onWeekChange,
+  selectedWeek: propSelectedWeek,
 }: MilkingRecordsTableProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [selectedWeek, setSelectedWeek] = useState<Date>(new Date());
+  const [internalSelectedWeek, setInternalSelectedWeek] = useState<Date>(new Date());
+  
+  // Use prop if provided, otherwise use internal state
+  const selectedWeek = propSelectedWeek || internalSelectedWeek;
+  const setSelectedWeek = onWeekChange || setInternalSelectedWeek;
 
   // Helper function to find animal by ID
   const getAnimalName = (animalId: number) => {

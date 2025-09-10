@@ -40,6 +40,132 @@
   --sidebar-ring: oklch(0.55 0.15 200); /* Cyan sidebar focus ring */
 }
 
+/* Print styles for export functionality */
+@media print {
+  @page {
+    size: A4;
+    margin: 0.5in;
+  }
+
+  body {
+    font-size: 12px;
+    line-height: 1.4;
+    color: black;
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print\\:block {
+    display: block !important;
+  }
+
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  .print\\:p-4 {
+    padding: 1rem !important;
+  }
+
+  .print\\:mb-4 {
+    margin-bottom: 1rem !important;
+  }
+
+  .print\\:mt-4 {
+    margin-top: 1rem !important;
+  }
+
+  .print\\:pt-2 {
+    padding-top: 0.5rem !important;
+  }
+
+  .print\\:border-t {
+    border-top: 1px solid #e5e7eb !important;
+  }
+
+  .print\\:text-sm {
+    font-size: 0.875rem !important;
+  }
+
+  .print\\:text-base {
+    font-size: 1rem !important;
+  }
+
+  table {
+    page-break-inside: avoid;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th, td {
+    border: 1px solid #e5e7eb;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: bold;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  /* Hide interactive elements */
+  button,
+  .dropdown-menu,
+  .export-toolbar {
+    display: none !important;
+  }
+
+  /* Ensure badges are visible in print */
+  .badge {
+    border: 1px solid #d1d5db;
+    padding: 2px 6px;
+    font-size: 10px;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Card styling for print */
+  .card {
+    border: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
+    break-inside: avoid;
+  }
+
+  .card-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.5rem;
+    background: #f9fafb;
+  }
+
+  .card-content {
+    padding: 0.5rem;
+  }
+
+  /* Progress bars in print */
+  .progress-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border: 1px solid #d1d5db;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #6b7280 !important;
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

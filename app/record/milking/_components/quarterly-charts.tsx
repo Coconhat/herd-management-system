@@ -35,16 +35,24 @@ import {
 interface QuarterlyChartsProps {
   milkingRecords: MilkingRecord[];
   animals: Animal[];
+  onQuarterChange?: (quarter: Date) => void;
+  selectedQuarter?: Date;
 }
 
 export function QuarterlyCharts({
   milkingRecords,
   animals,
+  onQuarterChange,
+  selectedQuarter: propSelectedQuarter,
 }: QuarterlyChartsProps) {
-  const [selectedQuarter, setSelectedQuarter] = useState<Date>(new Date());
+  const [internalSelectedQuarter, setInternalSelectedQuarter] = useState<Date>(new Date());
   const [chartType, setChartType] = useState<"production" | "animals">(
     "production"
   );
+
+  // Use prop if provided, otherwise use internal state
+  const selectedQuarter = propSelectedQuarter || internalSelectedQuarter;
+  const setSelectedQuarter = onQuarterChange || setInternalSelectedQuarter;
 
   const quarterStart = startOfQuarter(selectedQuarter);
   const quarterEnd = endOfQuarter(selectedQuarter);
