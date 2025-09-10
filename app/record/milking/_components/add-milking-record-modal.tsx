@@ -41,15 +41,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface AnimalInfo {
-  id: number;
-  ear_tag: string;
-  name?: string;
-}
+import { Animal } from "@/lib/actions/animals";
+import { isDryAnimal } from "@/lib/status-helper";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AddMilkingRecordModalProps {
-  animals: AnimalInfo[];
+  animals: Animal[];
 }
 
 // Define the form schema with zod
@@ -81,14 +79,27 @@ type FormValues = z.infer<typeof formSchema>;
 export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-
+  
   // NEW: search state for filtering animals by ear_tag or name
   const [search, setSearch] = useState("");
+  
+  // Track selected animal for dry warning
+  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
   // Clear search whenever the dialog opens (optional but nice UX)
   useEffect(() => {
-    if (open) setSearch("");
+    if (open) {
+      setSearch("");
+      setSelectedAnimal(null);
+    }
   }, [open]);
+
+  // Handle animal selection and track for dry warning
+  const handleAnimalSelect = (animalId: string) => {
+    const animal = animals.find(a => a.id.toString() === animalId);
+    setSelectedAnimal(animal || null);
+    return animalId;
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -160,7 +171,10 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
                 <FormItem>
                   <FormLabel>Animal</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleAnimalSelect(value);
+                    }}
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -217,6 +231,24 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
                 </FormItem>
               )}
             />
+
+            {/* Dry Animal Warning */}
+            {selectedAnimal && (() => {
+              const dryInfo = isDryAnimal(selectedAnimal);
+              if (dryInfo.isDry) {
+                return (
+                  <Alert className="border-orange-200 bg-orange-50">
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    <AlertDescription className="text-orange-800">
+                      <strong>Warning:</strong> {selectedAnimal.ear_tag} ({selectedAnimal.name || "Unnamed"}) 
+                      is currently dry ({dryInfo.weeksPregnant} weeks pregnant). 
+                      Dry cows typically should not be milked. Are you sure you want to continue?
+                    </AlertDescription>
+                  </Alert>
+                );
+              }
+              return null;
+            })()}
 
             <FormField
               control={form.control}

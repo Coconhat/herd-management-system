@@ -311,6 +311,7 @@ export default function EditAnimalForm({
                   <SelectItem value="Culled">Culled</SelectItem>
                   <SelectItem value="Fresh">Fresh</SelectItem>
                   <SelectItem value="Pregnant">Pregnant</SelectItem>
+                  <SelectItem value="Dry">Dry</SelectItem>
                   <SelectItem value="Empty">Empty</SelectItem>
                   <SelectItem value="Open">Open</SelectItem>
                 </SelectContent>

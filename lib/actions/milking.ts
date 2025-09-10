@@ -72,9 +72,11 @@ export async function getFemaleCattleWithMilkingRecords() {
 
   const { data, error } = await supabase
     .from("animals")
-    .select("*, milking_records(*)")
+    .select("*, milking_records(*), breeding_records(*), calvings(*)")
     .eq("sex", "Female")
-    .eq("status", "Active")
+    .neq("status", "Sold")
+    .neq("status", "Deceased") 
+    .neq("status", "Culled")
     .order("ear_tag", { ascending: true });
 
   if (error) {

@@ -22,7 +22,8 @@ export interface Animal {
     | "Pregnant"
     | "Fresh"
     | "Open"
-    | "Empty";
+    | "Empty"
+    | "Dry";
   notes?: string;
   user_id: string;
   created_at: string;
@@ -136,7 +137,8 @@ export async function createAnimal(formData: FormData) {
         | "Sold"
         | "Deceased"
         | "Culled"
-        | "Empty") || "Active",
+        | "Empty"
+        | "Dry") || "Active",
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
   };
@@ -185,7 +187,8 @@ export async function updateAnimal(id: number, formData: FormData) {
         | "Deceased"
         | "Culled"
         | "Empty"
-        | "Open") || "Active",
+        | "Open"
+        | "Dry") || "Active",
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),
   };
