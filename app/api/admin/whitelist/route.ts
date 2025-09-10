@@ -3,6 +3,7 @@ import {
   getWhitelistedEmails,
   addEmailToWhitelist,
   removeEmailFromWhitelist,
+  createAccountDirectly,
 } from "@/lib/actions/email-whitelist";
 
 // GET - Fetch all whitelisted emails
@@ -19,10 +20,15 @@ export async function GET() {
   }
 }
 
-// POST - Add email to whitelist
+// POST - Add email to whitelist or create account directly
 export async function POST(request: NextRequest) {
   try {
-    const { email, notes } = await request.json();
+    const {
+      email,
+      notes,
+      createAccount = false,
+      password,
+    } = await request.json();
 
     if (!email) {
       return NextResponse.json(
@@ -31,13 +37,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await addEmailToWhitelist(email, notes);
+    let result;
+
+    if (createAccount) {
+      // Create account directly with credentials
+      result = await createAccountDirectly(email, notes, password);
+    } else {
+      // Traditional invitation method
+      result = await addEmailToWhitelist(email, notes);
+    }
 
     if (!result.success) {
       return NextResponse.json({ message: result.message }, { status: 400 });
     }
 
-    return NextResponse.json({ message: result.message });
+    return NextResponse.json({
+      message: result.message,
+      invitationUrl: result.invitationUrl,
+      credentials: result.credentials,
+    });
   } catch (error) {
     console.error("Error adding email to whitelist:", error);
     return NextResponse.json(

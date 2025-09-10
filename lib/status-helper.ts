@@ -1,10 +1,14 @@
 // status-helper.ts
-import { differenceInDays, parseISO, isValid, differenceInWeeks } from "date-fns";
+import {
+  differenceInDays,
+  parseISO,
+  isValid,
+  differenceInWeeks,
+} from "date-fns";
 import type { BreedingRecord, Calving } from "./types";
 import type { Animal } from "./actions/animals";
 
 export type CombinedStatus =
-  | "Active"
   | "Pregnant"
   | "Dry"
   | "Fresh"
@@ -33,12 +37,18 @@ export interface StatusInfo {
  * Checks if an animal should be considered "dry" (7+ months pregnant)
  * Returns breeding record if animal is dry, null otherwise
  */
-function getDryStatusInfo(animal: Animal): { isDry: boolean; breedingRecord?: BreedingRecord; weeksPregnant?: number } {
+function getDryStatusInfo(animal: Animal): {
+  isDry: boolean;
+  breedingRecord?: BreedingRecord;
+  weeksPregnant?: number;
+} {
   if (animal.sex !== "Female") return { isDry: false };
-  
-  const breedingRecords = (animal as any).breeding_records as BreedingRecord[] | undefined;
+
+  const breedingRecords = (animal as any).breeding_records as
+    | BreedingRecord[]
+    | undefined;
   const calvings = (animal as any).calvings as Calving[] | undefined;
-  
+
   if (!breedingRecords || breedingRecords.length === 0) return { isDry: false };
 
   // Find last calving date to filter relevant breeding records
@@ -81,26 +91,28 @@ function getDryStatusInfo(animal: Animal): { isDry: boolean; breedingRecord?: Br
   if (relevantBreedingRecords.length === 0) return { isDry: false };
 
   const recentBreeding = relevantBreedingRecords[0];
-  
+
   // Check if animal is confirmed pregnant or has positive PD result
-  const isPregnant = recentBreeding.confirmed_pregnant || recentBreeding.pd_result === "Pregnant";
-  
+  const isPregnant =
+    recentBreeding.confirmed_pregnant ||
+    recentBreeding.pd_result === "Pregnant";
+
   if (!isPregnant) return { isDry: false };
 
   // Calculate weeks since breeding
   try {
     const breedingDate = parseISO(recentBreeding.breeding_date);
     if (!isValid(breedingDate)) return { isDry: false };
-    
+
     const weeksPregnant = differenceInWeeks(new Date(), breedingDate);
-    
-    // Dry period starts at 30 weeks (approximately 7 months) 
+
+    // Dry period starts at 30 weeks (approximately 7 months)
     const isDry = weeksPregnant >= 30;
-    
-    return { 
-      isDry, 
+
+    return {
+      isDry,
       breedingRecord: isDry ? recentBreeding : undefined,
-      weeksPregnant: isDry ? weeksPregnant : undefined
+      weeksPregnant: isDry ? weeksPregnant : undefined,
     };
   } catch {
     return { isDry: false };
@@ -216,7 +228,7 @@ export function getCombinedStatus(animal: Animal): StatusInfo {
               priority: 7,
             };
           }
-          
+
           return {
             status: "Pregnant",
             label: "Pregnant",
@@ -301,7 +313,10 @@ export function getCombinedStatus(animal: Animal): StatusInfo {
 /**
  * Export function to check if an animal is dry (for use in other components)
  */
-export function isDryAnimal(animal: Animal): { isDry: boolean; weeksPregnant?: number } {
+export function isDryAnimal(animal: Animal): {
+  isDry: boolean;
+  weeksPregnant?: number;
+} {
   const dryInfo = getDryStatusInfo(animal);
   return {
     isDry: dryInfo.isDry,

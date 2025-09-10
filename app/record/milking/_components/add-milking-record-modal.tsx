@@ -79,10 +79,10 @@ type FormValues = z.infer<typeof formSchema>;
 export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  
+
   // NEW: search state for filtering animals by ear_tag or name
   const [search, setSearch] = useState("");
-  
+
   // Track selected animal for dry warning
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
@@ -96,7 +96,7 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
 
   // Handle animal selection and track for dry warning
   const handleAnimalSelect = (animalId: string) => {
-    const animal = animals.find(a => a.id.toString() === animalId);
+    const animal = animals.find((a) => a.id.toString() === animalId);
     setSelectedAnimal(animal || null);
     return animalId;
   };
@@ -233,22 +233,25 @@ export function AddMilkingRecordModal({ animals }: AddMilkingRecordModalProps) {
             />
 
             {/* Dry Animal Warning */}
-            {selectedAnimal && (() => {
-              const dryInfo = isDryAnimal(selectedAnimal);
-              if (dryInfo.isDry) {
-                return (
-                  <Alert className="border-orange-200 bg-orange-50">
-                    <AlertTriangle className="h-4 w-4 text-orange-600" />
-                    <AlertDescription className="text-orange-800">
-                      <strong>Warning:</strong> {selectedAnimal.ear_tag} ({selectedAnimal.name || "Unnamed"}) 
-                      is currently dry ({dryInfo.weeksPregnant} weeks pregnant). 
-                      Dry cows typically should not be milked. Are you sure you want to continue?
-                    </AlertDescription>
-                  </Alert>
-                );
-              }
-              return null;
-            })()}
+            {selectedAnimal &&
+              (() => {
+                const dryInfo = isDryAnimal(selectedAnimal);
+                if (dryInfo.isDry) {
+                  return (
+                    <Alert className="border-orange-200 bg-orange-50">
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800">
+                        <strong>Warning:</strong> {selectedAnimal.ear_tag} (
+                        {selectedAnimal.name || "Unnamed"}) is currently dry (
+                        {dryInfo.weeksPregnant} weeks pregnant). Dry cows
+                        typically should not be milked. Are you sure you want to
+                        continue?
+                      </AlertDescription>
+                    </Alert>
+                  );
+                }
+                return null;
+              })()}
 
             <FormField
               control={form.control}
