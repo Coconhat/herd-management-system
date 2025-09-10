@@ -93,7 +93,6 @@ export function ImportCard() {
             accept=".xlsx"
             onChange={handleFileChange}
             className="max-w-xs"
-            disabled
           />
           <Button onClick={handleImport} disabled={!file || isPending}>
             <UploadCloud className="mr-2 h-4 w-4" />

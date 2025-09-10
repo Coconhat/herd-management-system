@@ -204,7 +204,7 @@ export function MilkingRecordsTable({
                             className="text-center"
                           >
                             {yield_ > 0 ? (
-                              <Badge variant="secondary" className="font-mono">
+                              <Badge variant="secondary">
                                 {yield_.toFixed(1)}L
                               </Badge>
                             ) : (
@@ -216,10 +216,7 @@ export function MilkingRecordsTable({
                         );
                       })}
                       <TableCell className="text-center bg-muted">
-                        <Badge
-                          variant="default"
-                          className="font-mono font-bold"
-                        >
+                        <Badge variant="default" className=" font-bold">
                           {getWeekTotal(animal.id).toFixed(1)}L
                         </Badge>
                       </TableCell>
@@ -241,17 +238,14 @@ export function MilkingRecordsTable({
                           key={day.toISOString()}
                           className="text-center"
                         >
-                          <Badge
-                            variant="outline"
-                            className="font-mono font-bold"
-                          >
+                          <Badge variant="outline" className=" font-bold">
                             {dayTotal.toFixed(1)}L
                           </Badge>
                         </TableCell>
                       );
                     })}
                     <TableCell className="text-center bg-muted">
-                      <Badge className="font-mono font-bold text-lg">
+                      <Badge className=" font-bold text-lg">
                         {milkingAnimals
                           .reduce(
                             (total, animal) => total + getWeekTotal(animal.id),
