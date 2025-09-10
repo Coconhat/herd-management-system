@@ -2,8 +2,11 @@ import { getFemaleCattleWithMilkingRecords } from "@/lib/actions/milking";
 import { AddMilkingRecordModal } from "./_components/add-milking-record-modal";
 import { MilkingRecordsTable } from "./_components/milking-records-table";
 import { MilkingStatsCard } from "./_components/milking-stats-card";
+import { QuarterlyCharts } from "./_components/quarterly-charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MilkingRecord } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { TableIcon, Calendar, BarChart3 } from "lucide-react";
 
 export default async function MilkingPage() {
   // Fetch all female cattle with their milking records
@@ -38,14 +41,37 @@ export default async function MilkingPage() {
         <AddMilkingRecordModal animals={animals} />
       </div>
 
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">All Records</TabsTrigger>
+      <Tabs defaultValue="excel">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="excel" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Excel View
+          </TabsTrigger>
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <TableIcon className="h-4 w-4" />
+            All Records
+          </TabsTrigger>
           <TabsTrigger value="by-animal">By Animal</TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="excel" className="pt-4">
+          <MilkingRecordsTable
+            records={sortedRecords}
+            animals={animals}
+            viewMode="excel"
+          />
+        </TabsContent>
+
         <TabsContent value="all" className="pt-4">
-          <MilkingRecordsTable records={sortedRecords} animals={animals} />
+          <MilkingRecordsTable
+            records={sortedRecords}
+            animals={animals}
+            viewMode="table"
+          />
         </TabsContent>
 
         <TabsContent value="by-animal" className="pt-4">
@@ -74,11 +100,19 @@ export default async function MilkingPage() {
                   <MilkingRecordsTable
                     records={animalRecords}
                     animals={animals}
+                    viewMode="table"
                   />
                 </div>
               );
             })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="pt-4">
+          <QuarterlyCharts
+            milkingRecords={allMilkingRecords}
+            animals={animals}
+          />
         </TabsContent>
       </Tabs>
     </div>
