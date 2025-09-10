@@ -21,7 +21,7 @@ export default async function MilkingPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 mx-6 my-4">
       <div>
         <h1 className="text-3xl font-bold">Milk Production Records</h1>
         <p className="text-muted-foreground">
