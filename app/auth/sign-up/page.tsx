@@ -88,6 +88,9 @@ export default function SignUpPage() {
             <p className="text-muted-foreground mt-2">
               Create your account to get started
             </p>
+            <CardDescription>
+              Notice: Only whitelisted emails can sign up.
+            </CardDescription>
           </div>
 
           <Card>
