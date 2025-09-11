@@ -62,7 +62,7 @@ export async function createBreedingRecord(formData: FormData) {
 
     // Automatically calculate and set all future workflow dates
     heat_check_date: addDays(breedingDate, 21).toISOString(),
-    pregnancy_check_due_date: addDays(breedingDate, 60).toISOString(),
+    pregnancy_check_due_date: addDays(breedingDate, 29).toISOString(),
     expected_calving_date: addDays(breedingDate, 283).toISOString(),
   };
 

@@ -12,8 +12,7 @@ import {
   addDays,
   startOfDay,
   endOfDay,
-  isWithinInterval,
-  isBefore,
+  isValid,
 } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { BreedingRecord } from "@/lib/types";
@@ -37,7 +36,6 @@ export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
   // Extract PD check events using the same logic as the main calendar
   useEffect(() => {
     const events: CalendarEvent[] = [];
-    const today = new Date();
 
     // Check if animals exists and is an array before processing
     if (!animals || !Array.isArray(animals)) {
@@ -45,7 +43,6 @@ export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
       return;
     }
 
-    // Flatten animals and their breeding records to match the main calendar format
     animals.forEach((animal) => {
       if (!animal.breeding_records || !Array.isArray(animal.breeding_records)) {
         return;
@@ -55,25 +52,52 @@ export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
         const earTag = animal.ear_tag || `ID #${animal.id}`;
 
         // Only extract PD Check events
-        if (record.pregnancy_check_due_date) {
-          const pdDate = parseISO(record.pregnancy_check_due_date);
-          const pdCompleted = record.pd_result !== "Unchecked";
-
-          events.push({
-            date: pdDate,
-            type: "pregnancy_check",
-            ear_tag: earTag,
-            title: `PD Check: ${earTag}`,
-            animal_id: animal.id,
-            color: "purple",
-            completed: pdCompleted,
-          });
+        if (!record.pregnancy_check_due_date) {
+          return;
         }
+
+        // Normalize/validate the date (handle strings, Date objects, timestamps)
+        let pdDateRaw = record.pregnancy_check_due_date as
+          | string
+          | number
+          | Date;
+        let pdDate: Date | null = null;
+
+        try {
+          if (typeof pdDateRaw === "string") {
+            pdDate = parseISO(pdDateRaw);
+          } else {
+            pdDate = new Date(pdDateRaw as any);
+          }
+        } catch (e) {
+          pdDate = null;
+        }
+
+        if (!pdDate || !isValid(pdDate)) {
+          // skip invalid dates
+          return;
+        }
+
+        // Normalize to start of day so comparisons are consistent
+        const pdDateStart = startOfDay(pdDate);
+
+        const pdCompleted = record.pd_result !== "Unchecked";
+
+        events.push({
+          date: pdDateStart,
+          type: "pregnancy_check",
+          ear_tag: earTag,
+          title: `PD Check: ${earTag}`,
+          animal_id: animal.id,
+          color: "purple",
+          completed: pdCompleted,
+        });
       });
     });
 
     setPdEvents(events);
   }, [animals]);
+
   const hasPDCheck = (checkDate: Date) =>
     pdEvents.some((event) => isSameDay(event.date, checkDate));
 
@@ -86,12 +110,11 @@ export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
 
     // Show all PD checks within 30 days, prioritizing unchecked ones
     const allPDChecks = pdEvents
-      .filter((event) =>
-        isWithinInterval(event.date, {
-          start: today,
-          end: thirtyDaysFromNow,
-        })
-      )
+      .filter((event) => {
+        if (!event.date || !isValid(event.date)) return false;
+        const ts = event.date.getTime();
+        return ts >= today.getTime() && ts <= thirtyDaysFromNow.getTime();
+      })
       .sort((a, b) => {
         // Sort by completion status first (unchecked first), then by date
         if (a.completed === b.completed) {
@@ -104,11 +127,6 @@ export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
   };
 
   const upcomingPDChecks = getUpcomingPDChecks();
-
-  // Debug logging
-  console.log("PD Events total:", pdEvents.length);
-  console.log("Upcoming PD checks:", upcomingPDChecks.length);
-  console.log("First few PD events:", pdEvents.slice(0, 3));
 
   return (
     <Card>

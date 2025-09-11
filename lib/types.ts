@@ -14,7 +14,7 @@ export interface BreedingRecord {
 
   // Automatically calculated dates for reminders and workflow
   heat_check_date: string; // Approx. 21 days after breeding
-  pregnancy_check_due_date: string; // Approx. 60 days after breeding
+  pregnancy_check_due_date: string; // Approx. 29 days after breeding
   expected_calving_date: string; // Approx. 283 days after breeding
 
   // The final boolean status, derived from pd_result for easy querying
