@@ -123,7 +123,7 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
               <Badge
                 variant={animal.sex === "Female" ? "secondary" : "outline"}
               >
-                {animal.sex === "Female" ? animal.status : null}
+                {animal.status}
               </Badge>
             </div>
             <div>
