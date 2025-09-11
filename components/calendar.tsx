@@ -20,7 +20,7 @@ interface BreedingRecordWithAnimal extends BreedingRecord {
   animals: { ear_tag: string; name: string | null } | null;
 }
 
-interface CalendarEvent {
+export interface CalendarEvent {
   date: Date;
   type: "breeding" | "heat_check" | "pregnancy_check" | "expected_calving";
   animal_id: number;
