@@ -371,7 +371,7 @@ export async function getPregnantAnimals() {
     redirect("/auth/login");
   }
 
-  // get animals that have status "Pregnant" and have a breeding_record flagged as confirmed_pregnant = true
+  // First, get all animals with status "Pregnant"
   const { data, error } = await supabase
     .from("animals")
     .select(
@@ -385,17 +385,29 @@ export async function getPregnantAnimals() {
     )
     .eq("sex", "Female")
     .eq("status", "Pregnant") // Only include animals with status "Pregnant"
-    .filter("breeding_records.confirmed_pregnant", "eq", true);
+    .order("ear_tag", { ascending: true });
 
   if (error) {
     console.error("Error fetching pregnant animals:", error);
     return [];
   }
 
+  // Filter to only include animals that have at least one qualifying breeding record
+  const filteredData = (data || []).filter((animal) => {
+    if (!animal.breeding_records || !Array.isArray(animal.breeding_records)) {
+      return false;
+    }
+
+    return animal.breeding_records.some(
+      (record) =>
+        record.confirmed_pregnant === true || record.pd_result === "Pregnant"
+    );
+  });
+
   // Log message if no pregnant animals found (helpful for debugging)
-  if (!data || data.length === 0) {
+  if (!filteredData || filteredData.length === 0) {
     console.info("No pregnant animals found in the system.");
   }
 
-  return data || [];
+  return filteredData || [];
 }

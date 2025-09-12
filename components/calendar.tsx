@@ -73,19 +73,27 @@ export function CalendarWidget({ records }: CalendarWidgetProps) {
         });
       }
 
-      // 3. Expected Calving
-      if (record.expected_calving_date && record.confirmed_pregnant) {
-        const calvingDate = parseISO(record.expected_calving_date);
-        // For calving, we'll consider it completed if it's in the past
-        events.push({
-          date: calvingDate,
-          type: "expected_calving",
-          ear_tag: earTag,
-          title: `Expected Calving: ${earTag}`,
-          animal_id: record.animal_id,
-          color: "green",
-          completed: isBefore(calvingDate, today),
-        });
+      // 3. Expected Calving - More robust pregnancy check
+      if (record.expected_calving_date) {
+        // Check if pregnant via multiple ways with better null handling
+        const isConfirmedPregnant = Boolean(record.confirmed_pregnant);
+        const isPDPositive =
+          record.pd_result &&
+          (record.pd_result.toLowerCase() === "pregnant" ||
+            record.pd_result === "Pregnant");
+
+        if (isConfirmedPregnant || isPDPositive) {
+          const calvingDate = parseISO(record.expected_calving_date);
+          events.push({
+            date: calvingDate,
+            type: "expected_calving",
+            ear_tag: earTag,
+            title: `Expected Calving: ${earTag}`,
+            animal_id: record.animal_id,
+            color: "green",
+            completed: isBefore(calvingDate, today),
+          });
+        }
       }
     });
 

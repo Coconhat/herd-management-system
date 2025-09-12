@@ -337,7 +337,9 @@ export default function InventoryAnimalsPage({
                   const confirmedBreedingRecord = (
                     animal.breeding_records as BreedingRecord[] | undefined
                   )?.find(
-                    (r) => r.confirmed_pregnant && r.expected_calving_date
+                    (r) =>
+                      (r.confirmed_pregnant || r.pd_result === "Pregnant") &&
+                      r.expected_calving_date
                   );
 
                   let daysLeft = "—";

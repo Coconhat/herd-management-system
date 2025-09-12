@@ -60,7 +60,10 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
   const pregnantRecords: PregnantRecord[] = animals
     .flatMap((animal) =>
       animal.breeding_records
-        .filter((rec) => rec.pd_result === "Pregnant")
+        .filter(
+          (rec) =>
+            rec.pd_result === "Pregnant" || rec.confirmed_pregnant === true
+        )
         .map((rec) => ({
           ...rec,
           dam_ear_tag: animal.ear_tag,
