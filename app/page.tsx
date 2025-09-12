@@ -105,6 +105,8 @@ async function AnimalsData() {
 export default async function Dashboard() {
   // Fetch animals with breeding data for the calendar widget
   const allAnimals = await getAnimalsWithBreedingData();
+  const allCalvings = await getCalvingsWithDetails();
+
   const allBreedingRecords = allAnimals.flatMap((animal) =>
     (animal.breeding_records || []).map((record) => ({
       ...record,
@@ -114,6 +116,15 @@ export default async function Dashboard() {
       },
     }))
   );
+
+  // Transform calvings to match the expected format
+  const allCalvingsForCalendar = allCalvings.map((calving) => ({
+    ...calving,
+    animals: {
+      ear_tag: calving.animals?.ear_tag || `ID #${calving.animal_id}`,
+      name: calving.animals?.name || null,
+    },
+  }));
 
   return (
     <div className="min-h-screen bg-background">
@@ -217,7 +228,10 @@ export default async function Dashboard() {
 
           {/* Right sidebar with calendar */}
           <div className="hidden xl:block w-80 border-l bg-card/50 p-6">
-            <CalendarWidget records={allBreedingRecords} />
+            <CalendarWidget
+              records={allBreedingRecords}
+              calvings={allCalvingsForCalendar}
+            />
           </div>
         </div>
       </div>

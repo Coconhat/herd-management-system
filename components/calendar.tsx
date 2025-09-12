@@ -14,15 +14,24 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
-import { BreedingRecord } from "@/lib/types";
+import { BreedingRecord, Calving } from "@/lib/types";
 
 interface BreedingRecordWithAnimal extends BreedingRecord {
   animals: { ear_tag: string; name: string | null } | null;
 }
 
+interface CalvingWithAnimal extends Calving {
+  animals: { ear_tag: string; name: string | null } | null;
+}
+
 export interface CalendarEvent {
   date: Date;
-  type: "breeding" | "heat_check" | "pregnancy_check" | "expected_calving";
+  type:
+    | "breeding"
+    | "heat_check"
+    | "pregnancy_check"
+    | "expected_calving"
+    | "actual_calving";
   animal_id: number;
   ear_tag: string;
   title: string;
@@ -32,9 +41,13 @@ export interface CalendarEvent {
 
 interface CalendarWidgetProps {
   records: BreedingRecordWithAnimal[];
+  calvings?: CalvingWithAnimal[];
 }
 
-export function CalendarWidget({ records }: CalendarWidgetProps) {
+export function CalendarWidget({
+  records,
+  calvings = [],
+}: CalendarWidgetProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
@@ -97,8 +110,24 @@ export function CalendarWidget({ records }: CalendarWidgetProps) {
       }
     });
 
+    // 4. Actual Calving Events (historical)
+    calvings.forEach((calving) => {
+      const earTag = calving.animals?.ear_tag || `ID #${calving.animal_id}`;
+      const calvingDate = parseISO(calving.calving_date);
+
+      events.push({
+        date: calvingDate,
+        type: "actual_calving",
+        ear_tag: earTag,
+        title: `Calved: ${earTag}`,
+        animal_id: calving.animal_id,
+        color: "blue",
+        completed: true, // Calvings are always historical events
+      });
+    });
+
     setCalendarEvents(events);
-  }, [records]);
+  }, [records, calvings]);
 
   const hasEvents = (checkDate: Date) =>
     calendarEvents.some((event) => isSameDay(event.date, checkDate));
@@ -131,6 +160,8 @@ export function CalendarWidget({ records }: CalendarWidgetProps) {
         return "bg-purple-50 border-l-purple-500";
       case "expected_calving":
         return "bg-green-50 border-l-green-500";
+      case "actual_calving":
+        return "bg-indigo-50 border-l-indigo-500";
       default:
         return "bg-gray-50 border-l-gray-500";
     }
@@ -146,6 +177,8 @@ export function CalendarWidget({ records }: CalendarWidgetProps) {
         return "bg-purple-500";
       case "expected_calving":
         return "bg-green-500";
+      case "actual_calving":
+        return "bg-indigo-500";
       default:
         return "bg-gray-500";
     }
@@ -266,7 +299,11 @@ export function CalendarWidget({ records }: CalendarWidgetProps) {
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Calving</span>
+              <span>Expected</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+              <span>Calved</span>
             </div>
           </div>
         </div>
