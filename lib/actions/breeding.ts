@@ -75,6 +75,22 @@ export async function createBreedingRecord(formData: FormData) {
     throw new Error("Failed to create the breeding record.");
   }
 
+  try {
+      await supabase.from("notifications").insert({
+        user_id: user.id,
+        animal_id: animalId,
+        title: "Expected PD check soon",
+        body: `Expected PD check for animal ${animalId} on ${breedingData.expected_calving_date}.`,
+        scheduled_for: breedingData.expected_calving_date,
+        created_at: new Date().toISOString(),
+        read: false,
+      });
+    } catch (notifErr) {
+      console.warn(
+        "Could not create PD check notification (table may not exist):",
+        notifErr
+      );
+
   // Refresh the UI to show the new record and update animal stages
   revalidatePath("/record/breeding", "layout");
   revalidatePath(`/animal/${animalId}`);
