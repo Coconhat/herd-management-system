@@ -18,6 +18,7 @@ import { CalendarWidget } from "@/components/calendar";
 import { DesktopSidebar, MobileSidebar } from "@/components/sidebar-demo";
 import { getCalvingsWithDetails } from "@/lib/actions/calvings";
 import { getBreedingRecordsWithAnimalInfo } from "@/lib/actions/breeding";
+import Link from "next/link";
 
 async function StatsCards() {
   const stats = await getAnimalStats();
@@ -149,10 +150,12 @@ export default async function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  Reports
-                </Button>
+                <Link href="/reports">
+                  <Button variant="outline" size="sm">
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    Reports
+                  </Button>
+                </Link>
                 <Button variant="outline" size="sm">
                   Settings
                 </Button>

@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Settings,
   Shield,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -76,6 +77,11 @@ const navItems = [
         icon: <BarChart3 className="h-4 w-4" />,
       },
     ],
+  },
+  {
+    label: "Reports",
+    href: "/reports",
+    icon: <FileText className="h-4 w-4" />,
   },
   {
     label: "Admin",
