@@ -447,7 +447,6 @@ export default function InventoryAnimalsPage({
                   <TableHead>Sex</TableHead>
                   <TableHead>Birth Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -498,7 +497,6 @@ export default function InventoryAnimalsPage({
                           {daysUntilDue !== null ? ` — ${daysUntilDue}d` : ""}
                         </Badge>
                       </TableCell>
-                      <TableCell>…actions…</TableCell>
                     </TableRow>
                   );
                 })}
