@@ -62,6 +62,148 @@ export function ReportsContent({
   milkingRecords,
   breedingRecords,
 }: ReportsContentProps) {
+  // CSV Export function for comprehensive farm data
+  const exportToCSV = () => {
+    const csvData: any[] = [];
+
+    // Prepare comprehensive data for each animal
+    animals.forEach((animal) => {
+      const animalBreedings = breedingRecords.filter(
+        (br) => br.animal_id === animal.id
+      );
+      const animalCalvings = calvings.filter((c) => c.animal_id === animal.id);
+      const animalMilkings = milkingRecords.filter(
+        (mr) => mr.animal_id === animal.id
+      );
+
+      // Calculate totals for this animal
+      const totalMilkProduction = animalMilkings.reduce(
+        (sum, mr) => sum + (mr.milk_yield || 0),
+        0
+      );
+      const totalBreedings = animalBreedings.length;
+      const totalCalvings = animalCalvings.length;
+      const successfulBreedings = animalBreedings.filter(
+        (br) => br.confirmed_pregnant || br.pd_result === "Pregnant"
+      ).length;
+
+      // Get latest breeding info
+      const latestBreeding = animalBreedings.sort(
+        (a, b) =>
+          new Date(b.breeding_date).getTime() -
+          new Date(a.breeding_date).getTime()
+      )[0];
+
+      // Get latest calving info
+      const latestCalving = animalCalvings.sort(
+        (a, b) =>
+          new Date(b.calving_date).getTime() -
+          new Date(a.calving_date).getTime()
+      )[0];
+
+      // Determine current status
+      let currentStatus = "Open";
+      if (
+        latestBreeding?.confirmed_pregnant ||
+        latestBreeding?.pd_result === "Pregnant"
+      ) {
+        currentStatus = "Pregnant";
+      } else if (latestBreeding?.pd_result === "Unchecked") {
+        currentStatus = "Bred (Unchecked)";
+      }
+
+      csvData.push({
+        // Basic Animal Info
+        "Ear Tag": animal.ear_tag || "",
+        Name: animal.name || "",
+        Sex: animal.sex || "",
+        "Birth Date": animal.birth_date || "",
+        "Age (days)": animal.birth_date
+          ? Math.floor(
+              (Date.now() - new Date(animal.birth_date).getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          : "",
+        "Current Status": currentStatus,
+
+        // Breeding Summary
+        "Total Breedings": totalBreedings,
+        "Successful Breedings": successfulBreedings,
+        "Breeding Success Rate (%)":
+          totalBreedings > 0
+            ? Math.round((successfulBreedings / totalBreedings) * 100)
+            : 0,
+        "Latest Breeding Date": latestBreeding?.breeding_date || "",
+        "Latest PD Result": latestBreeding?.pd_result || "",
+        "Expected Calving Date": latestBreeding?.expected_calving_date || "",
+
+        // Calving Summary
+        "Total Calvings": totalCalvings,
+        "Latest Calving Date": latestCalving?.calving_date || "",
+        "Calf Sex": latestCalving?.calf_sex || "",
+        "Calf Ear Tag": latestCalving?.calf_ear_tag || "",
+        "Birth Weight (kg)": latestCalving?.birth_weight || "",
+        Complications: latestCalving?.complications || "",
+
+        // Milking Summary
+        "Total Milk Production (L)": Math.round(totalMilkProduction * 10) / 10,
+        "Total Milking Sessions": animalMilkings.length,
+        "Average Milk Per Session (L)":
+          animalMilkings.length > 0
+            ? Math.round((totalMilkProduction / animalMilkings.length) * 10) /
+              10
+            : 0,
+        "Last Milking Date":
+          animalMilkings.length > 0
+            ? animalMilkings.sort(
+                (a, b) =>
+                  new Date(b.milking_date).getTime() -
+                  new Date(a.milking_date).getTime()
+              )[0].milking_date
+            : "",
+      });
+    });
+
+    // Convert to CSV format
+    if (csvData.length === 0) {
+      alert("No data to export");
+      return;
+    }
+
+    const headers = Object.keys(csvData[0]);
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) =>
+        headers
+          .map((header) => {
+            const value = row[header];
+            // Escape commas and quotes in CSV
+            if (
+              typeof value === "string" &&
+              (value.includes(",") || value.includes('"'))
+            ) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `farm_report_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   // Calculate key metrics
   const metrics = useMemo(() => {
     const totalAnimals = animals.length;
@@ -400,11 +542,11 @@ export function ReportsContent({
       {/* Top Producers Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Top Milk Producers</CardTitle>
+          <CardTitle>Top Milk Producers & Export Options</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
               <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              Export All Data (CSV)
             </Button>
             <Button variant="outline" size="sm">
               <Printer className="h-4 w-4 mr-2" />
