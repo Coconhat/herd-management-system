@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkEmailWhitelist } from "@/lib/actions/email-whitelist";
+import { checkEmailWhitelist } from "@/lib/actions/whitelist-simple";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email is whitelisted
+    // Check if email is whitelisted and not yet registered
     const result = await checkEmailWhitelist(email);
 
     return NextResponse.json(result);
@@ -24,8 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         isWhitelisted: false,
-        message:
-          "Unable to verify email authorization. Please try again later.",
+        message: "Unable to verify authorization. Please try again later.",
       },
       { status: 500 }
     );

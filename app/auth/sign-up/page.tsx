@@ -38,7 +38,8 @@ export default function SignUpPage() {
     }
 
     try {
-      // First check if email is whitelisted
+      // Step 1: Check if email is whitelisted
+      console.log("Step 1: Checking whitelist for:", email);
       const whitelistResponse = await fetch("/api/auth/check-whitelist", {
         method: "POST",
         headers: {
@@ -47,28 +48,67 @@ export default function SignUpPage() {
         body: JSON.stringify({ email }),
       });
 
-      const whitelistData = await whitelistResponse.json();
+      console.log("Whitelist response status:", whitelistResponse.status);
+      const whitelistText = await whitelistResponse.text();
+      console.log("Whitelist raw response:", whitelistText.substring(0, 100));
+
+      let whitelistData;
+      try {
+        whitelistData = JSON.parse(whitelistText);
+      } catch (parseError) {
+        throw new Error(
+          `Whitelist check failed: ${whitelistText.substring(0, 100)}`
+        );
+      }
 
       if (!whitelistData.isWhitelisted) {
-        setError(
-          whitelistData.message ||
-            "This email is not authorized to create an account."
-        );
+        setError(whitelistData.message || "This email is not authorized.");
         setIsLoading(false);
         return;
       }
 
-      // If email is whitelisted, proceed with registration
-      const { error } = await supabase.auth.signUp({
+      // Step 2: Create the account in Supabase Auth
+      console.log("Step 2: Creating Supabase account for:", email);
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/`,
+            process.env.NEXT_PUBLIC_SITE_URL || `${window.location.origin}/`,
         },
       });
-      if (error) throw error;
+
+      if (signUpError) {
+        console.error("Signup error from Supabase:", signUpError);
+        throw signUpError;
+      }
+
+      console.log("Account created successfully!");
+
+      // Step 3: Mark email as registered in whitelist
+      console.log("Marking email as registered:", email);
+      const markResponse = await fetch("/api/auth/mark-registered", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      console.log("Mark registered response status:", markResponse.status);
+      const responseText = await markResponse.text();
+      console.log("Mark registered raw response:", responseText);
+
+      try {
+        const markResult = JSON.parse(responseText);
+        console.log("Mark registered result:", markResult);
+      } catch (parseError) {
+        console.error("Failed to parse response as JSON:", parseError);
+        console.error("Response was:", responseText.substring(0, 200));
+        // Don't throw - allow signup to continue even if marking fails
+      }
+
+      // Success - redirect to success page
       router.push("/auth/sign-up-success");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");

@@ -3,8 +3,8 @@ import {
   getWhitelistedEmails,
   addEmailToWhitelist,
   removeEmailFromWhitelist,
-  createAccountDirectly,
-} from "@/lib/actions/email-whitelist";
+  deleteEmailFromWhitelist,
+} from "@/lib/actions/whitelist-simple";
 
 // GET - Fetch all whitelisted emails
 export async function GET() {
@@ -20,15 +20,10 @@ export async function GET() {
   }
 }
 
-// POST - Add email to whitelist or create account directly
+// POST - Add email to whitelist
 export async function POST(request: NextRequest) {
   try {
-    const {
-      email,
-      notes,
-      createAccount = false,
-      password,
-    } = await request.json();
+    const { email, notes } = await request.json();
 
     if (!email) {
       return NextResponse.json(
@@ -37,15 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result;
-
-    if (createAccount) {
-      // Create account directly with credentials
-      result = await createAccountDirectly(email, notes, password);
-    } else {
-      // Traditional invitation method
-      result = await addEmailToWhitelist(email, notes);
-    }
+    const result = await addEmailToWhitelist(email, notes);
 
     if (!result.success) {
       return NextResponse.json({ message: result.message }, { status: 400 });
@@ -53,8 +40,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: result.message,
-      invitationUrl: result.invitationUrl,
-      credentials: result.credentials,
+      success: true,
     });
   } catch (error) {
     console.error("Error adding email to whitelist:", error);
@@ -68,7 +54,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Remove email from whitelist
 export async function DELETE(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, permanent = false } = await request.json();
 
     if (!email) {
       return NextResponse.json(
@@ -77,7 +63,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const result = await removeEmailFromWhitelist(email);
+    const result = permanent
+      ? await deleteEmailFromWhitelist(email)
+      : await removeEmailFromWhitelist(email);
 
     if (!result.success) {
       return NextResponse.json({ message: result.message }, { status: 400 });
