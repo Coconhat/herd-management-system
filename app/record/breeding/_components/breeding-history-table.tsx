@@ -48,13 +48,62 @@ export function RecordBreedingModal({
   const [selectedSire, setSelectedSire] = useState<Animal | null>(null);
   const [damOpen, setDamOpen] = useState(false);
   const [sireOpen, setSireOpen] = useState(false);
+  const [damSearchQuery, setDamSearchQuery] = useState("");
+  const [sireSearchQuery, setSireSearchQuery] = useState("");
   const { toast } = useToast();
 
+  // Helper function to sort animals by search relevance
+  const sortByRelevance = (animals: Animal[], searchQuery: string) => {
+    if (!searchQuery) return animals;
+
+    const query = searchQuery.toLowerCase();
+    return [...animals].sort((a, b) => {
+      const aTag = (a.ear_tag || "").toLowerCase();
+      const aName = (a.name || "").toLowerCase();
+      const bTag = (b.ear_tag || "").toLowerCase();
+      const bName = (b.name || "").toLowerCase();
+
+      // Check for exact matches first
+      if (aTag === query) return -1;
+      if (bTag === query) return 1;
+
+      // Then check if starts with query
+      if (aTag.startsWith(query) && !bTag.startsWith(query)) return -1;
+      if (bTag.startsWith(query) && !aTag.startsWith(query)) return 1;
+      if (aName.startsWith(query) && !bName.startsWith(query)) return -1;
+      if (bName.startsWith(query) && !aName.startsWith(query)) return 1;
+
+      // Finally sort by position of match (earlier is better)
+      const aTagIndex = aTag.indexOf(query);
+      const aNameIndex = aName.indexOf(query);
+      const bTagIndex = bTag.indexOf(query);
+      const bNameIndex = bName.indexOf(query);
+
+      const aMinIndex = Math.min(
+        aTagIndex >= 0 ? aTagIndex : Infinity,
+        aNameIndex >= 0 ? aNameIndex : Infinity
+      );
+      const bMinIndex = Math.min(
+        bTagIndex >= 0 ? bTagIndex : Infinity,
+        bNameIndex >= 0 ? bNameIndex : Infinity
+      );
+
+      return aMinIndex - bMinIndex;
+    });
+  };
+
   // Only allow animals that are open for breeding. Accept both "Open" and "Active" statuses
-  const openFemales = animals.filter(
-    (a) => a.sex === "Female" && (a.status === "Open" || a.status === "Active")
+  const openFemales = sortByRelevance(
+    animals.filter(
+      (a) =>
+        a.sex === "Female" && (a.status === "Open" || a.status === "Active")
+    ),
+    damSearchQuery
   );
-  const activeSires = animals.filter((a) => a.sex === "Male");
+  const activeSires = sortByRelevance(
+    animals.filter((a) => a.sex === "Male"),
+    sireSearchQuery
+  );
 
   // preview pregnancy check date
   const pregnancyCheckDate = breedingDate ? addDays(breedingDate, 29) : null;
@@ -144,7 +193,13 @@ export function RecordBreedingModal({
             <Label>
               Dam (Female) <span className="text-red-500">*</span>
             </Label>
-            <Popover open={damOpen} onOpenChange={setDamOpen}>
+            <Popover
+              open={damOpen}
+              onOpenChange={(open) => {
+                setDamOpen(open);
+                if (!open) setDamSearchQuery("");
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -158,19 +213,22 @@ export function RecordBreedingModal({
               </PopoverTrigger>
               <PopoverContent className="w-full p-0 max-h-[300px] overflow-y-auto">
                 <Command className="[&_[cmdk-group]]:overflow-visible">
-                  <CommandInput placeholder="Search by ear tag or name..." />
+                  <CommandInput
+                    placeholder="Search by ear tag or name..."
+                    onValueChange={setDamSearchQuery}
+                  />
                   <CommandEmpty>No female found.</CommandEmpty>
                   <CommandGroup>
                     {openFemales.map((a) => (
                       <CommandItem
                         key={a.id}
-                        value={a.id.toString()}
+                        value={`${a.ear_tag} ${a.name || ""}`}
                         onSelect={() => {
                           setSelectedDam(a);
                           setDamOpen(false); // close after select
                         }}
                       >
-                        {a.ear_tag} — {a.name}
+                        {a.ear_tag}
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -191,7 +249,13 @@ export function RecordBreedingModal({
               Sire (Male){" "}
               <span className="text-muted-foreground text-sm">(optional)</span>
             </Label>
-            <Popover open={sireOpen} onOpenChange={setSireOpen}>
+            <Popover
+              open={sireOpen}
+              onOpenChange={(open) => {
+                setSireOpen(open);
+                if (!open) setSireSearchQuery("");
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -205,13 +269,16 @@ export function RecordBreedingModal({
               </PopoverTrigger>
               <PopoverContent className="w-full p-0 max-h-[300px] overflow-y-auto">
                 <Command className="[&_[cmdk-group]]:overflow-visible">
-                  <CommandInput placeholder="Search by ear tag or name..." />
+                  <CommandInput
+                    placeholder="Search by ear tag or name..."
+                    onValueChange={setSireSearchQuery}
+                  />
                   <CommandEmpty>No sire found.</CommandEmpty>
                   <CommandGroup>
                     {activeSires.map((a) => (
                       <CommandItem
                         key={a.id}
-                        value={a.id.toString()}
+                        value={`${a.ear_tag} ${a.name || ""}`}
                         onSelect={() => {
                           setSelectedSire(a);
                           setSireOpen(false);
