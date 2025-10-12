@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,6 +19,8 @@ import { DesktopSidebar, MobileSidebar } from "@/components/sidebar-demo";
 import { getCalvingsWithDetails } from "@/lib/actions/calvings";
 import { getBreedingRecordsWithAnimalInfo } from "@/lib/actions/breeding";
 import Link from "next/link";
+import useNotifications from "@/hooks/use-notifications";
+import NotificationButton from "@/components/notification-button";
 
 async function StatsCards() {
   const stats = await getAnimalStats();
@@ -156,9 +158,8 @@ export default async function Dashboard() {
                     Reports
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm">
-                  Settings
-                </Button>
+
+                <NotificationButton />
                 <UserNav />
               </div>
             </div>
