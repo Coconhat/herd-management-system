@@ -285,15 +285,11 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
             "A reminder for expected calving (≈9 months) has been scheduled.",
         });
       } else {
-        // Immediately open the medicine modal for the newly marked Empty record
-        setSelectedBreedingRecordId(activeRecord.id);
-        setSelectedAnimalId(activeRecord.animal_id ?? activeRecord.animal_id);
-        setRecordMedicineModalOpen(true);
-
+        // Don't automatically open medicine modal - let user click Treatment button
         toast({
           title: "Marked Not Pregnant",
           description:
-            "This breeding was marked Not Pregnant. You can provide Post-PD Treatment within 29 days.",
+            "This breeding was marked Not Pregnant. Click 'Treatment' button to record Post-PD medication.",
         });
       }
     } catch (err) {
@@ -343,10 +339,13 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
 
   const isPostPdButtonVisible = (rec: BreedingRecord) => {
     if (rec.pd_result !== "Empty") return false;
+
     const dueStr = (rec as any).post_pd_treatment_due_date;
     if (!dueStr) return false;
+
     const due = parseISO(dueStr);
     if (!isValid(due)) return false;
+
     // Show button while today <= due (inclusive)
     return today <= due;
   };

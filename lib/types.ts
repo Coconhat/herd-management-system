@@ -17,8 +17,18 @@ export interface BreedingRecord {
   pregnancy_check_due_date: string; // Approx. 29 days after breeding
   expected_calving_date: string; // Approx. 283 days after breeding
 
+  // Helper dates for post-PD workflow (added when pd_result is "Empty")
+  post_pd_treatment_due_date?: string | null; // 29 days after marking Empty
+  keep_in_breeding_until?: string | null; // Date to keep record visible in breeding history
+  pregnancy_check_date?: string | null; // Actual date when PD check was performed
+
   // The final boolean status, derived from pd_result for easy querying
   confirmed_pregnant: boolean;
+
+  // Extended fields added in components (not in database)
+  dam_id?: number;
+  dam_ear_tag?: string;
+  dam_name?: string;
 }
 
 /**
