@@ -122,19 +122,55 @@ export async function createCalvingFromPregnancy(formData: FormData) {
     throw new Error("Calving recorded but failed to update dam status.");
   }
 
-  // Step 4: create a notification for when the animal should become Active again (reopen)
+  // Step 4: create BOTH email and in-app notification for breeding reopen
   try {
-    await supabase.from("notifications").insert({
+    const animalInfo = await supabase
+      .from("animals")
+      .select("ear_tag, name")
+      .eq("id", damId)
+      .single();
+
+    const animalName = animalInfo.data
+      ? `${animalInfo.data.ear_tag}${
+          animalInfo.data.name ? " (" + animalInfo.data.name + ")" : ""
+        }`
+      : `Animal #${damId}`;
+
+    const reopenDate = new Date(reopenDateIso);
+    // Set to 7 AM Philippine Time (UTC+8)
+    reopenDate.setHours(7 - 8, 0, 0, 0); // 7 AM PHT = -1 AM UTC
+
+    const notificationData = {
       user_id: user.id,
       animal_id: damId,
-      title: "Cow ready for breeding",
-      body: `Animal ${damId} will be available for breeding on ${reopenDateIso}.`,
-      scheduled_for: reopenDateIso,
-      channel: "in_app",
-      metadata: { calving_id: newCalving.id, dam_id: damId },
-      created_at: new Date().toISOString(),
-      read: false,
+      title: `Ready for Breeding: ${animalName}`,
+      body: `<p><strong>${animalName}</strong> will be available for breeding again.</p>
+             <p><strong>Reopen Date:</strong> ${new Date(
+               reopenDateIso
+             ).toLocaleDateString()}</p>
+             <p>The voluntary waiting period has ended. The animal can now be bred.</p>`,
+      scheduled_for: reopenDate.toISOString(),
       sent: false,
+      read: false,
+      metadata: {
+        from: "DH-MAGPANTAY-FARM@resend.dev",
+        type: "reopen_breeding",
+        calving_id: newCalving.id,
+        dam_id: damId,
+      },
+    };
+
+    // Insert EMAIL notification (will trigger email sending)
+    await supabase.from("notifications").insert({
+      ...notificationData,
+      channel: "email",
+    });
+
+    // Insert IN-APP notification (for /notifications page)
+    await supabase.from("notifications").insert({
+      ...notificationData,
+      channel: "in_app",
+      sent: true, // Not applicable for in-app
     });
   } catch (notifErr) {
     // If notifications table missing or insert fails, just log and continue.

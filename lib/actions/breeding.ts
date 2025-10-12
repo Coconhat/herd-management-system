@@ -66,30 +66,70 @@ export async function createBreedingRecord(formData: FormData) {
     expected_calving_date: addDays(breedingDate, 283).toISOString(),
   };
 
-  const { error } = await supabase
+  const { data: insertedData, error } = await supabase
     .from("breeding_records")
-    .insert(breedingData);
+    .insert(breedingData)
+    .select();
 
   if (error) {
     console.error("Error creating breeding record:", error);
     throw new Error("Failed to create the breeding record.");
   }
 
+  // Create BOTH email and in-app notification for PD check reminder
   try {
-    await supabase.from("notifications").insert({
+    const animalInfo = await supabase
+      .from("animals")
+      .select("ear_tag, name")
+      .eq("id", animalId)
+      .single();
+
+    const animalName = animalInfo.data
+      ? `${animalInfo.data.ear_tag}${
+          animalInfo.data.name ? " (" + animalInfo.data.name + ")" : ""
+        }`
+      : `Animal #${animalId}`;
+
+    const pdDate = new Date(breedingData.pregnancy_check_due_date);
+    // Set to 7 AM Philippine Time (UTC+8)
+    pdDate.setHours(7 - 8, 0, 0, 0); // 7 AM PHT = -1 AM UTC
+
+    const notificationData = {
       user_id: user.id,
       animal_id: animalId,
-      title: "Expected PD check soon",
-      body: `Expected PD check for animal ${animalId} on ${breedingData.expected_calving_date}.`,
-      scheduled_for: breedingData.expected_calving_date,
-      created_at: new Date().toISOString(),
+      title: `PD Check Reminder: ${animalName}`,
+      body: `<p>Pregnancy diagnosis check is due for <strong>${animalName}</strong>.</p>
+             <p><strong>Breeding Date:</strong> ${new Date(
+               breedingData.breeding_date
+             ).toLocaleDateString()}</p>
+             <p><strong>PD Check Date:</strong> ${new Date(
+               breedingData.pregnancy_check_due_date
+             ).toLocaleDateString()}</p>
+             <p>Please perform the pregnancy check and update the results in the system.</p>`,
+      scheduled_for: pdDate.toISOString(),
+      sent: false,
       read: false,
+      metadata: {
+        from: "DH-MAGPANTAY-FARM@resend.dev",
+        type: "pd_check",
+        breeding_record_id: insertedData?.[0]?.id,
+      },
+    };
+
+    // Insert EMAIL notification (will trigger email sending)
+    await supabase.from("notifications").insert({
+      ...notificationData,
+      channel: "email",
+    });
+
+    // Insert IN-APP notification (for /notifications page)
+    await supabase.from("notifications").insert({
+      ...notificationData,
+      channel: "in_app",
+      sent: true, // Not applicable for in-app, but set to true to avoid confusion
     });
   } catch (notifErr) {
-    console.warn(
-      "Could not create PD check notification (table may not exist):",
-      notifErr
-    );
+    console.warn("Could not create PD check notification:", notifErr);
   }
 
   // Refresh the UI to show the new record and update animal stages
@@ -182,22 +222,57 @@ export async function updateBreedingPDResult(
       // non-fatal
     }
 
-    // Attempt to create a notification/reminder for expected calving (non-fatal)
+    // Create BOTH email and in-app notification for expected calving
     try {
-      await supabase.from("notifications").insert({
+      const animalInfo = await supabase
+        .from("animals")
+        .select("ear_tag, name")
+        .eq("id", animalId)
+        .single();
+
+      const animalName = animalInfo.data
+        ? `${animalInfo.data.ear_tag}${
+            animalInfo.data.name ? " (" + animalInfo.data.name + ")" : ""
+          }`
+        : `Animal #${animalId}`;
+
+      const calvingDate = new Date(expectedCalving);
+      // Set to 7 AM Philippine Time (UTC+8)
+      calvingDate.setHours(7 - 8, 0, 0, 0); // 7 AM PHT = -1 AM UTC
+
+      const notificationData = {
         user_id: user.id,
         animal_id: animalId,
-        title: "Expected calving soon",
-        body: `Expected calving for animal ${animalId} on ${expectedCalving}.`,
-        scheduled_for: expectedCalving,
-        created_at: new Date().toISOString(),
+        title: `Calving Expected: ${animalName}`,
+        body: `<p>Calving is expected for <strong>${animalName}</strong>.</p>
+               <p><strong>Expected Calving Date:</strong> ${new Date(
+                 expectedCalving
+               ).toLocaleDateString()}</p>
+               <p>Please monitor the animal closely and prepare for delivery. Update the system once the calf is born.</p>`,
+        scheduled_for: calvingDate.toISOString(),
+        sent: false,
         read: false,
+        metadata: {
+          from: "DH-MAGPANTAY-FARM@resend.dev",
+          type: "expected_calving",
+          breeding_record_id: breedingRecordId,
+        },
+      };
+
+      // Insert EMAIL notification (will trigger email sending)
+      await supabase.from("notifications").insert({
+        ...notificationData,
+        channel: "email",
+      });
+
+      // Insert IN-APP notification (for /notifications page)
+      await supabase.from("notifications").insert({
+        ...notificationData,
+        channel: "in_app",
+        sent: true, // Not applicable for in-app
       });
     } catch (notifErr) {
-      console.warn(
-        "Could not create calving notification (table may not exist):",
-        notifErr
-      );
+      console.warn("Could not create calving notification:", notifErr);
     }
   } else {
     // Branch: Empty
