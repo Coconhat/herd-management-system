@@ -285,7 +285,7 @@ export default function NotificationsPage() {
                               onClick={() => markAsRead(notification.id)}
                               className="flex-shrink-0 h-8 px-2"
                             >
-                              <Check className="h-4 w-4" />
+                              Mark as read
                             </Button>
                           )}
                         </div>
