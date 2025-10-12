@@ -142,7 +142,7 @@ export default async function Dashboard() {
                 <MobileSidebar />
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">
-                    Herd Management System
+                    D.H MAGPANTAY's Farm System
                   </h1>
                   <p className="text-muted-foreground">
                     Manage your cattle with confidence

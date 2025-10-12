@@ -65,8 +65,9 @@ export default function LoginPage() {
               />
             </div>
             <h1 className="text-3xl font-bold text-foreground">
-              Herd Management
+              D.H MAGPANTAY
             </h1>
+            <p>Dairy Farm</p>
             <p className="text-muted-foreground mt-2">
               Sign in to manage your cattle
             </p>
