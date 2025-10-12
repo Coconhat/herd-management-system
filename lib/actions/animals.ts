@@ -398,7 +398,7 @@ export async function getAnimalsWithBreedingData(): Promise<Animal[]> {
     `
     )
     .eq("user_id", user.id)
-    .in("status", ["Active", "Empty", "Pregnant"]) // Include Active, Empty, and Pregnant animals for breeding management
+    .in("status", ["Active", "Empty", "Pregnant", "Open"]) // Include Active, Empty, Open, and Pregnant animals for breeding management
     .order("ear_tag", { ascending: true });
 
   if (error) {

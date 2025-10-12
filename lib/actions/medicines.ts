@@ -139,6 +139,73 @@ export async function recordMedicineUsage(formData: FormData) {
     throw new Error("Usage recorded, but failed to update stock quantity.");
   }
 
+  // 5. If this is post-PD treatment for a breeding record, update the animal status
+  // From "Empty" (not pregnant) to "Open" (ready for breeding after recovery)
+  if (usageData.breeding_record_id) {
+    // Get the animal's reopen_date to keep it
+    const { data: animalData } = await supabase
+      .from("animals")
+      .select("reopen_date")
+      .eq("id", usageData.animal_id)
+      .single();
+
+    // Change animal status from "Empty" to "Open" after treatment
+    const { error: animalUpdateError } = await supabase
+      .from("animals")
+      .update({ status: "Open" })
+      .eq("id", usageData.animal_id)
+      .eq("status", "Empty"); // Only update if currently Empty
+
+    if (animalUpdateError) {
+      console.warn(
+        "Could not update animal status after treatment:",
+        animalUpdateError
+      );
+    }
+
+    // Extend the keep_in_breeding_until date to the reopen_date so record stays visible
+    // until the animal is ready for breeding again
+    const keepUntilDate =
+      animalData?.reopen_date ||
+      new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0]; // Default to 60 days if no reopen_date
+
+    const { error: brUpdateError } = await supabase
+      .from("breeding_records")
+      .update({ keep_in_breeding_until: keepUntilDate })
+      .eq("id", usageData.breeding_record_id);
+
+    if (brUpdateError) {
+      console.warn(
+        "Could not extend breeding record visibility:",
+        brUpdateError
+      );
+    }
+  }
+
   revalidatePath("/inventory/medicine");
   revalidatePath(`/animal/${usageData.animal_id}`);
+  revalidatePath("/record/breeding", "layout");
+}
+
+/**
+ * Check if a breeding record has treatment recorded
+ */
+export async function hasBreedingRecordTreatment(
+  breedingRecordId: number
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("medicine_usage_records")
+    .select("id")
+    .eq("breeding_record_id", breedingRecordId)
+    .limit(1);
+
+  if (error) {
+    console.error("Error checking breeding record treatment:", error);
+    return false;
+  }
+
+  return data && data.length > 0;
 }

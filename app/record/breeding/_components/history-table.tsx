@@ -36,6 +36,7 @@ import { RecordBreedingModal } from "./breeding-history-table";
 import { RecordMedicineModal } from "@/components/record-medicine-modal";
 import { getPregnancyCheckDueDate } from "@/lib/utils";
 import { updateBreedingPDResult } from "@/lib/actions/breeding";
+import { hasBreedingRecordTreatment } from "@/lib/actions/medicines";
 import { useToast } from "@/hooks/use-toast";
 import type { Animal } from "@/lib/actions/animals";
 import type { BreedingRecord } from "@/lib/types";
@@ -81,6 +82,14 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     number | null
   >(null);
   const [selectedAnimalId, setSelectedAnimalId] = useState<number | null>(null);
+
+  // Track which breeding records have treatment recorded
+  const [recordsWithTreatment, setRecordsWithTreatment] = useState<Set<number>>(
+    new Set()
+  );
+
+  // Counter to force refresh of treatment status
+  const [treatmentCheckCounter, setTreatmentCheckCounter] = useState(0);
 
   // early warning
   const [warnEarlyDialog, setWarnEarlyDialog] = useState(false);
@@ -145,6 +154,36 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
       record.breeding_method?.toLowerCase().includes(searchLower)
     );
   });
+
+  // Check treatment status for Empty breeding records
+  useEffect(() => {
+    const emptyRecords = combinedBreedingRecords.filter(
+      (r) => r.pd_result === "Empty" && (r as any).post_pd_treatment_due_date
+    );
+
+    if (emptyRecords.length === 0) return;
+
+    // Check treatment status for each empty record
+    const checkTreatments = async () => {
+      const results = await Promise.all(
+        emptyRecords.map(async (rec) => {
+          const hasTreatment = await hasBreedingRecordTreatment(rec.id);
+          return { id: rec.id, hasTreatment };
+        })
+      );
+
+      const newSet = new Set<number>();
+      results.forEach(({ id, hasTreatment }) => {
+        if (hasTreatment) {
+          newSet.add(id);
+        }
+      });
+      setRecordsWithTreatment(newSet);
+    };
+
+    checkTreatments();
+    // Re-check whenever the modal closes (via treatmentCheckCounter)
+  }, [combinedBreedingRecords.length, treatmentCheckCounter]);
 
   // Clean up pinnedRecords when server returns the record (present in baseBreedingRecords)
   useEffect(() => {
@@ -324,6 +363,9 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     // If not an Empty record, always visible
     if (rec.pd_result !== "Empty") return true;
 
+    // If treatment was completed, keep visible regardless of date
+    if (recordsWithTreatment.has(rec.id)) return true;
+
     const keepUntilStr =
       (rec as any).keep_in_breeding_until ||
       (rec as any).post_pd_treatment_due_date;
@@ -361,7 +403,13 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
       {/* medicine modal */}
       <RecordMedicineModal
         open={recordMedicineModalOpen}
-        onOpenChange={setRecordMedicineModalOpen}
+        onOpenChange={(open) => {
+          setRecordMedicineModalOpen(open);
+          // When modal closes, refresh treatment status
+          if (!open) {
+            setTreatmentCheckCounter((c) => c + 1);
+          }
+        }}
         animalId={selectedAnimalId ?? 0}
         breedingRecordId={selectedBreedingRecordId ?? undefined}
       />
@@ -539,35 +587,51 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
                               : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                onClick={() => openConfirmPD(rec)}
-                                variant={dueForPD ? "default" : "outline"}
-                                className="gap-1"
+                            {recordsWithTreatment.has(rec.id) ? (
+                              // Show green completed badge instead of buttons
+                              <Badge
+                                variant="outline"
+                                className="gap-1 bg-green-50 text-green-700 border-green-200"
                               >
                                 <CheckCircle className="h-3 w-3" />
-                                Confirm PD
-                              </Button>
+                                Treatment Completed
+                              </Badge>
+                            ) : (
+                              // Show action buttons
+                              <div className="flex gap-2 justify-end">
+                                {/* Only show Confirm PD button for Unchecked records */}
+                                {rec.pd_result === "Unchecked" && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => openConfirmPD(rec)}
+                                    variant={dueForPD ? "default" : "outline"}
+                                    className="gap-1"
+                                  >
+                                    <CheckCircle className="h-3 w-3" />
+                                    Confirm PD
+                                  </Button>
+                                )}
 
-                              {isPostPdButtonVisible(rec) && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedBreedingRecordId(rec.id);
-                                    setSelectedAnimalId(
-                                      rec.dam_id ?? rec.animal_id
-                                    );
-                                    setRecordMedicineModalOpen(true);
-                                  }}
-                                  className="gap-1"
-                                >
-                                  <Syringe className="h-3 w-3" />
-                                  Treatment
-                                </Button>
-                              )}
-                            </div>
+                                {/* Show Treatment button for Empty records that need treatment */}
+                                {isPostPdButtonVisible(rec) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedBreedingRecordId(rec.id);
+                                      setSelectedAnimalId(
+                                        rec.dam_id ?? rec.animal_id
+                                      );
+                                      setRecordMedicineModalOpen(true);
+                                    }}
+                                    className="gap-1"
+                                  >
+                                    <Syringe className="h-3 w-3" />
+                                    Treatment
+                                  </Button>
+                                )}
+                              </div>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
