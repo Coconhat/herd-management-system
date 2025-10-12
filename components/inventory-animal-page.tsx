@@ -162,19 +162,7 @@ export default function InventoryAnimalsPage({
           <Button>Back</Button>
         </Link>
         <h1 className="text-2xl font-semibold">Animal Inventory</h1>
-        <div className="flex justify-end flex-1 mr-5">
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Search by tag or name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-xs"
-            />
-            <Button onClick={() => setAddOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Add Animal
-            </Button>
-          </div>
-        </div>
+        <div className="flex justify-end flex-1 mr-5"></div>
       </div>
 
       {/* top cards */}
@@ -437,6 +425,17 @@ export default function InventoryAnimalsPage({
         <CardHeader>
           <CardTitle>Animals</CardTitle>
           <CardDescription>Full inventory</CardDescription>
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search by tag or name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-xs"
+            />
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Animal
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
