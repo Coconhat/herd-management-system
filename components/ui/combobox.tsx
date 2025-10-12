@@ -62,13 +62,13 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
-        <Command>
+        <Command className="[&_[cmdk-group]]:overflow-visible">
           <CommandInput
             placeholder={`Search ${placeholder.toLowerCase()}...`}
             onValueChange={setSearchQuery}
           />
           <CommandEmpty>{emptyMessage}</CommandEmpty>
-          <CommandGroup className="max-h-60 overflow-y-auto">
+          <CommandGroup className="max-h-60 overflow-y-auto overscroll-contain">
             {filteredOptions.map((option) => (
               <CommandItem
                 key={option.value}

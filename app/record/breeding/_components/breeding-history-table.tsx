@@ -156,8 +156,8 @@ export function RecordBreedingModal({
                     : "Search or select an open female"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
+              <PopoverContent className="w-full p-0 max-h-[300px] overflow-y-auto">
+                <Command className="[&_[cmdk-group]]:overflow-visible">
                   <CommandInput placeholder="Search by ear tag or name..." />
                   <CommandEmpty>No female found.</CommandEmpty>
                   <CommandGroup>
@@ -203,8 +203,8 @@ export function RecordBreedingModal({
                     : "Leave blank or search sire"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
+              <PopoverContent className="w-full p-0 max-h-[300px] overflow-y-auto">
+                <Command className="[&_[cmdk-group]]:overflow-visible">
                   <CommandInput placeholder="Search by ear tag or name..." />
                   <CommandEmpty>No sire found.</CommandEmpty>
                   <CommandGroup>
