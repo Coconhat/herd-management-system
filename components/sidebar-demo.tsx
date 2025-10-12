@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -56,6 +56,7 @@ export function DesktopSidebar() {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
     {}
   );
+  const [notifications, setNotifications] = useState([]);
 
   const toggleExpanded = (itemName: string) => {
     setExpandedItems((prev) => ({
@@ -63,6 +64,19 @@ export function DesktopSidebar() {
       [itemName]: !prev[itemName],
     }));
   };
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const response = await fetch("/api/notifications");
+        const data = await response.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    }
+    fetchNotifications();
+  }, []);
 
   return (
     <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
@@ -146,7 +160,7 @@ export function DesktopSidebar() {
         <div className="flex-shrink-0 p-4 border-t">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Bell className="h-4 w-4 transition-colors group-hover:text-primary" />
-            <span>3 notifications</span>
+            <span>{notifications.length} notifications</span>
           </div>
         </div>
       </div>
@@ -159,6 +173,20 @@ export function MobileSidebar() {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
     {}
   );
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const response = await fetch("/api/notifications");
+        const data = await response.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    }
+    fetchNotifications();
+  }, []);
 
   const toggleExpanded = (itemName: string) => {
     setExpandedItems((prev) => ({
@@ -254,7 +282,7 @@ export function MobileSidebar() {
           <div className="flex-shrink-0 p-4 border-t">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Bell className="h-4 w-4 transition-colors group-hover:text-primary" />
-              <span>3 notifications</span>
+              <span>{notifications.length} notifications</span>
             </div>
           </div>
         </div>

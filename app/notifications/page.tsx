@@ -140,10 +140,18 @@ export default function NotificationsPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <div>
+          <Link
+            href="/"
+            className="text-muted-foreground bg-primary/10  px-2 py-1 hover:bg-primary/20 rounded-4xl mb-9"
+          >
+            {" "}
+            Back
+          </Link>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Bell className="h-8 w-8" />
             Notifications
           </h1>
+
           <p className="text-muted-foreground mt-1">
             Farm reminders and alerts
           </p>
@@ -196,73 +204,98 @@ export default function NotificationsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredNotifications.map((notification) => (
-            <Card
-              key={notification.id}
-              className={`transition-all ${
-                !notification.read
-                  ? "border-l-4 border-l-primary bg-primary/5"
-                  : "opacity-75"
-              }`}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="flex-shrink-0 mt-1">
-                    {getNotificationIcon(notification.metadata?.type)}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">
-                          {notification.title}
-                        </h3>
-                        {getNotificationBadge(notification.metadata?.type)}
-                      </div>
-                      {!notification.read && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => markAsRead(notification.id)}
-                          className="flex-shrink-0"
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Mark read
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Body */}
-                    <div
-                      className="text-sm text-muted-foreground mb-3"
-                      dangerouslySetInnerHTML={{ __html: notification.body }}
-                    />
-
-                    {/* Metadata */}
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Scheduled:{" "}
-                        {format(new Date(notification.scheduled_for), "PPP")}
-                      </span>
-                      {notification.animals && (
-                        <Link
-                          href={`/animal/${notification.animals.ear_tag}`}
-                          className="text-primary hover:underline"
-                        >
-                          View {notification.animals.ear_tag}
-                          {notification.animals.name &&
-                            ` (${notification.animals.name})`}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          {filteredNotifications.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No notifications</h3>
+                <p className="text-muted-foreground">
+                  {filter === "unread"
+                    ? "You're all caught up!"
+                    : "No notifications to display."}
+                </p>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            <div className="space-y-2">
+              {filteredNotifications.map((notification) => (
+                <Card
+                  key={notification.id}
+                  className={`transition-all hover:shadow-md ${
+                    !notification.read
+                      ? "border-l-4 border-l-primary bg-primary/5"
+                      : "opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      {/* Icon */}
+                      <div className="flex-shrink-0">
+                        {getNotificationIcon(notification.metadata?.type)}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-base truncate">
+                                {notification.title}
+                              </h3>
+                              {getNotificationBadge(
+                                notification.metadata?.type
+                              )}
+                            </div>
+
+                            {/* Body */}
+                            <div
+                              className="text-sm text-muted-foreground mb-2 line-clamp-2"
+                              dangerouslySetInnerHTML={{
+                                __html: notification.body,
+                              }}
+                            />
+
+                            {/* Metadata */}
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(
+                                  new Date(notification.scheduled_for),
+                                  "MMM d, yyyy"
+                                )}
+                              </span>
+                              {notification.animals && (
+                                <Link
+                                  href={`/animal/${notification.animals.ear_tag}`}
+                                  className="text-primary hover:underline font-medium"
+                                >
+                                  {notification.animals.ear_tag}
+                                  {notification.animals.name &&
+                                    ` (${notification.animals.name})`}
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Mark as read button */}
+                          {!notification.read && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => markAsRead(notification.id)}
+                              className="flex-shrink-0 h-8 px-2"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
