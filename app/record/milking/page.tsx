@@ -3,6 +3,7 @@ import { AddMilkingRecordModal } from "./_components/add-milking-record-modal";
 import { MilkingStatsCard } from "./_components/milking-stats-card";
 import { MilkingTabs } from "./_components/milking-tabs";
 import { MilkingRecord } from "@/lib/types";
+import Link from "next/link";
 
 export default async function MilkingPage() {
   // Fetch all female cattle with their milking records
@@ -22,6 +23,12 @@ export default async function MilkingPage() {
 
   return (
     <div className="space-y-8 mx-6 my-4">
+      <Link
+        href="/"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        ← Back to Home
+      </Link>
       <div>
         <h1 className="text-3xl font-bold">Milk Production Records</h1>
         <p className="text-muted-foreground">
