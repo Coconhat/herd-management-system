@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -240,11 +240,23 @@ export function EditMilkingRecordModal({
                 variant="outline"
                 className="flex-1"
                 onClick={() => onOpenChange(false)}
+                disabled={form.formState.isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1">
-                Update Record
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Record"
+                )}
               </Button>
             </div>
           </form>
