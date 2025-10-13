@@ -517,7 +517,7 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
                         </TableCell>
                         <TableCell>
                           <a
-                            href={`/animal/${rec.dam_id}`}
+                            href={`/animal/${rec.dam_ear_tag}`}
                             className="hover:underline font-medium"
                           >
                             {rec.dam_ear_tag}
