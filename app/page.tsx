@@ -39,7 +39,7 @@ async function StatsCards() {
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 md:mb-8 max-w-full">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -130,32 +130,32 @@ export default async function Dashboard() {
   }));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background max-w-full ">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
 
       {/* Main content */}
-      <div className="md:pl-64 flex flex-col min-h-screen">
+      <div className="md:pl-64 flex flex-col min-h-screen max-w-full">
         {/* Header */}
         <header className="border-b border-border bg-card sticky top-0 z-10">
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <div className="px-3 sm:px-4 py-3 sm:py-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 md:gap-4 min-w-0">
                 <MobileSidebar />
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
+                <div className="min-w-0">
+                  <h1 className="text-lg md:text-2xl font-bold text-foreground truncate">
                     D.H MAGPANTAY's Farm System
                   </h1>
-                  <p className="text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
                     Manage your cattle with confidence
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Link href="/reports">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link href="/reports" className="hidden sm:inline-block">
                   <Button variant="outline" size="sm">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    Reports
+                    <CalendarIcon className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Reports</span>
                   </Button>
                 </Link>
 
@@ -167,9 +167,9 @@ export default async function Dashboard() {
         </header>
 
         {/* Main content area */}
-        <div className="flex flex-1">
+        <div className="flex flex-1 max-w-full">
           {/* Dashboard content */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-3 sm:p-4 md:p-6 min-w-0">
             {/* Stats Cards */}
             <Suspense
               fallback={
