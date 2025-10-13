@@ -154,18 +154,6 @@ export async function updateMilkingRecord(formData: FormData) {
     ? parseFloat(formData.get("milk_yield") as string)
     : null;
 
-  const fatPercentage = formData.get("fat_percentage")
-    ? parseFloat(formData.get("fat_percentage") as string)
-    : null;
-
-  const proteinPercentage = formData.get("protein_percentage")
-    ? parseFloat(formData.get("protein_percentage") as string)
-    : null;
-
-  const somaticCellCount = formData.get("somatic_cell_count")
-    ? parseInt(formData.get("somatic_cell_count") as string)
-    : null;
-
   const notes = formData.get("notes") as string;
 
   // Validate required fields
@@ -183,9 +171,6 @@ export async function updateMilkingRecord(formData: FormData) {
     .update({
       milking_date: milkingDate,
       milk_yield: milkYield,
-      fat_percentage: fatPercentage,
-      protein_percentage: proteinPercentage,
-      somatic_cell_count: somaticCellCount,
       notes,
     })
     .eq("id", recordId)

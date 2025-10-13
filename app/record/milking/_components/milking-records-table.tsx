@@ -37,6 +37,7 @@ import { MilkingRecord } from "@/lib/types";
 import { Animal } from "@/lib/actions/animals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EditMilkingRecordModal } from "./edit-milking-record-modal";
 
 interface MilkingRecordsTableProps {
   records: MilkingRecord[];
@@ -58,6 +59,10 @@ export function MilkingRecordsTable({
   const [internalSelectedWeek, setInternalSelectedWeek] = useState<Date>(
     new Date()
   );
+  const [editingRecord, setEditingRecord] = useState<MilkingRecord | null>(
+    null
+  );
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Use prop if provided, otherwise use internal state
   const selectedWeek = propSelectedWeek || internalSelectedWeek;
@@ -300,6 +305,16 @@ export function MilkingRecordsTable({
   // Standard table view - Mobile Card Layout
   return (
     <>
+      {/* Edit Modal */}
+      {editingRecord && (
+        <EditMilkingRecordModal
+          record={editingRecord}
+          animals={animals}
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+        />
+      )}
+
       {/* Mobile Card View */}
       <div className="block sm:hidden space-y-3">
         {records.length === 0 ? (
@@ -329,6 +344,15 @@ export function MilkingRecordsTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingRecord(record);
+                          setIsEditModalOpen(true);
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={isDeleting === record.id}
                         onClick={() => handleDelete(record.id)}
@@ -416,6 +440,15 @@ export function MilkingRecordsTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingRecord(record);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           disabled={isDeleting === record.id}
                           onClick={() => handleDelete(record.id)}
