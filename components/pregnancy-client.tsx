@@ -39,6 +39,7 @@ import {
   Clock,
   User,
   ArrowUpDown,
+  Home,
 } from "lucide-react";
 
 interface AnimalWithBreeding {
@@ -161,29 +162,31 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
     d ? format(new Date(d), "MMM d, yyyy") : "—";
 
   return (
-    <Card className="w-full">
+    <Card className="w-full max-w-full overflow-hidden">
       {/* Header / Search / Stats */}
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <CalendarCheck className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle className="text-lg">Pregnant Animals</CardTitle>
-              <CardDescription className="text-sm text-muted-foreground">
+      <CardHeader className="flex flex-col gap-4 p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <CalendarCheck className="h-5 w-5 text-primary flex-shrink-0" />
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg">
+                Pregnant Animals
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-muted-foreground">
                 Track expected calving dates and record births.
               </CardDescription>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-[320px]">
+        <div className="flex flex-col gap-3 w-full">
+          <div className="flex items-center gap-2 w-full">
             <Input
               placeholder="Search ear tag or name..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Search pregnant animals"
-              className="w-full"
+              className="w-full text-sm"
             />
             {query && (
               <Button
@@ -192,30 +195,35 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
                 aria-label="Clear search"
                 onClick={() => setQuery("")}
                 title="Clear search"
+                className="flex-shrink-0"
               >
                 <ChevronDown className="h-4 w-4 transform rotate-180 opacity-70" />
               </Button>
             )}
           </div>
 
-          {/* stats chips */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-muted/40 px-3 py-1 rounded-lg">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <div className="text-sm">
+          {/* stats chips and sort toggle */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 bg-muted/40 px-2 sm:px-3 py-1 rounded-lg">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <div className="text-xs sm:text-sm">
                 <div className="font-medium">{totalPregnant}</div>
-                <div className="text-xs text-muted-foreground">pregnant</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">
+                  pregnant
+                </div>
               </div>
             </div>
 
             <div
-              className="flex items-center gap-2 px-3 py-1 rounded-lg"
+              className="flex items-center gap-2 px-2 sm:px-3 py-1 rounded-lg"
               title={`${dueSoonCount} animals due within 7 days`}
             >
-              <Clock className="h-4 w-4 text-amber-600" />
-              <div className="text-sm">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" />
+              <div className="text-xs sm:text-sm">
                 <div className="font-medium">{dueSoonCount}</div>
-                <div className="text-xs text-muted-foreground">due soon</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">
+                  due soon
+                </div>
               </div>
             </div>
 
@@ -224,13 +232,16 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
               variant="outline"
               size="sm"
               onClick={() => setSortByNearest((s) => !s)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
               aria-pressed={sortByNearest}
               title="Toggle sort (nearest / furthest)"
             >
-              <ArrowUpDown className="h-4 w-4" />
-              <span className="text-sm">
+              <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">
                 {sortByNearest ? "Nearest" : "Furthest"}
+              </span>
+              <span className="xs:hidden">
+                {sortByNearest ? "Near" : "Far"}
               </span>
             </Button>
           </div>
@@ -240,16 +251,20 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
       <CardContent className="p-0">
         {/* Desktop / Table view */}
         <div className="hidden md:block overflow-x-auto">
-          <Table className="min-w-[720px]">
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead>Dam</TableHead>
-                <TableHead>Breed Date</TableHead>
-                <TableHead>Expected Calving</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Days</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="whitespace-nowrap">Dam</TableHead>
+                <TableHead className="whitespace-nowrap">Breed Date</TableHead>
+                <TableHead className="whitespace-nowrap">
+                  Expected Calving
+                </TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="whitespace-nowrap">Days</TableHead>
+                <TableHead className="whitespace-nowrap">Progress</TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  Action
+                </TableHead>
               </TableRow>
             </TableHeader>
 
@@ -357,9 +372,9 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
         </div>
 
         {/* Mobile: card list */}
-        <div className="md:hidden p-3 space-y-3">
+        <div className="md:hidden px-3 sm:px-4 pb-4 space-y-3">
           {filtered.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-center text-muted-foreground py-8 text-sm">
               No pregnant animals found.
             </div>
           )}
@@ -375,98 +390,114 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
             return (
               <article
                 key={rec.id}
-                className="relative rounded-xl border bg-gradient-to-br from-background/60 to-muted/10 p-4 shadow-sm hover:shadow-md transition-shadow"
-                aria-labelledby={`preg-${rec.id}`}
+                className="border rounded-lg p-3 sm:p-4 space-y-3 hover:bg-muted/5 transition-colors"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3
-                      id={`preg-${rec.id}`}
-                      className="flex items-center gap-2 text-base font-semibold truncate"
+                <div className="flex flex-col gap-3">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm sm:text-base truncate">
+                        {rec.dam_ear_tag}
+                      </h3>
+                      <span className="text-xs sm:text-sm text-muted-foreground">
+                        {rec.dam_name || "Unnamed"}
+                      </span>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs flex-shrink-0"
                     >
-                      <CalendarCheck className="h-4 w-4 text-primary" />
-                      <span>{rec.dam_ear_tag}</span>
-                    </h3>
-                    <div className="mt-1 text-sm text-muted-foreground truncate">
-                      {rec.dam_name || "Unnamed"}
+                      Pregnant
+                    </Badge>
+                  </div>
+
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
+                        Bred
+                      </div>
+                      <div className="font-medium text-xs sm:text-sm">
+                        {formatShortDate(rec.breeding_date)}
+                      </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                      <div>
-                        <div className="text-xs">Breed</div>
-                        <div className="font-medium">
-                          {formatShortDate(rec.breeding_date)}
-                        </div>
+                    <div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
+                        Expected
                       </div>
-
-                      <div>
-                        <div className="text-xs">Expected</div>
-                        <div className="font-medium">
-                          {formatShortDate(rec.expected_calving_date)}
-                        </div>
+                      <div className="font-medium text-xs sm:text-sm">
+                        {formatShortDate(rec.expected_calving_date)}
                       </div>
+                    </div>
 
-                      <div>
-                        <div className="text-xs">Status</div>
-                        <div className="mt-1">
-                          <Badge variant="secondary">Pregnant</Badge>
-                        </div>
+                    <div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
+                        Days
                       </div>
+                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                        <div className="font-medium text-xs sm:text-sm">
+                          {days}
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground">
+                          days
+                        </div>
+                        {urgent && (
+                          <Badge
+                            variant="destructive"
+                            className="text-[10px] sm:text-xs"
+                          >
+                            Due soon
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
 
-                      <div>
-                        <div className="text-xs">Days</div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="font-medium">{days}</div>
-                          <div className="text-xs text-muted-foreground">
-                            days
-                          </div>
-                          {urgent && (
-                            <Badge variant="destructive" className="ml-2">
-                              Due soon
-                            </Badge>
-                          )}
+                    <div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
+                        Progress
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden flex-1">
+                          <div
+                            className={`h-2 rounded-full ${
+                              progress >= 90 ? "bg-emerald-500" : "bg-primary"
+                            }`}
+                            style={{ width: `${progress}%` }}
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground">
+                          {progress}%
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex-shrink-0 flex flex-col items-end gap-3">
-                    <div className="w-28">
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-2 rounded-full ${
-                            progress >= 90 ? "bg-emerald-500" : "bg-primary"
-                          }`}
-                          style={{ width: `${progress}%` }}
-                          aria-hidden
-                        />
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1 text-right">
-                        {progress}%
-                      </div>
-                    </div>
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleCalvingClick(rec)}
+                      aria-label={`Record calving for ${rec.dam_ear_tag}`}
+                      className="flex-1 text-xs sm:text-sm"
+                    >
+                      Record Calving
+                    </Button>
 
-                    <div className="flex flex-col gap-2">
+                    <Link
+                      href={`/animal/${rec.dam_ear_tag}`}
+                      className="flex-1"
+                    >
                       <Button
-                        variant="default"
+                        variant="outline"
                         size="sm"
-                        onClick={() => handleCalvingClick(rec)}
-                        aria-label={`Record calving for ${rec.dam_ear_tag}`}
-                        className="whitespace-nowrap"
+                        className="w-full text-xs sm:text-sm"
                       >
-                        Record
+                        View Details
                       </Button>
-
-                      <Link href={`/animal/${rec.dam_ear_tag}`}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="whitespace-nowrap"
-                        >
-                          View
-                        </Button>
-                      </Link>
-                    </div>
+                    </Link>
                   </div>
                 </div>
               </article>
