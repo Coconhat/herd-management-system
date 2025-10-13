@@ -5,6 +5,7 @@ import { BreedingHistoryTable } from "./_components/history-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarIcon, BarChart3, FileText } from "lucide-react";
 import { PDCheckCalendar } from "./_components/pd-check-calendar";
+import Link from "next/link";
 
 export default async function BreedingPage() {
   const allAnimals = await getAnimalsWithBreedingData();
@@ -30,6 +31,12 @@ export default async function BreedingPage() {
   return (
     <div className="space-y-8 m-4">
       <div>
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← Back to Home
+        </Link>
         <h1 className="text-3xl font-bold">Breeding & Pregnancy Center</h1>
         <p className="text-muted-foreground">
           Your central hub for managing the reproductive cycle.
