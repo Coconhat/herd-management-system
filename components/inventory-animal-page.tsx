@@ -155,7 +155,7 @@ export default function InventoryAnimalsPage({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-6 my-4">
       {/* header */}
       <div className="flex items-center gap-4 ml-3 mt-6">
         <Link href="/">
