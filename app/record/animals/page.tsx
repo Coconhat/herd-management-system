@@ -249,6 +249,12 @@ export default function Page() {
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
       {/* Header Section */}
+      <Link
+        href="/"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        ← Back to Home
+      </Link>
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-4xl font-bold text-primary bg-clip-text ">
