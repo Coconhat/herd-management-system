@@ -1,3 +1,4 @@
+// components/_components/history-table.tsx
 "use client";
 import { useState, useEffect } from "react";
 import {
@@ -43,7 +44,6 @@ import type { BreedingRecord } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { Input } from "@/components/ui/input";
-import { PDCheckCalendar } from "./pd-check-calendar";
 
 type AnimalWithBreeding = Animal & { breeding_records: BreedingRecord[] };
 
@@ -67,11 +67,10 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // optimistic overrides (partial fields)
+  // optimistic overrides + pinned records
   const [localOverrides, setLocalOverrides] = useState<
     Record<number, Partial<BreedingRecord>>
   >({});
-  // pinnedRecords hold full records that might be removed by server fetches — keep them visible
   const [pinnedRecords, setPinnedRecords] = useState<
     Record<number, BreedingRecord>
   >({});
@@ -83,12 +82,9 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
   >(null);
   const [selectedAnimalId, setSelectedAnimalId] = useState<number | null>(null);
 
-  // Track which breeding records have treatment recorded
   const [recordsWithTreatment, setRecordsWithTreatment] = useState<Set<number>>(
     new Set()
   );
-
-  // Counter to force refresh of treatment status
   const [treatmentCheckCounter, setTreatmentCheckCounter] = useState(0);
 
   // early warning
@@ -103,13 +99,11 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     const pdDueDate = getPregnancyCheckDueDate(rec);
     const today = new Date();
 
-    // if not due yet, warn user
     if (pdDueDate !== null && isAfter(pdDueDate, today)) {
       setPendingRecord(rec);
       setWarnEarlyDialog(true);
       return;
     }
-    // otherwise open confirm directly
     setActiveRecord(rec);
     setDialogOpen(true);
   };
@@ -134,7 +128,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         new Date(a.breeding_date).getTime()
     );
 
-  // Combine with pinnedRecords that are not present in baseBreedingRecords
   const combinedBreedingRecords = [
     ...baseBreedingRecords,
     ...Object.values(pinnedRecords).filter(
@@ -142,7 +135,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     ),
   ];
 
-  // Filter records based on search term
   const filteredRecords = combinedBreedingRecords.filter((record) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -155,15 +147,12 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     );
   });
 
-  // Check treatment status for Empty breeding records
   useEffect(() => {
     const emptyRecords = combinedBreedingRecords.filter(
       (r) => r.pd_result === "Empty" && (r as any).post_pd_treatment_due_date
     );
-
     if (emptyRecords.length === 0) return;
 
-    // Check treatment status for each empty record
     const checkTreatments = async () => {
       const results = await Promise.all(
         emptyRecords.map(async (rec) => {
@@ -171,21 +160,17 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
           return { id: rec.id, hasTreatment };
         })
       );
-
       const newSet = new Set<number>();
       results.forEach(({ id, hasTreatment }) => {
-        if (hasTreatment) {
-          newSet.add(id);
-        }
+        if (hasTreatment) newSet.add(id);
       });
       setRecordsWithTreatment(newSet);
     };
 
     checkTreatments();
-    // Re-check whenever the modal closes (via treatmentCheckCounter)
   }, [combinedBreedingRecords.length, treatmentCheckCounter]);
 
-  // Clean up pinnedRecords when server returns the record (present in baseBreedingRecords)
+  // pinnedRecords cleanup (same logic as before)
   useEffect(() => {
     if (!Object.keys(pinnedRecords).length) return;
     const presentIds = new Set(baseBreedingRecords.map((r) => r.id));
@@ -193,8 +178,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     let changed = false;
     for (const idStr of Object.keys(pinnedRecords)) {
       const id = Number(idStr);
-      // If server returned the record, and the returned record has a post_pd_treatment_due_date,
-      // we can stop pinning. If server returned the record but without the helper date, keep pinned
       const returned = baseBreedingRecords.find((r) => r.id === id);
       if (returned) {
         const hasHelper =
@@ -204,14 +187,12 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
           delete nextPinned[id];
           changed = true;
         } else {
-          // If server returned it and it's already Pregnant (or not Empty), unpin
           if (returned.pd_result !== "Empty") {
             delete nextPinned[id];
             changed = true;
           }
         }
       } else {
-        // if not returned, check if pinned record expired (past its own keep date)
         const p = pinnedRecords[id];
         const keepStr =
           (p as any).keep_in_breeding_until ||
@@ -232,14 +213,11 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     JSON.stringify(pinnedRecords),
   ]);
 
-  // helper for expected calving (prefer stored, else +283)
   const getExpectedCalvingDate = (rec: BreedingRecord) => {
     if (rec.expected_calving_date) {
       try {
         return parseISO(rec.expected_calving_date);
-      } catch {
-        /* fallthrough */
-      }
+      } catch {}
     }
     try {
       return addDays(parseISO(rec.breeding_date), 283);
@@ -250,12 +228,9 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
 
   const today = startOfToday();
 
-  // Updated: optimistic update + pinning to avoid disappearance
   const handleConfirm = async (result: "Pregnant" | "Empty") => {
     if (!activeRecord) return;
     setIsProcessing(true);
-
-    // optimistic local override so UI updates immediately (pre-server)
     const todayISO = new Date().toISOString().split("T")[0];
 
     if (result === "Pregnant") {
@@ -272,7 +247,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         },
       }));
 
-      // remove any pinned copy if exists
       setPinnedRecords((p) => {
         if (!p[activeRecord.id]) return p;
         const copy = { ...p };
@@ -280,10 +254,8 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         return copy;
       });
     } else {
-      // Empty: keep in breeding list for 29 days and show post-PD button
       const postPdDate = addDays(new Date(), 29).toISOString().split("T")[0];
 
-      // partial override for server-synced cases
       setLocalOverrides((prev) => ({
         ...prev,
         [activeRecord.id]: {
@@ -295,7 +267,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         } as Partial<BreedingRecord>,
       }));
 
-      // Pin a *full* record copy so it won't vanish if server fetch excludes it temporarily
       setPinnedRecords((prev) => ({
         ...prev,
         [activeRecord.id]: {
@@ -311,8 +282,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
 
     try {
       await updateBreedingPDResult(activeRecord.id, result);
-
-      // success toasts
       if (result === "Pregnant") {
         toast({
           title: "Success",
@@ -324,7 +293,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
             "A reminder for expected calving (≈9 months) has been scheduled.",
         });
       } else {
-        // Don't automatically open medicine modal - let user click Treatment button
         toast({
           title: "Marked Not Pregnant",
           description:
@@ -332,7 +300,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         });
       }
     } catch (err) {
-      // revert optimistic update on error
       setLocalOverrides((prev) => {
         const copy = { ...prev };
         delete copy[activeRecord.id];
@@ -343,7 +310,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         delete copy[activeRecord.id];
         return copy;
       });
-
       console.error(err);
       toast({
         title: "Error",
@@ -358,37 +324,24 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
     }
   };
 
-  // Determine visibility and whether to show Post-PD Treatment button
   const isRecordVisible = (rec: BreedingRecord) => {
-    // If not an Empty record, always visible
     if (rec.pd_result !== "Empty") return true;
-
-    // If treatment was completed, keep visible regardless of date
     if (recordsWithTreatment.has(rec.id)) return true;
-
     const keepUntilStr =
       (rec as any).keep_in_breeding_until ||
       (rec as any).post_pd_treatment_due_date;
-
-    if (!keepUntilStr) return true; // fallback: keep visible
-
+    if (!keepUntilStr) return true;
     const keepUntil = parseISO(keepUntilStr);
-    if (!isValid(keepUntil)) return true; // fallback: keep visible on parse errors
-
-    // Keep visible while today <= keepUntil (inclusive)
+    if (!isValid(keepUntil)) return true;
     return today <= keepUntil;
   };
 
   const isPostPdButtonVisible = (rec: BreedingRecord) => {
     if (rec.pd_result !== "Empty") return false;
-
     const dueStr = (rec as any).post_pd_treatment_due_date;
     if (!dueStr) return false;
-
     const due = parseISO(dueStr);
     if (!isValid(due)) return false;
-
-    // Show button while today <= due (inclusive)
     return today <= due;
   };
 
@@ -400,21 +353,16 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         animals={animals}
       />
 
-      {/* medicine modal */}
       <RecordMedicineModal
         open={recordMedicineModalOpen}
         onOpenChange={(open) => {
           setRecordMedicineModalOpen(open);
-          // When modal closes, refresh treatment status
-          if (!open) {
-            setTreatmentCheckCounter((c) => c + 1);
-          }
+          if (!open) setTreatmentCheckCounter((c) => c + 1);
         }}
         animalId={selectedAnimalId ?? 0}
         breedingRecordId={selectedBreedingRecordId ?? undefined}
       />
 
-      {/* Early warning dialog */}
       <Dialog open={warnEarlyDialog} onOpenChange={setWarnEarlyDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -435,7 +383,7 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
               onClick={() => {
                 if (pendingRecord) {
                   setActiveRecord(pendingRecord);
-                  setDialogOpen(true); // open real confirm
+                  setDialogOpen(true);
                 }
                 setWarnEarlyDialog(false);
                 setPendingRecord(null);
@@ -447,7 +395,6 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm PD dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -481,164 +428,329 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Breeding History Table - 3/4 width */}
-        <div className="lg:col-span-3">
-          <Card className="border shadow-sm h-full">
-            <CardHeader className="flex flex-row justify-between items-center bg-muted/50 py-4">
-              <div>
-                <CardTitle className="text-xl">Breeding History</CardTitle>
-                <CardDescription>
-                  A complete historical log of all breeding events
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
+      <Card className="border shadow-sm h-full">
+        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-muted/50 py-4 gap-3">
+          <div>
+            <CardTitle className="text-xl">Breeding History</CardTitle>
+            <CardDescription>
+              A complete historical log of all breeding events
+            </CardDescription>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {searchTerm ? (
+              <>
                 <Input
                   placeholder="Search records..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-xs"
+                  className="flex-1 sm:w-64"
+                  autoFocus
                 />
-                <Button onClick={() => setIsModalOpen(true)} className="gap-1">
-                  <PlusCircle className="h-4 w-4" /> New Record
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchTerm("")}
+                  className="gap-1"
+                >
+                  Reset
                 </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setSearchTerm(" ")}
+                className="gap-1"
+              >
+                <Calendar className="h-4 w-4" /> Search
+              </Button>
+            )}
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="gap-1 whitespace-nowrap"
+            >
+              <PlusCircle className="h-4 w-4" />{" "}
+              <span className="hidden sm:inline">New Record</span>
+            </Button>
+          </div>
+        </CardHeader>
+
+        {/* DESKTOP / TABLET: show table on md+ */}
+        <CardContent className="p-0">
+          <div className="hidden md:block overflow-x-auto">
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="font-medium">Breed Date</TableHead>
+                    <TableHead className="font-medium">Dam</TableHead>
+                    <TableHead className="font-medium">Sire</TableHead>
+                    <TableHead className="font-medium">Method</TableHead>
+                    <TableHead className="font-medium">Status</TableHead>
+                    <TableHead className="font-medium">Due Date</TableHead>
+                    <TableHead className="font-medium text-right">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRecords.map((rec) => {
+                    if (!isRecordVisible(rec)) return null;
+                    const pdDueDate = getPregnancyCheckDueDate(rec);
+                    const expectedCalving = getExpectedCalvingDate(rec);
+                    const dueForPD =
+                      rec.pd_result === "Unchecked" &&
+                      pdDueDate !== null &&
+                      !isAfter(pdDueDate, today);
+
+                    return (
+                      <TableRow
+                        key={rec.id}
+                        className="group hover:bg-muted/30"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {format(
+                              new Date(rec.breeding_date),
+                              "MMM dd, yyyy"
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <a
+                            href={`/animal/${rec.dam_id}`}
+                            className="hover:underline font-medium"
+                          >
+                            {rec.dam_ear_tag}
+                            {rec.dam_name && (
+                              <span className="text-muted-foreground block text-xs">
+                                {rec.dam_name}
+                              </span>
+                            )}
+                          </a>
+                        </TableCell>
+                        <TableCell>{rec.sire_ear_tag || "N/A"}</TableCell>
+                        <TableCell>{rec.breeding_method || "—"}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              statusVariantMap[rec.pd_result] || "secondary"
+                            }
+                            className="gap-1"
+                          >
+                            {rec.pd_result === "Unchecked" && (
+                              <AlertTriangle className="h-3 w-3" />
+                            )}
+                            {rec.pd_result === "Pregnant" && (
+                              <CheckCircle className="h-3 w-3" />
+                            )}
+                            {rec.pd_result}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {rec.pd_result === "Pregnant"
+                            ? expectedCalving
+                              ? format(expectedCalving, "MMM dd, yyyy")
+                              : "—"
+                            : pdDueDate
+                            ? format(pdDueDate, "MMM dd, yyyy")
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {recordsWithTreatment.has(rec.id) ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 bg-green-50 text-green-700 border-green-200"
+                            >
+                              <CheckCircle className="h-3 w-3" /> Treatment
+                              Completed
+                            </Badge>
+                          ) : (
+                            <div className="flex gap-2 justify-end">
+                              {rec.pd_result === "Unchecked" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => openConfirmPD(rec)}
+                                  variant={dueForPD ? "default" : "outline"}
+                                  className="gap-1"
+                                >
+                                  <CheckCircle className="h-3 w-3" /> Confirm PD
+                                </Button>
+                              )}
+
+                              {isPostPdButtonVisible(rec) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedBreedingRecordId(rec.id);
+                                    setSelectedAnimalId(
+                                      rec.dam_id ?? rec.animal_id
+                                    );
+                                    setRecordMedicineModalOpen(true);
+                                  }}
+                                  className="gap-1"
+                                >
+                                  <Syringe className="h-3 w-3" /> Treatment
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            {filteredRecords.length === 0 && (
+              <div className="py-12 text-center text-muted-foreground">
+                {searchTerm
+                  ? "No records match your search"
+                  : "No breeding records found"}
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="border-round overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow>
-                      <TableHead className="font-medium">Breed Date</TableHead>
-                      <TableHead className="font-medium">Dam</TableHead>
-                      <TableHead className="font-medium">Sire</TableHead>
-                      <TableHead className="font-medium">Method</TableHead>
-                      <TableHead className="font-medium">Status</TableHead>
-                      <TableHead className="font-medium">Due Date</TableHead>
-                      <TableHead className="font-medium text-right">
-                        Actions
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRecords.map((rec) => {
-                      // apply visibility rule
-                      if (!isRecordVisible(rec)) return null;
+            )}
+          </div>
 
-                      const pdDueDate = getPregnancyCheckDueDate(rec);
-                      const expectedCalving = getExpectedCalvingDate(rec);
-                      const dueForPD =
-                        rec.pd_result === "Unchecked" &&
-                        pdDueDate !== null &&
-                        !isAfter(pdDueDate, today); // pdDueDate <= today
+          {/* MOBILE: compact list view */}
+          <div className="md:hidden">
+            <div className="flex flex-col gap-3 p-2">
+              {filteredRecords.map((rec) => {
+                if (!isRecordVisible(rec)) return null;
+                const pdDueDate = getPregnancyCheckDueDate(rec);
+                const expectedCalving = getExpectedCalvingDate(rec);
+                const dueForPD =
+                  rec.pd_result === "Unchecked" &&
+                  pdDueDate !== null &&
+                  !isAfter(pdDueDate, today);
 
-                      return (
-                        <TableRow
-                          key={rec.id}
-                          className="group hover:bg-muted/30"
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                return (
+                  <Card key={rec.id} className="shadow-sm">
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <div className="text-sm font-medium truncate">
                               {format(
                                 new Date(rec.breeding_date),
                                 "MMM dd, yyyy"
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <a
-                              href={`/animal/${rec.dam_id}`}
-                              className="hover:underline font-medium"
-                            >
-                              {rec.dam_ear_tag}
-                              {rec.dam_name && (
-                                <span className="text-muted-foreground block text-xs">
-                                  {rec.dam_name}
-                                </span>
-                              )}
-                            </a>
-                          </TableCell>
-                          <TableCell>{rec.sire_ear_tag || "N/A"}</TableCell>
-                          <TableCell>{rec.breeding_method || "—"}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                statusVariantMap[rec.pd_result] || "secondary"
-                              }
-                              className="gap-1"
-                            >
-                              {rec.pd_result === "Unchecked" && (
-                                <AlertTriangle className="h-3 w-3" />
-                              )}
-                              {rec.pd_result === "Pregnant" && (
-                                <CheckCircle className="h-3 w-3" />
-                              )}
-                              {rec.pd_result}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {rec.pd_result === "Pregnant"
-                              ? expectedCalving
-                                ? format(expectedCalving, "MMM dd, yyyy")
-                                : "—"
-                              : pdDueDate
-                              ? format(pdDueDate, "MMM dd, yyyy")
-                              : "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {recordsWithTreatment.has(rec.id) ? (
-                              // Show green completed badge instead of buttons
-                              <Badge
-                                variant="outline"
-                                className="gap-1 bg-green-50 text-green-700 border-green-200"
-                              >
-                                <CheckCircle className="h-3 w-3" />
-                                Treatment Completed
-                              </Badge>
-                            ) : (
-                              // Show action buttons
-                              <div className="flex gap-2 justify-end">
-                                {/* Only show Confirm PD button for Unchecked records */}
-                                {rec.pd_result === "Unchecked" && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => openConfirmPD(rec)}
-                                    variant={dueForPD ? "default" : "outline"}
-                                    className="gap-1"
-                                  >
-                                    <CheckCircle className="h-3 w-3" />
-                                    Confirm PD
-                                  </Button>
-                                )}
+                            <div className="text-xs text-muted-foreground ml-2 truncate">
+                              {rec.breeding_method || "—"}
+                            </div>
+                          </div>
 
-                                {/* Show Treatment button for Empty records that need treatment */}
-                                {isPostPdButtonVisible(rec) && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedBreedingRecordId(rec.id);
-                                      setSelectedAnimalId(
-                                        rec.dam_id ?? rec.animal_id
-                                      );
-                                      setRecordMedicineModalOpen(true);
-                                    }}
+                          <div className="mt-2 text-sm text-muted-foreground grid grid-cols-2 gap-2">
+                            <div className="truncate">
+                              <div className="text-xs">Dam</div>
+                              <div className="font-medium truncate">
+                                {rec.dam_ear_tag}{" "}
+                                {rec.dam_name ? (
+                                  <span className="text-xs text-muted-foreground">
+                                    • {rec.dam_name}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="truncate">
+                              <div className="text-xs">Sire</div>
+                              <div className="truncate">
+                                {rec.sire_ear_tag || "N/A"}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-xs">Status</div>
+                              <div className="mt-1">
+                                {
+                                  <Badge
+                                    variant={
+                                      statusVariantMap[rec.pd_result] ||
+                                      "secondary"
+                                    }
                                     className="gap-1"
                                   >
-                                    <Syringe className="h-3 w-3" />
-                                    Treatment
-                                  </Button>
-                                )}
+                                    {rec.pd_result === "Unchecked" && (
+                                      <AlertTriangle className="h-3 w-3" />
+                                    )}
+                                    {rec.pd_result === "Pregnant" && (
+                                      <CheckCircle className="h-3 w-3" />
+                                    )}
+                                    {rec.pd_result}
+                                  </Badge>
+                                }
                               </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-xs">Due</div>
+                              <div className="mt-1 text-sm">
+                                {rec.pd_result === "Pregnant"
+                                  ? expectedCalving
+                                    ? format(expectedCalving, "MMM dd, yyyy")
+                                    : "—"
+                                  : pdDueDate
+                                  ? format(pdDueDate, "MMM dd, yyyy")
+                                  : "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                          {recordsWithTreatment.has(rec.id) ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 bg-green-50 text-green-700 border-green-200"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Badge>
+                          ) : (
+                            <>
+                              {rec.pd_result === "Unchecked" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => openConfirmPD(rec)}
+                                  variant={dueForPD ? "default" : "outline"}
+                                  className="whitespace-nowrap"
+                                >
+                                  <CheckCircle className="h-4 w-4" />{" "}
+                                  <span className="ml-1 text-xs">
+                                    Confirm PD
+                                  </span>
+                                </Button>
+                              )}
+
+                              {isPostPdButtonVisible(rec) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedBreedingRecordId(rec.id);
+                                    setSelectedAnimalId(
+                                      rec.dam_id ?? rec.animal_id
+                                    );
+                                    setRecordMedicineModalOpen(true);
+                                  }}
+                                  className="whitespace-nowrap"
+                                >
+                                  <Syringe className="h-4 w-4" />{" "}
+                                  <span className="ml-1 text-xs">
+                                    Treatment
+                                  </span>
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
               {filteredRecords.length === 0 && (
                 <div className="py-12 text-center text-muted-foreground">
                   {searchTerm
@@ -646,15 +758,12 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
                     : "No breeding records found"}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Calendar - 1/4 width */}
-        <div className="lg:col-span-1">
-          <PDCheckCalendar animals={animals} />
-        </div>
-      </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </>
   );
 }
+
+export default BreedingHistoryTable;
