@@ -93,21 +93,35 @@ export function MilkingTabs({
           title={getTitle()}
         />
       </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="excel">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="excel" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Excel View
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+          <TabsTrigger
+            value="excel"
+            className="flex items-center gap-1 text-xs sm:text-sm"
+          >
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Excel View</span>
+            <span className="xs:hidden">Excel</span>
           </TabsTrigger>
-          <TabsTrigger value="all" className="flex items-center gap-2">
-            <TableIcon className="h-4 w-4" />
-            All Records
+          <TabsTrigger
+            value="all"
+            className="flex items-center gap-1 text-xs sm:text-sm"
+          >
+            <TableIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">All Records</span>
+            <span className="xs:hidden">All</span>
           </TabsTrigger>
-          <TabsTrigger value="by-animal">By Animal</TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Analytics
+          <TabsTrigger value="by-animal" className="text-xs sm:text-sm">
+            <span className="hidden xs:inline">By Animal</span>
+            <span className="xs:hidden">Animal</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="analytics"
+            className="flex items-center gap-1 text-xs sm:text-sm"
+          >
+            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Analytics</span>
+            <span className="xs:hidden">Charts</span>
           </TabsTrigger>
         </TabsList>
 
