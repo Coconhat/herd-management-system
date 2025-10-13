@@ -165,7 +165,12 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
     <Card className="w-full max-w-full overflow-hidden">
       {/* Header / Search / Stats */}
       <CardHeader className="flex flex-col gap-4 p-4 sm:p-6">
-        <Link href="/">←</Link>
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← Back to Home
+        </Link>
 
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
