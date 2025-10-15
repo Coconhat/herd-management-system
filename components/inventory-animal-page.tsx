@@ -21,8 +21,17 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AddAnimalModal } from "@/components/add-animal-modal";
-import { Plus, TrendingUp } from "lucide-react";
+import { Plus, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 import {
   ResponsiveContainer,
   PieChart,
@@ -76,6 +85,8 @@ export default function InventoryAnimalsPage({
 }: Props) {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(15);
 
   // Helper function to get combined status for an animal
   const getCombinedStatusFor = (animal: Animal) => {
@@ -153,6 +164,48 @@ export default function InventoryAnimalsPage({
       (a?.ear_tag || "").toLowerCase().includes(search.toLowerCase()) ||
       (a?.name || "").toLowerCase().includes(search.toLowerCase())
   );
+
+  // Pagination calculations
+  const totalRecords = filtered.length;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedAnimals = filtered.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  React.useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  // Generate pagination range
+  const getPaginationRange = () => {
+    const range: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        range.push(i);
+      }
+    } else {
+      if (page <= 3) {
+        for (let i = 1; i <= 4; i++) range.push(i);
+        range.push("ellipsis");
+        range.push(totalPages);
+      } else if (page >= totalPages - 2) {
+        range.push(1);
+        range.push("ellipsis");
+        for (let i = totalPages - 3; i <= totalPages; i++) range.push(i);
+      } else {
+        range.push(1);
+        range.push("ellipsis");
+        for (let i = page - 1; i <= page + 1; i++) range.push(i);
+        range.push("ellipsis");
+        range.push(totalPages);
+      }
+    }
+
+    return range;
+  };
 
   return (
     <div className="space-y-6 mx-6 my-4">
@@ -449,7 +502,7 @@ export default function InventoryAnimalsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((a) => {
+                {paginatedAnimals.map((a) => {
                   const statusInfo = getCombinedStatusFor(a);
 
                   // Calculate days until due for pregnant animals
@@ -503,6 +556,73 @@ export default function InventoryAnimalsPage({
             </Table>
           </div>
         </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+          {/* Stats - responsive order */}
+          <div className="text-sm text-muted-foreground order-2 sm:order-1">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalRecords)} of{" "}
+            {totalRecords} <span className="hidden sm:inline">animals</span>
+          </div>
+
+          {/* Pagination - responsive layout */}
+          {totalPages > 1 && (
+            <Pagination className="order-1 sm:order-2">
+              <PaginationContent className="gap-1 sm:gap-2">
+                {/* Previous Button */}
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className={`flex items-center gap-1 ${
+                      page === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">Prev</span>
+                  </PaginationPrevious>
+                </PaginationItem>
+
+                {/* Page Numbers - scrollable on mobile */}
+                <div className="flex items-center overflow-x-auto max-w-[150px] sm:max-w-none no-scrollbar">
+                  {getPaginationRange().map((pageNum, idx) =>
+                    pageNum === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${idx}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => setPage(pageNum as number)}
+                          isActive={page === pageNum}
+                          className="cursor-pointer min-w-[36px] sm:min-w-[40px]"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+                </div>
+
+                {/* Next Button */}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className={`flex items-center gap-1 ${
+                      page === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <span className="sm:hidden">Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </PaginationNext>
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </CardFooter>
       </Card>
 
       <AddAnimalModal
