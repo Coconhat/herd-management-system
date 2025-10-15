@@ -211,8 +211,11 @@ export default function InventoryAnimalsPage({
     <div className="space-y-6 mx-6 my-4">
       {/* header */}
       <div className="flex items-center gap-4 ml-3 mt-6">
-        <Link href="/">
-          <Button>Back</Button>
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← Back to Home
         </Link>
         <h1 className="text-2xl font-semibold">Animal Inventory</h1>
         <div className="flex justify-end flex-1 mr-5"></div>
