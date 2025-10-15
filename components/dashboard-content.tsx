@@ -144,13 +144,13 @@ export function DashboardContent({
           </Button>
         </div>
 
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-sm border border-gray-300 rounded-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search animals by tag or name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 border-0"
           />
         </div>
 

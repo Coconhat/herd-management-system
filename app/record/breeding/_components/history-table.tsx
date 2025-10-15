@@ -33,6 +33,15 @@ import {
   Calendar,
   AlertTriangle,
 } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { RecordBreedingModal } from "./breeding-history-table";
 import { RecordMedicineModal } from "@/components/record-medicine-modal";
 import { getPregnancyCheckDueDate } from "@/lib/utils";
@@ -66,6 +75,8 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
   const [activeRecord, setActiveRecord] = useState<BreedingRecord | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // optimistic overrides + pinned records
   const [localOverrides, setLocalOverrides] = useState<
@@ -146,6 +157,18 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
       record.breeding_method?.toLowerCase().includes(searchLower)
     );
   });
+
+  // Pagination calculations
+  const totalRecords = filteredRecords.length;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   useEffect(() => {
     const emptyRecords = combinedBreedingRecords.filter(
@@ -492,7 +515,7 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRecords.map((rec) => {
+                  {paginatedRecords.map((rec) => {
                     if (!isRecordVisible(rec)) return null;
                     const pdDueDate = getPregnancyCheckDueDate(rec);
                     const expectedCalving = getExpectedCalvingDate(rec);
@@ -614,7 +637,7 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
           {/* MOBILE: compact list view */}
           <div className="md:hidden">
             <div className="flex flex-col gap-3 p-2">
-              {filteredRecords.map((rec) => {
+              {paginatedRecords.map((rec) => {
                 if (!isRecordVisible(rec)) return null;
                 const pdDueDate = getPregnancyCheckDueDate(rec);
                 const expectedCalving = getExpectedCalvingDate(rec);
@@ -760,6 +783,92 @@ export function BreedingHistoryTable({ animals }: BreedingHistoryTableProps) {
               )}
             </div>
           </div>
+
+          {/* Pagination Controls */}
+          {totalRecords > 0 && (
+            <div className="flex flex-col gap-3 px-4 py-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1}-{Math.min(endIndex, totalRecords)} of{" "}
+                  {totalRecords} records
+                </div>
+
+                {totalPages > 1 && (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (page > 1) setPage((prev) => prev - 1);
+                          }}
+                          className={
+                            page === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (pageNum) => {
+                          // Show first page, last page, current page, and pages around current
+                          const showPage =
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= page - 1 && pageNum <= page + 1);
+
+                          if (!showPage) {
+                            // Show ellipsis only once before/after current page
+                            if (pageNum === page - 2 || pageNum === page + 2) {
+                              return (
+                                <PaginationItem key={pageNum}>
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              );
+                            }
+                            return null;
+                          }
+
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setPage(pageNum);
+                                }}
+                                isActive={page === pageNum}
+                                className="cursor-pointer"
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        }
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (page < totalPages) setPage((prev) => prev + 1);
+                          }}
+                          className={
+                            page === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>
