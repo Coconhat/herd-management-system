@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import {
   getAllBreedingRecords,
   getBreedingRecordsWithAnimalInfo,
@@ -17,7 +17,9 @@ import {
   startOfDay,
   isBefore,
 } from "date-fns";
-import Link from "next/link"; // Import Link for navigation
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 // Step 1: Update the interface to match the actual data from the server
 interface BreedingRecordWithAnimal {
@@ -31,22 +33,25 @@ interface BreedingRecordWithAnimal {
   animals: { ear_tag: string | null } | null;
 }
 
-interface CalendarEvent {
+export interface CalendarEvent {
   date: Date;
   type: "heat_check" | "pregnancy_check" | "expected_calving";
   animal_id: number;
   ear_tag: string;
   title: string;
   color: string;
+  completed?: boolean;
 }
 
 export function CalendarWidget() {
+  const router = useRouter();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [breedingRecords, setBreedingRecords] = useState<
     BreedingRecordWithAnimal[]
   >([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchBreedingRecords = async () => {
@@ -130,11 +135,80 @@ export function CalendarWidget() {
         console.error("Error fetching breeding records:", error);
       } finally {
         setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
     fetchBreedingRecords();
   }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    router.refresh();
+    // Refetch data
+    try {
+      const records = await getBreedingRecordsWithAnimalInfo();
+      const events: CalendarEvent[] = [];
+      const todayStart = startOfDay(new Date());
+
+      (records as unknown as BreedingRecordWithAnimal[]).forEach((record) => {
+        if (!record.animals?.ear_tag) return;
+
+        const pushIfNotPast = (
+          dateStr: string | undefined | null,
+          eventObj: CalendarEvent
+        ) => {
+          if (!dateStr) return;
+          try {
+            const d = parseISO(dateStr);
+            if (isBefore(d, todayStart)) {
+              return;
+            }
+            events.push(eventObj);
+          } catch (e) {
+            console.warn("Invalid date string:", dateStr, e);
+          }
+        };
+
+        const earTag = record.animals.ear_tag;
+
+        if (
+          record.pregnancy_check_due_date &&
+          record.pd_result === "Unchecked"
+        ) {
+          pushIfNotPast(record.pregnancy_check_due_date, {
+            date: parseISO(record.pregnancy_check_due_date),
+            type: "pregnancy_check",
+            animal_id: record.animal_id,
+            ear_tag: earTag,
+            title: `PD Check: ${earTag}`,
+            color: "purple",
+          });
+        }
+
+        if (
+          record.expected_calving_date &&
+          record.confirmed_pregnant &&
+          record.pd_result !== "Empty"
+        ) {
+          pushIfNotPast(record.expected_calving_date, {
+            date: parseISO(record.expected_calving_date),
+            type: "expected_calving",
+            animal_id: record.animal_id,
+            ear_tag: earTag,
+            title: `Expected Calving: ${earTag}`,
+            color: "green",
+          });
+        }
+      });
+
+      setCalendarEvents(events);
+    } catch (error) {
+      console.error("Error refreshing calendar:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const hasEvents = (checkDate: Date) =>
     calendarEvents.some((event) => isSameDay(event.date, checkDate));
@@ -202,10 +276,23 @@ export function CalendarWidget() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
-          Schedule
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5" />
+            Schedule
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8 w-8 p-0"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <Calendar

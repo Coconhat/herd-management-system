@@ -19,7 +19,6 @@ import { DesktopSidebar, MobileSidebar } from "@/components/sidebar-demo";
 import { getCalvingsWithDetails } from "@/lib/actions/calvings";
 import { getBreedingRecordsWithAnimalInfo } from "@/lib/actions/breeding";
 import Link from "next/link";
-import useNotifications from "@/hooks/use-notifications";
 import NotificationButton from "@/components/notification-button";
 
 async function StatsCards() {

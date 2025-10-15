@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import {
   format,
   parseISO,
@@ -15,9 +15,11 @@ import {
   isValid,
 } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BreedingRecord } from "@/lib/types";
 import { CalendarEvent } from "@/components/calendar";
 import type { Animal } from "@/lib/actions/animals";
+import { useRouter } from "next/navigation";
 
 interface BreedingRecordWithAnimal extends BreedingRecord {
   animals: { ear_tag: string; name: string | null } | null;
@@ -30,8 +32,10 @@ interface PDCheckCalendarProps {
 }
 
 export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
+  const router = useRouter();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [pdEvents, setPdEvents] = useState<CalendarEvent[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Extract PD check events using the same logic as the main calendar
   useEffect(() => {
@@ -126,15 +130,34 @@ export function PDCheckCalendar({ animals }: PDCheckCalendarProps) {
     return allPDChecks;
   };
 
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    router.refresh();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
   const upcomingPDChecks = getUpcomingPDChecks();
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
-          Upcoming PD Checks
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5" />
+            Upcoming PD Checks
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8 w-8 p-0"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <Calendar
