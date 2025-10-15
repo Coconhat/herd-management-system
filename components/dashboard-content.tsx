@@ -137,13 +137,6 @@ export function DashboardContent({
     <>
       {/* Action Buttons and Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setAddAnimalModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Animal
-          </Button>
-        </div>
-
         <div className="relative flex-1 max-w-sm border border-gray-300 rounded-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

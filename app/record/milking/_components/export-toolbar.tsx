@@ -202,15 +202,6 @@ export function ExportToolbar({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => handleExport("pdf")}
-              disabled={isLoading("pdf")}
-              className="cursor-pointer"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              {isLoading("pdf") ? "Generating PDF..." : "Export as PDF"}
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
               onClick={() => handleExport("csv")}
               disabled={isLoading("csv")}
               className="cursor-pointer"
@@ -284,17 +275,6 @@ export function ExportToolbar({
         >
           <Printer className="mr-2 h-4 w-4" />
           Print
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleExport("pdf")}
-          disabled={isLoading("pdf")}
-          className="hidden md:flex"
-        >
-          <FileText className="mr-2 h-4 w-4" />
-          PDF
         </Button>
       </div>
 
