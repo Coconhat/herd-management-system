@@ -710,31 +710,36 @@ export default function Page() {
           {/* Enhanced Pagination Controls */}
           <div className="mt-6 p-4 border-t border-gray-200 bg-gray-50/50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} • {totalItems} total animals
+              <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                Page {page} of {totalPages} • {totalItems} total
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2 w-full sm:w-auto justify-center">
+                {/* First Page - Hidden on mobile */}
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setPage(1)}
                   disabled={page === 1}
-                  className="hover:bg-blue-50"
+                  className="hover:bg-blue-50 hidden sm:inline-flex"
                 >
                   {"<<"}
                 </Button>
+
+                {/* Previous */}
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="hover:bg-blue-50"
+                  className="hover:bg-blue-50 flex-shrink-0"
                 >
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
+                  <span className="sm:hidden">Prev</span>
                 </Button>
 
-                <div className="flex items-center gap-1 px-2">
+                {/* Page Numbers - Scrollable on mobile */}
+                <div className="flex items-center gap-1 overflow-x-auto max-w-[150px] sm:max-w-none px-1 no-scrollbar">
                   {paginationItems.map((item, idx) =>
                     typeof item === "number" ? (
                       <Button
@@ -744,8 +749,8 @@ export default function Page() {
                         onClick={() => setPage(item)}
                         className={
                           item === page
-                            ? "bg-blue-600 hover:bg-blue-700"
-                            : "hover:bg-blue-50"
+                            ? "bg-blue-600 hover:bg-blue-700 flex-shrink-0 min-w-[2rem]"
+                            : "hover:bg-blue-50 flex-shrink-0 min-w-[2rem]"
                         }
                       >
                         {item}
@@ -754,7 +759,7 @@ export default function Page() {
                       item === "right-ellipsis" ? (
                       <span
                         key={idx}
-                        className="px-2 select-none text-muted-foreground"
+                        className="px-1 sm:px-2 select-none text-muted-foreground flex-shrink-0"
                       >
                         …
                       </span>
@@ -762,21 +767,24 @@ export default function Page() {
                   )}
                 </div>
 
+                {/* Next */}
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="hover:bg-blue-50"
+                  className="hover:bg-blue-50 flex-shrink-0"
                 >
                   Next
                 </Button>
+
+                {/* Last Page - Hidden on mobile */}
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setPage(totalPages)}
                   disabled={page === totalPages}
-                  className="hover:bg-blue-50"
+                  className="hover:bg-blue-50 hidden sm:inline-flex"
                 >
                   {">>"}
                 </Button>
