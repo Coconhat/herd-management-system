@@ -278,10 +278,10 @@ export default function Page() {
             )}
             {showCharts ? "Hide" : "Show"} Analytics
           </Button>
-          <Button variant="outline" className="">
+          {/* <Button variant="outline" className="">
             <Download className="h-4 w-4 mr-2" />
             Export Data
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -516,9 +516,9 @@ export default function Page() {
                 className="border border-gray-200 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="pregnant">Pregnant</option>
-                <option value="sick">Sick</option>
+                <option value="Active">Active</option>
+                <option value="Pregnant">Pregnant</option>
+                <option value="Empty">Empty</option>
               </select>
 
               <select
