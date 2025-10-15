@@ -67,6 +67,132 @@ import {
   AreaChart,
 } from "recharts";
 
+// CSV Export Function
+const exportToCSV = (animals: Animal[]) => {
+  // Prepare CSV header
+  const headers = [
+    "Ear Tag",
+    "Name",
+    "Sex",
+    "Birth Date",
+    "Age",
+    "Breed",
+    "Status",
+    "Dam Ear Tag",
+    "Sire Ear Tag",
+    "Total Calvings",
+    "Calving Date",
+    "Calf Ear Tag",
+    "Calf Sex",
+    "Birth Weight",
+    "Assistance Required",
+    "Complications",
+    "Days Since Calving",
+  ];
+
+  // Prepare CSV rows - one row per calving
+  const rows: string[][] = [];
+
+  animals.forEach((animal) => {
+    const calvings = (animal as any).calvings || [];
+
+    // Calculate age
+    let age = "N/A";
+    if (animal.birth_date) {
+      const birthDate = new Date(animal.birth_date);
+      const today = new Date();
+      const years = today.getFullYear() - birthDate.getFullYear();
+      const months = today.getMonth() - birthDate.getMonth();
+      if (years > 0) {
+        age = `${years}y ${months >= 0 ? months : 12 + months}m`;
+      } else {
+        age = `${months >= 0 ? months : 0}m`;
+      }
+    }
+
+    // Sort calvings by date (most recent first)
+    const sortedCalvings = calvings.sort(
+      (a: any, b: any) =>
+        new Date(b.calving_date).getTime() - new Date(a.calving_date).getTime()
+    );
+
+    if (sortedCalvings.length > 0) {
+      // Create one row for each calving
+      sortedCalvings.forEach((calving: any) => {
+        // Calculate days since this calving
+        const daysSinceCalving = Math.floor(
+          (new Date().getTime() - new Date(calving.calving_date).getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+
+        rows.push([
+          animal.ear_tag || "",
+          `"${animal.name || ""}"`,
+          animal.sex || "",
+          animal.birth_date
+            ? new Date(animal.birth_date).toLocaleDateString()
+            : "",
+          age,
+          `"${animal.breed || ""}"`,
+          animal.status || "",
+          (animal as any).dam_ear_tag || "",
+          (animal as any).sire_ear_tag || "",
+          calvings.length.toString(),
+          new Date(calving.calving_date).toLocaleDateString(),
+          calving.calf_ear_tag || "",
+          calving.calf_sex || "",
+          calving.birth_weight ? calving.birth_weight.toString() : "N/A",
+          calving.assistance_required ? "Yes" : "No",
+          `"${calving.complications || "None"}"`,
+          daysSinceCalving.toString(),
+        ]);
+      });
+    } else {
+      // Animal with no calvings - create one row with animal info only
+      rows.push([
+        animal.ear_tag || "",
+        `"${animal.name || ""}"`,
+        animal.sex || "",
+        animal.birth_date
+          ? new Date(animal.birth_date).toLocaleDateString()
+          : "",
+        age,
+        `"${animal.breed || ""}"`,
+        animal.status || "",
+        (animal as any).dam_ear_tag || "",
+        (animal as any).sire_ear_tag || "",
+        "0",
+        "N/A",
+        "N/A",
+        "N/A",
+        "N/A",
+        "N/A",
+        "N/A",
+        "N/A",
+      ]);
+    }
+  });
+
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => row.join(",")),
+  ].join("\n");
+
+  // Create and download file
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  const timestamp = new Date().toISOString().split("T")[0];
+
+  link.setAttribute("href", url);
+  link.setAttribute("download", `animals_with_calvings_${timestamp}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export default function Page() {
   const [searchTerm, setSearchTerm] = useState("");
   const [addAnimalModalOpen, setAddAnimalModalOpen] = useState(false);
@@ -278,10 +404,23 @@ export default function Page() {
             )}
             {showCharts ? "Hide" : "Show"} Analytics
           </Button>
-          {/* <Button variant="outline" className="">
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportToCSV(filteredAnimals);
+              const totalCalvings = filteredAnimals.reduce((sum, animal) => {
+                return sum + ((animal as any).calvings?.length || 0);
+              }, 0);
+              toast({
+                title: "CSV Downloaded",
+                description: `Successfully exported ${filteredAnimals.length} animal(s) with ${totalCalvings} calving record(s)`,
+              });
+            }}
+            className=""
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export Data
-          </Button> */}
+            Export to CSV
+          </Button>
         </div>
       </div>
 
