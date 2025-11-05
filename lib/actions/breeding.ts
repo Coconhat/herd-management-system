@@ -94,6 +94,7 @@ export async function createBreedingRecord(formData: FormData) {
     heat_check_date: addDays(breedingDate, 21).toISOString(),
     pregnancy_check_due_date: addDays(breedingDate, 29).toISOString(),
     expected_calving_date: addDays(breedingDate, 283).toISOString(),
+    notification_date: addDays(breedingDate, 90).toISOString(),
   };
 
   const { data: insertedData, error } = await supabase
@@ -120,9 +121,12 @@ export async function createBreedingRecord(formData: FormData) {
         }`
       : `Animal #${animalId}`;
 
-    const pdDate = new Date(breedingData.pregnancy_check_due_date);
+    const pdDate = new Date(breedingData.notification_date);
     // Set to 7 AM Philippine Time (UTC+8)
     pdDate.setHours(7 - 8, 0, 0, 0); // 7 AM PHT = -1 AM UTC
+
+    const firstMonthDate = addDays(breedingDate, 30);
+    firstMonthDate.setHours(7 - 8, 0, 0, 0);
 
     const notificationData = {
       user_id: user.id,
@@ -146,6 +150,28 @@ export async function createBreedingRecord(formData: FormData) {
       },
     };
 
+    const notificationInAppData = {
+      user_id: user.id,
+      animal_id: animalId,
+      title: `1-Month Check-In: ${animalName}`,
+      body: `<p>It has been one month since <strong>${animalName}</strong> was bred.</p>
+             <p>Use this time to observe the animal and prepare for the pregnancy diagnosis in about 60 days.</p>
+             <p><strong>Breeding Date:</strong> ${new Date(
+               breedingData.breeding_date
+             ).toLocaleDateString()}</p>
+             <p><strong>Target PD Check:</strong> ${new Date(
+               breedingData.pregnancy_check_due_date
+             ).toLocaleDateString()}</p>`,
+      scheduled_for: firstMonthDate.toISOString(),
+      sent: false,
+      read: false,
+      metadata: {
+        from: "DH-MAGPANTAY-FARM@resend.dev",
+        type: "pd_check_pre_reminder",
+        breeding_record_id: insertedData?.[0]?.id,
+      },
+    };
+
     // Insert EMAIL notification (will trigger email sending)
     await supabase.from("notifications").insert({
       ...notificationData,
@@ -154,9 +180,9 @@ export async function createBreedingRecord(formData: FormData) {
 
     // Insert IN-APP notification (for /notifications page)
     await supabase.from("notifications").insert({
-      ...notificationData,
+      ...notificationInAppData,
       channel: "in_app",
-      sent: true, // Not applicable for in-app, but set to true to avoid confusion
+      sent: true,
     });
   } catch (notifErr) {
     console.warn("Could not create PD check notification:", notifErr);
@@ -299,7 +325,7 @@ export async function updateBreedingPDResult(
       await supabase.from("notifications").insert({
         ...notificationData,
         channel: "in_app",
-        sent: true, // Not applicable for in-app
+        sent: true,
       });
     } catch (notifErr) {
       console.warn("Could not create calving notification:", notifErr);
