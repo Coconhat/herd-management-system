@@ -140,7 +140,7 @@ export function DashboardContent({
 
     return <Badge variant={safeVariant}>{statusInfo.label}</Badge>;
   };
-
+  //
   const renderFarmSource = (source?: string | null) => {
     const normalizedSource = source?.trim();
 
