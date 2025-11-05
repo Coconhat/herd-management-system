@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -55,6 +55,14 @@ export function AddAnimalModal({
   } = useModals({ open, onOpenChange, animals });
 
   const [selectedSex, setSelectedSex] = useState<string | null>(null);
+  const [farmSource, setFarmSource] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedSex(null);
+      setFarmSource(undefined);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -118,6 +126,24 @@ export function AddAnimalModal({
                       {b}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="farm_source">Farm Source / Origin</Label>
+              <Select
+                name="farm_source"
+                value={farmSource}
+                onValueChange={setFarmSource}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select farm source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DH">DH</SelectItem>
+                  <SelectItem value="Sam's">Sam's</SelectItem>
                 </SelectContent>
               </Select>
             </div>

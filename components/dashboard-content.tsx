@@ -38,6 +38,7 @@ import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "./delete-animal-modal";
 import { getCombinedStatus } from "@/lib/status-helper";
+import { cn } from "@/lib/utils";
 
 interface DashboardContentProps {
   animals: Animal[];
@@ -130,7 +131,41 @@ export function DashboardContent({
   // Small utility to render status safely
   const renderStatusBadge = (animal: Animal) => {
     const statusInfo = getCombinedStatus(animal);
-    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+    const safeVariant =
+      statusInfo.variant === "success"
+        ? "secondary"
+        : statusInfo.variant === "warning"
+        ? "outline"
+        : statusInfo.variant;
+
+    return <Badge variant={safeVariant}>{statusInfo.label}</Badge>;
+  };
+
+  const renderFarmSource = (source?: string | null) => {
+    const normalizedSource = source?.trim();
+
+    if (!normalizedSource) {
+      return <span className="text-muted-foreground">—</span>;
+    }
+
+    const baseClasses =
+      "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium";
+    const paletteMap: Record<string, string> = {
+      DH: "bg-emerald-300 text-emerald-700 border-emerald-100",
+      "Sam's": "bg-white/400 text-amber-700 border-amber-100",
+    };
+
+    return (
+      <span
+        className={cn(
+          baseClasses,
+          paletteMap[normalizedSource] ??
+            "bg-muted text-muted-foreground border-muted"
+        )}
+      >
+        {normalizedSource}
+      </span>
+    );
   };
 
   return (
@@ -180,6 +215,7 @@ export function DashboardContent({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Origin</TableHead>
                     <TableHead>Ear Tag</TableHead>
                     <TableHead>Sex</TableHead>
                     <TableHead>Age</TableHead>
@@ -192,6 +228,10 @@ export function DashboardContent({
                 <TableBody>
                   {paginatedAnimals.map((animal) => (
                     <TableRow key={animal.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        {renderFarmSource(animal.farm_source)}
+                      </TableCell>
+
                       <TableCell className="font-medium">
                         {animal.ear_tag}
                       </TableCell>
@@ -255,7 +295,7 @@ export function DashboardContent({
 
                   {paginatedAnimals.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8">
                         No animals found.
                       </TableCell>
                     </TableRow>
@@ -374,6 +414,11 @@ export function DashboardContent({
                       <div className="flex items-center gap-2">
                         <span className="whitespace-nowrap">DOB:</span>
                         <span>{formatDate(animal.birth_date)}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="whitespace-nowrap">Origin:</span>
+                        {renderFarmSource(animal.farm_source)}
                       </div>
 
                       <div className="flex items-center gap-2">

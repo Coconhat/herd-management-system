@@ -88,6 +88,11 @@ export async function createCalvingFromPregnancy(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Authentication required.");
 
+  const farmSourceRaw = formData.get("calf_farm_source");
+  const farmSource =
+    typeof farmSourceRaw === "string" && farmSourceRaw.trim() !== ""
+      ? farmSourceRaw.trim()
+      : null;
   const damId = Number(formData.get("animal_id"));
   const breedingRecordId = Number(formData.get("breeding_record_id"));
   const calvingDateStr = formData.get("calving_date") as string;
@@ -174,6 +179,7 @@ export async function createCalvingFromPregnancy(formData: FormData) {
   if (calfEarTag && calfEarTag.trim() !== "") {
     const newAnimalData = {
       user_id: user.id,
+      farm_source: farmSource,
       ear_tag: calfEarTag.trim(),
       name: calfName?.trim() || null,
       sex: calfSex || null,
@@ -300,7 +306,7 @@ export async function createCalvingFromPregnancy(formData: FormData) {
   revalidatePath("/"); // adjust as needed
   revalidatePath(`/animal/${damId}`);
   revalidatePath("/record/breeding", "layout");
-  revalidatePath("/pregnancy"); // Make sure the pregnancy page is updated
+  revalidatePath("/pregnancy");
 
   return { calvingId: newCalving.id, reopenDate: reopenDateIso };
 }
@@ -371,11 +377,17 @@ export async function createCalving(formData: FormData) {
   // --- Step 1: Extract all necessary data from the form ---
   const damId = Number.parseInt(formData.get("animal_id") as string);
   const rawSireInput = (formData.get("sire_ear_tag") as string) || "";
+  const farmSourceRaw =
+    formData.get("calf_farm_source") ?? formData.get("farm_source");
   const calvingDate = formData.get("calving_date") as string;
   const calfEarTag = formData.get("calf_ear_tag") as string | null;
   const calfName = formData.get("calf_name") as string | null;
   const rawComplications = (formData.get("complications") as string) || null;
   const notes = (formData.get("notes") as string) || null;
+  const farmSource =
+    typeof farmSourceRaw === "string" && farmSourceRaw.trim() !== ""
+      ? farmSourceRaw.trim()
+      : null;
 
   const assistanceRequired = rawComplications === "Assisted";
   const complicationsValue =
@@ -432,6 +444,7 @@ export async function createCalving(formData: FormData) {
       dam_fk_id: damId,
       sire_id: resolvedSireAnimalId,
       sire_fk_id: resolvedSireAnimalId,
+      farm_source: farmSource,
       notes: `Born from calving event #${newCalvingRecord.id}.`,
       user_id: user.id,
     };

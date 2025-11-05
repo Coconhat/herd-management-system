@@ -202,6 +202,19 @@ export function CalvingRecordModal({
 
             {/* Calf Information Section */}
             <div className="space-y-2">
+              <Label htmlFor="calf_farm_source">Farm Source *</Label>
+              <Select name="calf_farm_source" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select farm source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DH">DH</SelectItem>
+                  <SelectItem value="Sam's">Sam's</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="calf_ear_tag">Calf Ear Tag *</Label>
               <Input
                 id="calf_ear_tag"

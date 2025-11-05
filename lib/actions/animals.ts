@@ -14,6 +14,7 @@ export interface Animal {
   sex?: "Male" | "Female";
   dam_id?: number;
   sire_id?: number;
+  farm_source?: string | null;
   status:
     | "Active"
     | "Sold"
@@ -131,6 +132,11 @@ export async function createAnimal(formData: FormData) {
     sire_id: formData.get("sire_id")
       ? Number.parseInt(formData.get("sire_id") as string)
       : null,
+    farm_source:
+      formData.get("farm_source") &&
+      (formData.get("farm_source") as string).trim() !== ""
+        ? (formData.get("farm_source") as string).trim()
+        : null,
     status:
       (formData.get("status") as
         | "Active"
@@ -179,6 +185,11 @@ export async function updateAnimal(id: number, formData: FormData) {
       formData.get("sire_id") !== "" &&
       formData.get("sire_id") !== "none"
         ? Number.parseInt(formData.get("sire_id") as string)
+        : null,
+    farm_source:
+      formData.get("farm_source") &&
+      (formData.get("farm_source") as string).trim() !== ""
+        ? (formData.get("farm_source") as string).trim()
         : null,
     status:
       (formData.get("status") as

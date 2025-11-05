@@ -75,6 +75,7 @@ export default function EditAnimalForm({
   const [status, setStatus] = useState(animal.status);
   const [damId, setDamId] = useState(animal.dam_id?.toString() || "none");
   const [sireId, setSireId] = useState(animal.sire_id?.toString() || "none");
+  const [farmSource, setFarmSource] = useState(animal.farm_source || "");
   const [notes, setNotes] = useState(animal.notes || "");
 
   // Create filtered lists for parent dropdowns, excluding the animal itself
@@ -98,6 +99,7 @@ export default function EditAnimalForm({
     status !== initialAnimal.status ||
     damId !== (initialAnimal.dam_id?.toString() || "none") ||
     sireId !== (initialAnimal.sire_id?.toString() || "none") ||
+    farmSource !== (initialAnimal.farm_source || "") ||
     notes !== (initialAnimal.notes || "");
 
   // Check if the status change requires deletion
@@ -152,6 +154,7 @@ export default function EditAnimalForm({
     formData.append("status", status);
     formData.append("dam_id", damId === "none" ? "" : damId);
     formData.append("sire_id", sireId === "none" ? "" : sireId);
+    formData.append("farm_source", farmSource.trim());
     formData.append("notes", notes);
 
     startTransition(async () => {
@@ -316,6 +319,15 @@ export default function EditAnimalForm({
                   <SelectItem value="Open">Open</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="farm_source">Farm Source / Origin</Label>
+              <Input
+                id="farm_source"
+                value={farmSource}
+                onChange={(e) => setFarmSource(e.target.value)}
+                placeholder="e.g., DH, Sam's, Purchased"
+              />
             </div>
           </div>
         </div>
