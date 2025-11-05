@@ -47,11 +47,41 @@ export async function createBreedingRecord(formData: FormData) {
 
   const breedingDate = parseISO(breedingDateStr);
   const animalId = Number(formData.get("animal_id"));
+  const rawSireInput = (formData.get("sire_ear_tag") as string) || "";
+
+  let sireEarTag: string | null = null;
+  const normalizedSire = rawSireInput.trim();
+
+  if (normalizedSire && normalizedSire.toLowerCase() !== "none") {
+    // When legacy forms submit the numeric sire ID, translate it to an ear tag.
+    const numericCandidate = Number(normalizedSire);
+
+    if (!Number.isNaN(numericCandidate)) {
+      const { data: sireById, error: sireByIdError } = await supabase
+        .from("animals")
+        .select("ear_tag")
+        .eq("id", numericCandidate)
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (sireByIdError) {
+        console.error("Error resolving sire by id:", sireByIdError);
+      }
+
+      if (sireById && sireById.length > 0) {
+        sireEarTag = sireById[0].ear_tag;
+      }
+    }
+
+    if (!sireEarTag) {
+      sireEarTag = normalizedSire;
+    }
+  }
 
   const breedingData = {
     user_id: user.id,
     animal_id: animalId,
-    sire_ear_tag: Number(formData.get("sire_ear_tag")) || null,
+    sire_ear_tag: sireEarTag,
     breeding_date: breedingDate.toISOString(),
     breeding_method:
       (formData.get("breeding_method") as "Natural" | "AI") || null,

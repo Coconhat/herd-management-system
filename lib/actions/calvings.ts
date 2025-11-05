@@ -20,9 +20,65 @@ export interface Calving {
   calf_sex?: "Male" | "Female";
   birth_weight?: number;
   complications?: string;
+  assistance_required?: boolean | null;
+  sire_id?: string | null;
+  breeding_id?: string | null;
   notes?: string;
   user_id: string;
   created_at: string;
+}
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+async function resolveSireIdentifiers({
+  supabase,
+  userId,
+  rawInput,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  rawInput?: string | null;
+}): Promise<{ earTag: string | null; animalId: number | null }> {
+  const normalized = rawInput?.trim() ?? "";
+
+  if (!normalized || normalized.toLowerCase() === "none") {
+    return { earTag: null, animalId: null };
+  }
+
+  const numericCandidate = Number(normalized);
+  if (!Number.isNaN(numericCandidate)) {
+    const { data: byId, error: byIdError } = await supabase
+      .from("animals")
+      .select("id, ear_tag")
+      .eq("id", numericCandidate)
+      .eq("user_id", userId)
+      .limit(1);
+
+    if (byIdError) {
+      console.error("Error resolving sire by id:", byIdError);
+    }
+
+    if (byId && byId.length > 0) {
+      return { earTag: byId[0].ear_tag, animalId: byId[0].id };
+    }
+  }
+
+  const { data: byTag, error: byTagError } = await supabase
+    .from("animals")
+    .select("id, ear_tag")
+    .eq("ear_tag", normalized)
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (byTagError) {
+    console.error("Error resolving sire by ear tag:", byTagError);
+  }
+
+  if (byTag && byTag.length > 0) {
+    return { earTag: byTag[0].ear_tag, animalId: byTag[0].id };
+  }
+
+  return { earTag: normalized, animalId: null };
 }
 
 export async function createCalvingFromPregnancy(formData: FormData) {
@@ -41,23 +97,65 @@ export async function createCalvingFromPregnancy(formData: FormData) {
   const birthWeight = formData.get("birth_weight")
     ? Number(formData.get("birth_weight"))
     : null;
-  const complications = (formData.get("complications") as string) || null;
+  const rawComplications = (formData.get("complications") as string) || null;
   const notes = (formData.get("notes") as string) || null;
+  const rawSireInput = (formData.get("sire_ear_tag") as string) || "";
 
   if (!damId || !breedingRecordId || !calvingDateStr) {
     throw new Error("Missing required information to record calving.");
+  }
+
+  const assistanceRequired = rawComplications === "Assisted";
+  const complicationsValue =
+    rawComplications && rawComplications !== "Live Birth"
+      ? rawComplications
+      : null;
+  const initialSireResolution = await resolveSireIdentifiers({
+    supabase,
+    userId: user.id,
+    rawInput: rawSireInput,
+  });
+
+  let resolvedSireEarTag = initialSireResolution.earTag;
+  let resolvedSireAnimalId = initialSireResolution.animalId;
+
+  if (!resolvedSireEarTag) {
+    const { data: breedingRecord, error: breedingLookupError } = await supabase
+      .from("breeding_records")
+      .select("sire_ear_tag")
+      .eq("id", breedingRecordId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (breedingLookupError) {
+      console.error(
+        "Error fetching breeding record for sire fallback:",
+        breedingLookupError
+      );
+    } else if (breedingRecord?.sire_ear_tag) {
+      const fallbackResolution = await resolveSireIdentifiers({
+        supabase,
+        userId: user.id,
+        rawInput: breedingRecord.sire_ear_tag,
+      });
+
+      resolvedSireEarTag = fallbackResolution.earTag;
+      resolvedSireAnimalId = fallbackResolution.animalId;
+    }
   }
 
   // Step 1: insert calving record
   const calvingData = {
     user_id: user.id,
     animal_id: damId,
-    breeding_id: breedingRecordId,
+    breeding_id: breedingRecordId.toString(),
     calving_date: calvingDateStr,
     calf_ear_tag: calfEarTag ? calfEarTag.trim() : null,
     calf_sex: calfSex,
     birth_weight: birthWeight,
-    complications: complications === "Live Birth" ? null : complications,
+    complications: complicationsValue,
+    assistance_required: assistanceRequired,
+    sire_id: resolvedSireEarTag,
     notes,
   };
 
@@ -81,6 +179,9 @@ export async function createCalvingFromPregnancy(formData: FormData) {
       sex: calfSex || null,
       birth_date: calvingDateStr,
       dam_id: damId,
+      dam_fk_id: damId,
+      sire_id: resolvedSireAnimalId,
+      sire_fk_id: resolvedSireAnimalId,
       notes: `Born from calving event #${newCalving.id}`,
       status: "Active" as const,
     };
@@ -269,10 +370,24 @@ export async function createCalving(formData: FormData) {
 
   // --- Step 1: Extract all necessary data from the form ---
   const damId = Number.parseInt(formData.get("animal_id") as string);
-  const sireIdString = formData.get("sire_ear_tag") as string;
+  const rawSireInput = (formData.get("sire_ear_tag") as string) || "";
   const calvingDate = formData.get("calving_date") as string;
   const calfEarTag = formData.get("calf_ear_tag") as string | null;
   const calfName = formData.get("calf_name") as string | null;
+  const rawComplications = (formData.get("complications") as string) || null;
+  const notes = (formData.get("notes") as string) || null;
+
+  const assistanceRequired = rawComplications === "Assisted";
+  const complicationsValue =
+    rawComplications && rawComplications !== "Live Birth"
+      ? rawComplications
+      : null;
+  const { earTag: resolvedSireEarTag, animalId: resolvedSireAnimalId } =
+    await resolveSireIdentifiers({
+      supabase,
+      userId: user.id,
+      rawInput: rawSireInput,
+    });
 
   // --- Step 2: Create the calving event record (your existing logic) ---
   const calvingData = {
@@ -283,8 +398,10 @@ export async function createCalving(formData: FormData) {
     birth_weight: formData.get("birth_weight")
       ? Number.parseFloat(formData.get("birth_weight") as string)
       : null,
-    complications: (formData.get("complications") as string) || null,
-    notes: (formData.get("notes") as string) || null,
+    complications: complicationsValue,
+    assistance_required: assistanceRequired,
+    sire_id: resolvedSireEarTag,
+    notes,
     user_id: user.id,
   };
 
@@ -304,12 +421,6 @@ export async function createCalving(formData: FormData) {
   // --- Step 3: Conditionally create the calf as a new animal ---
   // This block only runs IF the user entered an ear tag for the calf.
   if (calfEarTag && calfEarTag.trim() !== "") {
-    // ✨ FIX: Convert the sireIdString from the form into a number or null.
-    const sireId =
-      sireIdString && sireIdString !== "none"
-        ? Number.parseInt(sireIdString)
-        : null;
-
     // Prepare the data for the new animal record in the 'animals' table.
     const newAnimalData = {
       ear_tag: calfEarTag.trim(),
@@ -318,7 +429,9 @@ export async function createCalving(formData: FormData) {
       birth_date: calvingDate,
       status: "Active" as const,
       dam_id: damId,
-      sire_ear_tag: sireId, // ✨ FIX: Use the processed sireId variable here.
+      dam_fk_id: damId,
+      sire_id: resolvedSireAnimalId,
+      sire_fk_id: resolvedSireAnimalId,
       notes: `Born from calving event #${newCalvingRecord.id}.`,
       user_id: user.id,
     };

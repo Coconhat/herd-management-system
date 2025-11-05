@@ -291,11 +291,11 @@ export function RecordBreedingModal({
                 </Command>
               </PopoverContent>
             </Popover>
-            {/* keep hidden input for sire_id — omit if no sire selected */}
+            {/* store sire ear tag so downstream calving knows the father */}
             <input
               type="hidden"
-              name="sire_id"
-              value={selectedSire?.id ?? ""}
+              name="sire_ear_tag"
+              value={selectedSire?.ear_tag ?? ""}
             />
           </div>
 

@@ -44,6 +44,9 @@ export interface Calving {
   calf_sex?: "Male" | "Female";
   birth_weight?: number;
   complications?: string;
+  assistance_required?: boolean | null;
+  sire_id?: string | null;
+  breeding_id?: string | null;
   notes?: string;
   created_at: string;
 }
@@ -70,7 +73,8 @@ export interface MilkingRecord {
   created_at: string;
 }
 
-export interface AnimalWithDetails extends Animal {
+export interface AnimalWithDetails
+  extends Omit<Animal, "calvings" | "breeding_records"> {
   calvings?: Calving[];
   health_records?: HealthRecord[];
   breeding_records?: BreedingRecord[];

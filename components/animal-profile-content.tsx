@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -19,14 +19,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, Heart, Stethoscope, FileText, Edit } from "lucide-react";
-import type { Animal } from "@/lib/actions/animals";
+import { Heart, Stethoscope, FileText, Edit } from "lucide-react";
+import { getAnimals, type Animal } from "@/lib/actions/animals";
 import type { Calving } from "@/lib/actions/calvings";
 import type { HealthRecord } from "@/lib/actions/health-records";
-import type { BreedingRecord } from "@/lib/types";
 import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
 import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
-import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding";
 import { formatAge, formatWeight } from "@/lib/utils";
 
 interface AnimalProfileContentProps {
@@ -36,21 +34,20 @@ interface AnimalProfileContentProps {
 export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
   const [calvings, setCalvings] = useState<Calving[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
-  const [breedingRecords, setBreedingRecords] = useState<BreedingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
+  const [sireDisplayName, setSireDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [calvingsData, healthData, breedingData] = await Promise.all([
+        const [calvingsData, healthData] = await Promise.all([
           getCalvingsByAnimalId(animal.id),
           getHealthRecordsByAnimalId(animal.id),
-          getBreedingRecordsByAnimalId(animal.id),
         ]);
 
         setCalvings(calvingsData);
         setHealthRecords(healthData);
-        setBreedingRecords(breedingData);
       } catch (error) {
         console.error("Error loading animal data:", error);
       } finally {
@@ -61,6 +58,114 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
     loadData();
   }, [animal.id]);
 
+  useEffect(() => {
+    async function fetchAnimals() {
+      try {
+        const animals = await getAnimals();
+        setAllAnimals(animals);
+
+        const hasSireValue =
+          animal.sire_id !== undefined && animal.sire_id !== null;
+
+        if (hasSireValue) {
+          const sireIdCandidate = Number(animal.sire_id);
+          let display: string | null = null;
+
+          if (!Number.isNaN(sireIdCandidate)) {
+            const sire = animals.find((item) => item.id === sireIdCandidate);
+            if (sire) {
+              const namePart =
+                sire.name && sire.name.trim().length > 0
+                  ? sire.name.trim()
+                  : null;
+              display = namePart
+                ? `${namePart} (${sire.ear_tag})`
+                : sire.ear_tag;
+            }
+          }
+
+          if (!display) {
+            const fallbackTag = `${animal.sire_id}`.trim();
+            display = fallbackTag.length > 0 ? fallbackTag : null;
+          }
+
+          setSireDisplayName(display);
+        } else {
+          setSireDisplayName(null);
+        }
+      } catch (error) {
+        console.error("Error fetching animals for sire lookup:", error);
+      }
+    }
+
+    fetchAnimals();
+  }, [animal.sire_id]);
+
+  const calfSireLabels = useMemo(() => {
+    if (allAnimals.length === 0) return new Map<number, string>();
+
+    const byEarTag = new Map<string, Animal>();
+    const byId = new Map<number, Animal>();
+
+    allAnimals.forEach((entry) => {
+      byEarTag.set(entry.ear_tag, entry);
+      byId.set(entry.id, entry);
+    });
+
+    const result = new Map<number, string>();
+
+    calvings.forEach((calving) => {
+      if (!calving.calf_ear_tag) {
+        result.set(calving.id, "—");
+        return;
+      }
+
+      const calfRecord = byEarTag.get(calving.calf_ear_tag);
+      const calfSireRaw = calfRecord?.sire_id;
+
+      if (calfSireRaw !== undefined && calfSireRaw !== null) {
+        const numericCandidate = Number(calfSireRaw);
+
+        if (!Number.isNaN(numericCandidate)) {
+          const sire = byId.get(numericCandidate);
+          if (sire) {
+            result.set(calving.id, sire.ear_tag);
+            return;
+          }
+        }
+
+        const fallbackTag = `${calfSireRaw}`.trim();
+        if (fallbackTag.length > 0) {
+          result.set(calving.id, fallbackTag);
+          return;
+        }
+      }
+
+      if (calving.sire_id !== undefined && calving.sire_id !== null) {
+        const numericCandidate = Number(calving.sire_id);
+        if (!Number.isNaN(numericCandidate)) {
+          const sire = byId.get(numericCandidate);
+          if (sire) {
+            result.set(calving.id, sire.ear_tag);
+            return;
+          }
+        }
+
+        if (typeof calving.sire_id === "string") {
+          const fallback = calving.sire_id.trim();
+          if (fallback.length > 0) {
+            result.set(calving.id, fallback);
+            return;
+          }
+        }
+      }
+
+      result.set(calving.id, "—");
+    });
+
+    return result;
+  }, [allAnimals, calvings]);
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString();
@@ -69,6 +174,21 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
   const formatCurrency = (amount?: number) => {
     if (!amount) return "N/A";
     return `$${amount.toFixed(2)}`;
+  };
+
+  const formatAssistance = (value: Calving["assistance_required"]): string => {
+    if (typeof value === "boolean") {
+      return value ? "Yes" : "No";
+    }
+
+    const maybeString = value as unknown;
+    if (typeof maybeString === "string") {
+      const normalized = maybeString.trim().toLowerCase();
+      if (normalized === "true") return "Yes";
+      if (normalized === "false") return "No";
+    }
+
+    return "—";
   };
 
   return (
@@ -134,6 +254,14 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                 {formatDate(animal.created_at)}
               </p>
             </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">
+                Sire / Father
+              </label>
+              <p className="text-lg font-semibold">
+                {sireDisplayName ?? "N/A"}
+              </p>
+            </div>
           </div>
           {animal.notes && (
             <div className="mt-6">
@@ -194,6 +322,7 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                       <TableRow>
                         <TableHead>Calving Date</TableHead>
                         <TableHead>Calf Ear Tag</TableHead>
+                        <TableHead>Sire Ear Tag</TableHead>
                         <TableHead>Calf Sex</TableHead>
                         <TableHead>Birth Weight</TableHead>
                         <TableHead>Assistance Required</TableHead>
@@ -208,6 +337,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                           </TableCell>
                           <TableCell className="font-medium">
                             {calving.calf_ear_tag || "—"}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {calfSireLabels.get(calving.id) ?? "—"}
                           </TableCell>
                           <TableCell>
                             {calving.calf_sex ? (
@@ -230,6 +362,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                             )}
                           </TableCell>
 
+                          <TableCell>
+                            {formatAssistance(calving.assistance_required)}
+                          </TableCell>
                           <TableCell>
                             {calving.complications || "None"}
                           </TableCell>
