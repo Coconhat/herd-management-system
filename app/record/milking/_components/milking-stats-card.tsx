@@ -88,6 +88,14 @@ export function MilkingStatsCard({ milkingRecords }: MilkingStatsCardProps) {
     0
   );
 
+  const peakStartDate = milkingRecords.length
+    ? milkingRecords
+        .map((record) => new Date(record.milking_date))
+        .reduce((earliest, current) =>
+          current < earliest ? current : earliest
+        )
+    : null;
+
   // Calculate averages
   const uniqueDaysThisWeek = new Set(
     currentWeekRecords.map((r) => r.milking_date)
@@ -214,7 +222,7 @@ export function MilkingStatsCard({ milkingRecords }: MilkingStatsCardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-indigo-500" />
-            All Time
+            Peak Production
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -223,6 +231,9 @@ export function MilkingStatsCard({ milkingRecords }: MilkingStatsCardProps) {
           </div>
           <p className="text-xs text-muted-foreground">
             {milkingRecords.length} total records
+            {peakStartDate
+              ? ` · since ${format(peakStartDate, "MMM d, yyyy")}`
+              : ""}
           </p>
         </CardContent>
       </Card>
