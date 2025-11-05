@@ -263,10 +263,11 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
               <TableRow className="bg-muted/40">
                 <TableHead className="whitespace-nowrap">Dam</TableHead>
                 <TableHead className="whitespace-nowrap">Breed Date</TableHead>
+
+                <TableHead className="whitespace-nowrap">Status</TableHead>
                 <TableHead className="whitespace-nowrap">
                   Expected Calving
                 </TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
                 <TableHead className="whitespace-nowrap">Days</TableHead>
                 <TableHead className="whitespace-nowrap">Progress</TableHead>
                 <TableHead className="text-right whitespace-nowrap">
@@ -301,11 +302,10 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
                         {formatShortDate(rec.breeding_date)}
                       </TableCell>
                       <TableCell>
-                        {formatShortDate(rec.expected_calving_date)}
-                      </TableCell>
-
-                      <TableCell>
                         <Badge variant="secondary">Pregnant</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {formatShortDate(rec.expected_calving_date)}
                       </TableCell>
 
                       <TableCell>
