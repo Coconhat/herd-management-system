@@ -50,7 +50,8 @@ const addDiesel = async ({
 
   const dieselData = {
     event_date,
-    volume_liters,
+    volume_liters:
+      type === "consumption" ? -Math.abs(volume_liters) : Number(volume_liters),
     type,
     reference: reference?.trim() || null,
     recorded_by: recorded_by?.trim() || null,

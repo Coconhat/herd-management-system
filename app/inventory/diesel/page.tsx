@@ -18,26 +18,28 @@ import {
 import { addDiesel, Diesel, getDiesel } from "@/lib/actions/diesel";
 import { FormEvent, useEffect, useState } from "react";
 
-const overviewCards = [
-  {
-    title: "Current Volume",
-    metric: "-- L",
-    description: "Diesel available across all storage.",
-  },
-
-  {
-    title: "Average Daily Usage",
-    metric: "-- L",
-    description: "Based on recent consumption trends.",
-  },
-];
-
 const historyColumns = ["Date", "Type", "Volume", "Reference", "Recorded By"];
 
 export default function DieselInventoryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [diesel, setDiesel] = useState<Diesel[] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const overviewCards = [
+    {
+      title: "Current Volume",
+      metric: `${
+        diesel?.reduce((acc, curr) => acc + curr.volume_liters, 0) || 0
+      } L`,
+      description: "Diesel available across all storage.",
+    },
+
+    {
+      title: "Average Daily Usage",
+      metric: "-- L",
+      description: "Based on recent consumption trends.",
+    },
+  ];
 
   useEffect(() => {
     async function fetchDiesel() {
