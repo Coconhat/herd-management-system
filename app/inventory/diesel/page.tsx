@@ -263,7 +263,6 @@ function DieselModal({
               >
                 <option value="addition">Addition</option>
                 <option value="consumption">Consumption</option>
-                <option value="correction">Correction</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
