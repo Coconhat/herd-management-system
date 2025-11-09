@@ -15,6 +15,8 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronRight,
+  FuelIcon,
+  PillBottleIcon,
 } from "lucide-react";
 
 // Navigation structure
@@ -42,8 +44,13 @@ const navigation = [
       { name: "Animal Inventory", icon: PawPrint, href: "/inventory/animals" },
       {
         name: "Medicine Inventory",
-        icon: Settings,
+        icon: PillBottleIcon,
         href: "/inventory/medicine",
+      },
+      {
+        name: "Diesel Inventory",
+        icon: FuelIcon,
+        href: "/inventory/diesel",
       },
     ],
   },
