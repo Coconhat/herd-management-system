@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   FuelIcon,
+  TreesIcon,
   PillBottleIcon,
 } from "lucide-react";
 
@@ -51,6 +52,11 @@ const navigation = [
         name: "Diesel Inventory",
         icon: FuelIcon,
         href: "/inventory/diesel",
+      },
+      {
+        name: "Feed Inventory",
+        icon: TreesIcon,
+        href: "/inventory/feed",
       },
     ],
   },

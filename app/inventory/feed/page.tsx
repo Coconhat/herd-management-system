@@ -15,72 +15,75 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { addDiesel, Diesel, getDiesel } from "@/lib/actions/diesel";
+import { addFeed, Feeds, getFeed } from "@/lib/actions/feed";
 import Link from "next/link";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-type DieselAdjustmentType = "addition" | "consumption" | "correction";
+type FeedMovementType = "addition" | "consumption";
 
-type DieselModalFormValues = {
+type FeedModalFormValues = {
   event_date: string;
-  volume_liters: number;
-  type: DieselAdjustmentType;
+  feeds: number;
+  type: FeedMovementType;
   reference?: string;
   recorded_by?: string;
 };
 
-type DieselModalProps = {
+type FeedModalProps = {
   open: boolean;
   mode?: "create" | "update";
   submitting?: boolean;
-  initialValues?: Partial<DieselModalFormValues>;
+  initialValues?: Partial<FeedModalFormValues>;
   onClose?: () => void;
-  onSubmit?: (values: DieselModalFormValues) => Promise<void> | void;
+  onSubmit?: (values: FeedModalFormValues) => Promise<void> | void;
   onDelete?: () => void;
 };
 
-const historyColumns = ["Date", "Type", "Volume", "Reference", "Recorded By"];
+const historyColumns = [
+  "Date",
+  "Change",
+  "Quantity",
+  "Reference",
+  "Recorded By",
+];
 
-const movementLabels: Record<DieselAdjustmentType, string> = {
-  addition: "Refill",
+const movementLabels: Record<FeedMovementType, string> = {
+  addition: "Restock",
   consumption: "Consumption",
-  correction: "Correction",
 };
 
 const AVERAGE_WINDOW_DAYS = 7;
 
-export default function DieselInventoryPage() {
+export default function FeedInventoryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [diesel, setDiesel] = useState<Diesel[] | null>(null);
+  const [feedEntries, setFeedEntries] = useState<Feeds[] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { currentVolume, averageDailyUsage } = useMemo(() => {
-    if (!diesel || diesel.length === 0) {
-      return { currentVolume: 0, averageDailyUsage: 0 };
+  const { currentStock, averageDailyUsage } = useMemo(() => {
+    if (!feedEntries || feedEntries.length === 0) {
+      return { currentStock: 0, averageDailyUsage: 0 };
     }
 
-    const totalVolume = diesel.reduce(
-      (acc, entry) => acc + entry.volume_liters,
-      0
-    );
+    const totalStock = feedEntries.reduce((acc, entry) => acc + entry.feeds, 0);
 
     const now = Date.now();
     const windowMs = AVERAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
     const cutoff = now - windowMs;
 
-    const usageTotal = diesel.reduce((acc, entry) => {
+    const usageTotal = feedEntries.reduce((acc, entry) => {
       const entryTime = new Date(entry.event_date).getTime();
-      if (entryTime >= cutoff && entry.volume_liters < 0) {
-        return acc + Math.abs(entry.volume_liters);
+      if (entryTime >= cutoff && entry.feeds < 0) {
+        return acc + Math.abs(entry.feeds);
       }
       return acc;
     }, 0);
 
     return {
-      currentVolume: totalVolume,
+      currentStock: totalStock,
       averageDailyUsage: usageTotal / AVERAGE_WINDOW_DAYS,
     };
-  }, [diesel]);
+  }, [feedEntries]);
 
   const formatQuantity = (value: number) =>
     new Intl.NumberFormat("en-US", {
@@ -89,39 +92,39 @@ export default function DieselInventoryPage() {
 
   const overviewCards = [
     {
-      title: "Current Diesel Stock",
-      metric: `${formatQuantity(currentVolume)} L`,
-      description: "Available diesel across storage tanks.",
+      title: "Current Feed Stock",
+      metric: `${formatQuantity(currentStock)} kg`,
+      description: "Available feed across storage locations.",
     },
 
     {
       title: "Average Daily Usage",
-      metric: `${formatQuantity(averageDailyUsage)} L`,
+      metric: `${formatQuantity(averageDailyUsage)} kg`,
       description: `Average consumption over the last ${AVERAGE_WINDOW_DAYS} days.`,
     },
   ];
 
   useEffect(() => {
-    async function fetchDiesel() {
-      const res = await getDiesel();
-      setDiesel(res);
+    async function fetchFeed() {
+      const res = await getFeed();
+      setFeedEntries(res);
     }
-    fetchDiesel();
+    fetchFeed();
   }, []);
 
-  const handleCreateDiesel = async (values: DieselModalFormValues) => {
+  const handleCreateFeed = async (values: FeedModalFormValues) => {
     try {
       setIsSubmitting(true);
-      await addDiesel(values);
-      const refreshed = await getDiesel();
-      setDiesel(refreshed);
+      await addFeed(values);
+      const refreshed = await getFeed();
+      setFeedEntries(refreshed);
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Failed to log diesel movement", error);
+      console.error("Failed to log feed movement", error);
       alert(
         error instanceof Error
           ? error.message
-          : "Failed to log diesel movement. Please try again."
+          : "Failed to log feed movement. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -136,27 +139,28 @@ export default function DieselInventoryPage() {
     }).format(new Date(iso));
   };
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 rounded-3xl border border-amber-200/70 bg-amber-50/50 px-6 py-10 shadow-sm">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 rounded-3xl border border-emerald-100/70 bg-emerald-50/40 px-6 py-10 shadow-sm">
       <Link
         href="/"
         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         ← Back to Home
       </Link>
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
         {overviewCards.map((card) => (
           <Card
             key={card.title}
-            className="border-none bg-gradient-to-br from-amber-100/80 via-orange-50/80 to-white/90 shadow-md"
+            className="border-none bg-gradient-to-br from-emerald-100/70 via-emerald-50/80 to-white/90 shadow-md"
           >
-            <CardHeader className="pb-2 text-amber-900">
-              <CardTitle className="text-amber-900">{card.title}</CardTitle>
-              <CardDescription className="text-amber-700/80">
+            <CardHeader className="pb-2 text-emerald-900">
+              <CardTitle className="text-emerald-900">{card.title}</CardTitle>
+              <CardDescription className="text-emerald-700/80">
                 {card.description}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <span className="text-3xl font-semibold tracking-tight text-amber-900">
+              <span className="text-3xl font-semibold tracking-tight text-emerald-900">
                 {card.metric}
               </span>
             </CardContent>
@@ -166,48 +170,48 @@ export default function DieselInventoryPage() {
 
       <div>
         <Button
-          className="bg-amber-500 text-amber-950 hover:bg-amber-600"
+          className="bg-emerald-500 text-emerald-950 hover:bg-emerald-600"
           onClick={() => setIsModalOpen(!isModalOpen)}
         >
-          Log Diesel Movement
+          Log Feed Movement
         </Button>
       </div>
 
-      <section className="rounded-2xl border border-amber-200/70 bg-white/80 shadow-sm">
-        <header className="flex items-center justify-between gap-4 border-b border-amber-100/70 bg-amber-50/70 px-6 py-4">
+      <section className="rounded-2xl border border-emerald-200/70 bg-white/70 shadow-sm">
+        <header className="flex items-center justify-between gap-4 border-b border-emerald-100/70 bg-emerald-50/80 px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              Diesel Movement History
+              Feed Movement History
             </h2>
             <p className="text-muted-foreground text-sm">
-              Review every addition, usage, or correction logged for diesel
+              Review every restock, consumption, or adjustment logged for feed
               inventory.
             </p>
           </div>
         </header>
         <div className="px-6 py-4">
-          <Table className="[&_tbody_tr:nth-child(even)]:bg-amber-50/40">
-            <TableHeader className="bg-amber-100/80 text-amber-900">
+          <Table className="[&_tbody_tr:nth-child(even)]:bg-emerald-50/40">
+            <TableHeader className="bg-emerald-100/80 text-emerald-900">
               <TableRow>
                 {historyColumns.map((column) => (
-                  <TableHead key={column} className="text-amber-900">
+                  <TableHead key={column} className="text-emerald-900">
                     {column}
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {diesel?.map((entry) => (
-                <TableRow key={entry.id} className="border-amber-100/60">
+              {feedEntries?.map((entry) => (
+                <TableRow key={entry.id} className="border-emerald-100/60">
                   <TableCell className="text-muted-foreground">
                     {formatPHDate(entry.event_date)}
                   </TableCell>
-                  <TableCell className="text-amber-900">
-                    {movementLabels[entry.type as DieselAdjustmentType] ??
+                  <TableCell className="text-emerald-900">
+                    {movementLabels[entry.type as FeedMovementType] ??
                       entry.type}
                   </TableCell>
-                  <TableCell className="text-amber-900">
-                    {formatQuantity(Math.abs(entry.volume_liters))} L
+                  <TableCell className="text-emerald-900">
+                    {Math.abs(entry.feeds)} kg
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {entry.reference || "-"}
@@ -223,18 +227,17 @@ export default function DieselInventoryPage() {
       </section>
 
       {isModalOpen && (
-        <DieselModal
+        <FeedModal
           open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           submitting={isSubmitting}
-          onSubmit={handleCreateDiesel}
+          onSubmit={handleCreateFeed}
         />
       )}
     </div>
   );
 }
-
-function DieselModal({
+function FeedModal({
   open,
   mode = "create",
   submitting = false,
@@ -242,24 +245,25 @@ function DieselModal({
   onClose,
   onSubmit,
   onDelete,
-}: DieselModalProps) {
+}: FeedModalProps) {
   if (!open) return null;
 
-  const title = mode === "update" ? "Update Diesel Entry" : "Add Diesel Entry";
+  const title =
+    mode === "update" ? "Update Feed Movement" : "Log Feed Movement";
   const description =
     mode === "update"
-      ? "Modify the recorded details for this diesel adjustment."
-      : "Log a new diesel delivery, usage, or correction.";
+      ? "Modify the recorded details for this feed movement."
+      : "Track a new feed restock or consumption.";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    const payload: DieselModalFormValues = {
+    const payload: FeedModalFormValues = {
       event_date: (formData.get("event_date") as string) || "",
-      volume_liters: Number(formData.get("volume_liters")) || 0,
-      type: (formData.get("type") as DieselAdjustmentType) || "addition",
+      feeds: Number(formData.get("feeds")) || 0,
+      type: (formData.get("type") as FeedMovementType) || "addition",
       reference: (formData.get("reference") as string) || "",
       recorded_by: (formData.get("recorded_by") as string) || "",
     };
@@ -282,15 +286,15 @@ function DieselModal({
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-amber-200/70 bg-white p-6 shadow-2xl">
-        <header className="mb-4 space-y-1 text-amber-900">
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-emerald-200/70 bg-white p-6 shadow-2xl">
+        <header className="mb-4 space-y-1 text-emerald-900">
           <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
-          <p className="text-sm text-amber-700/80">{description}</p>
+          <p className="text-sm text-emerald-700/80">{description}</p>
         </header>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm font-medium text-amber-900">
+            <label className="flex flex-col gap-1 text-sm font-medium text-emerald-900">
               Date
               <input
                 name="event_date"
@@ -300,34 +304,34 @@ function DieselModal({
                 className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-amber-900">
-              Volume (L)
+            <label className="flex flex-col gap-1 text-sm font-medium text-emerald-900">
+              Quantity (kg)
               <input
-                name="volume_liters"
+                name="feeds"
                 type="number"
                 required
                 step="0.01"
                 min="0"
                 defaultValue={
-                  initialValues?.volume_liters !== undefined
-                    ? String(initialValues.volume_liters)
+                  initialValues?.feeds !== undefined
+                    ? String(initialValues.feeds)
                     : ""
                 }
                 className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-amber-900">
+            <label className="flex flex-col gap-1 text-sm font-medium text-emerald-900">
               Adjustment Type
               <select
                 name="type"
                 defaultValue={initialValues?.type || "addition"}
                 className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <option value="addition">Refill</option>
+                <option value="addition">Restock</option>
                 <option value="consumption">Consumption</option>
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-amber-900">
+            <label className="flex flex-col gap-1 text-sm font-medium text-emerald-900">
               Reference
               <input
                 name="reference"
@@ -338,7 +342,7 @@ function DieselModal({
             </label>
           </div>
 
-          <label className="flex flex-col gap-1 text-sm font-medium text-amber-900">
+          <label className="flex flex-col gap-1 text-sm font-medium text-emerald-900">
             Recorded By
             <input
               name="recorded_by"
@@ -356,7 +360,7 @@ function DieselModal({
                 onClick={onDelete}
                 disabled={submitting}
               >
-                Delete Entry
+                Delete Record
               </Button>
             ) : (
               <span />
@@ -367,13 +371,13 @@ function DieselModal({
                 variant="outline"
                 onClick={onClose}
                 disabled={submitting}
-                className="border-amber-200 text-amber-800"
+                className="border-emerald-200 text-emerald-800 "
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-amber-500 text-amber-950 hover:bg-amber-600"
+                className="bg-emerald-500 text-emerald-950 hover:bg-emerald-600"
                 disabled={submitting}
               >
                 {submitting
