@@ -60,6 +60,7 @@ const navigation = [
       },
     ],
   },
+  { name: "AI Agent", icon: Home, current: false, href: "/ai-agent" },
 ];
 
 // Desktop Sidebar Component
