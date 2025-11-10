@@ -23,6 +23,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<
+    { kind: "success"; text: string } | { kind: "error"; text: string } | null
+  >(null);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,11 +39,6 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/`,
-        },
       });
       if (error) throw error;
       router.push("/");
@@ -47,6 +46,43 @@ export default function LoginPage() {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setResetMessage({
+        kind: "error",
+        text: "Enter your email address first.",
+      });
+      return;
+    }
+
+    const supabase = createClient();
+    setIsResetting(true);
+    setResetMessage(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+
+      if (error) throw error;
+
+      setResetMessage({
+        kind: "success",
+        text: "Check your inbox for a password reset link.",
+      });
+    } catch (error: unknown) {
+      setResetMessage({
+        kind: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to send reset email. Try again.",
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -103,8 +139,27 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    <button
+                      type="button"
+                      onClick={handlePasswordReset}
+                      className="self-end text-xs font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50"
+                      disabled={isResetting}
+                    >
+                      {isResetting ? "Sending..." : "Forgot password?"}
+                    </button>
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
+                  {resetMessage && (
+                    <p
+                      className={`text-xs ${
+                        resetMessage.kind === "success"
+                          ? "text-green-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {resetMessage.text}
+                    </p>
+                  )}
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
