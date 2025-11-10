@@ -139,14 +139,6 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
-                    <button
-                      type="button"
-                      onClick={handlePasswordReset}
-                      className="self-end text-xs font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50"
-                      disabled={isResetting}
-                    >
-                      {isResetting ? "Sending..." : "Forgot password?"}
-                    </button>
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
                   {resetMessage && (
@@ -164,14 +156,25 @@ export default function LoginPage() {
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
                 </div>
-                <div className="mt-4 text-center text-sm">
-                  Don&apos;t have an account?{" "}
-                  <Link
-                    href="/auth/sign-up"
-                    className="underline underline-offset-4"
+
+                <div className="mt-4 text-center text-sm flex flex-col ">
+                  <div>
+                    Don&apos;t have an account?{" "}
+                    <Link
+                      href="/auth/sign-up"
+                      className="underline underline-offset-4"
+                    >
+                      Sign up
+                    </Link>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    className=" text-center text-xs font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50 mt-4"
+                    disabled={isResetting}
                   >
-                    Sign up
-                  </Link>
+                    {isResetting ? "Sending..." : "Forgot password?"}
+                  </button>
                 </div>
               </form>
             </CardContent>
