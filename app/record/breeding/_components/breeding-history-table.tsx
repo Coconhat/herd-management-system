@@ -134,9 +134,9 @@ export function RecordBreedingModal({
     // write hidden fields so server gets reliable values
     formData.set("animal_id", String(selectedDam.id));
     if (selectedSire) {
-      formData.set("sire_id", String(selectedSire.id));
+      formData.set("sire_ear_tag", selectedSire.ear_tag);
     } else {
-      formData.delete("sire_id"); // ensure no empty string
+      formData.delete("sire_ear_tag"); // ensure no empty string
     }
 
     // set breeding_date as YYYY-MM-DD for compatibility with date columns

@@ -78,6 +78,12 @@ export async function createBreedingRecord(formData: FormData) {
     }
   }
 
+  const pregnancyCheckDue = addDays(breedingDate, 29).toISOString();
+  const expectedCalving = addDays(breedingDate, 283).toISOString();
+  const heatCheck = addDays(breedingDate, 21).toISOString();
+  const pdPreReminder = addDays(breedingDate, 30);
+  const pdReminderDate = addDays(breedingDate, 90);
+
   const breedingData = {
     user_id: user.id,
     animal_id: animalId,
@@ -91,10 +97,9 @@ export async function createBreedingRecord(formData: FormData) {
     pd_result: "Unchecked" as const,
 
     // Automatically calculate and set all future workflow dates
-    heat_check_date: addDays(breedingDate, 21).toISOString(),
-    pregnancy_check_due_date: addDays(breedingDate, 29).toISOString(),
-    expected_calving_date: addDays(breedingDate, 283).toISOString(),
-    notification_date: addDays(breedingDate, 90).toISOString(),
+    heat_check_date: heatCheck,
+    pregnancy_check_due_date: pregnancyCheckDue,
+    expected_calving_date: expectedCalving,
   };
 
   const { data: insertedData, error } = await supabase
@@ -121,11 +126,11 @@ export async function createBreedingRecord(formData: FormData) {
         }`
       : `Animal #${animalId}`;
 
-    const pdDate = new Date(breedingData.notification_date);
+    const pdDate = new Date(pdReminderDate);
     // Set to 7 AM Philippine Time (UTC+8)
     pdDate.setHours(7 - 8, 0, 0, 0); // 7 AM PHT = -1 AM UTC
 
-    const firstMonthDate = addDays(breedingDate, 30);
+    const firstMonthDate = pdPreReminder;
     firstMonthDate.setHours(7 - 8, 0, 0, 0);
 
     const notificationData = {
@@ -134,10 +139,10 @@ export async function createBreedingRecord(formData: FormData) {
       title: `PD Check Reminder: ${animalName}`,
       body: `<p>Pregnancy diagnosis check is due for <strong>${animalName}</strong>.</p>
              <p><strong>Breeding Date:</strong> ${new Date(
-               breedingData.breeding_date
+               breedingDate.toISOString()
              ).toLocaleDateString()}</p>
              <p><strong>PD Check Date:</strong> ${new Date(
-               breedingData.pregnancy_check_due_date
+               pregnancyCheckDue
              ).toLocaleDateString()}</p>
              <p>Please perform the pregnancy check and update the results in the system.</p>`,
       scheduled_for: pdDate.toISOString(),
@@ -157,10 +162,10 @@ export async function createBreedingRecord(formData: FormData) {
       body: `<p>It has been one month since <strong>${animalName}</strong> was bred.</p>
              <p>Use this time to observe the animal and prepare for the pregnancy diagnosis in about 60 days.</p>
              <p><strong>Breeding Date:</strong> ${new Date(
-               breedingData.breeding_date
+               breedingDate.toISOString()
              ).toLocaleDateString()}</p>
              <p><strong>Target PD Check:</strong> ${new Date(
-               breedingData.pregnancy_check_due_date
+               pregnancyCheckDue
              ).toLocaleDateString()}</p>`,
       scheduled_for: firstMonthDate.toISOString(),
       sent: false,
