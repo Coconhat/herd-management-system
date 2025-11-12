@@ -58,10 +58,13 @@ export default function AnimalProfile({ params }: AnimalProfilePageProps) {
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Link
+              href={`/animal/${animalEarTag}/edit`}
+              className="inline-flex items-center"
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Animal
-            </Button>
+            </Link>
           </div>
         </div>
       </header>
