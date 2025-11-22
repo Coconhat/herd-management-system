@@ -11,6 +11,7 @@ export interface Animal {
   ear_tag: string;
   name?: string;
   birth_date?: string;
+  weight?: number;
   sex?: "Male" | "Female";
   dam_id?: number;
   sire_id?: number;

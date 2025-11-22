@@ -191,6 +191,7 @@ export function DashboardContent({
                   <TableRow>
                     <TableHead>Origin</TableHead>
                     <TableHead>Ear Tag</TableHead>
+                    <TableHead>Weight</TableHead>
                     <TableHead>Sex</TableHead>
                     <TableHead>Age</TableHead>
                     <TableHead>Classification</TableHead>
@@ -208,6 +209,9 @@ export function DashboardContent({
 
                       <TableCell className="font-medium">
                         {animal.ear_tag}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {animal.weight ? `${animal.weight} kg` : "N/A"}
                       </TableCell>
                       <TableCell>
                         <Badge
