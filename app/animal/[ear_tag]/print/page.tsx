@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  getAnimalByEarTag,
-  getAnimalById,
-} from "@/lib/actions/animals";
+import { getAnimalByEarTag, getAnimalById } from "@/lib/actions/animals";
 import { getBreedingRecordsByAnimalId } from "@/lib/actions/breeding";
 import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
 import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
@@ -23,13 +20,18 @@ export default async function AnimalPrintPage({
     notFound();
   }
 
-  const [breedingRecords, calvings, healthRecords, dam, sire] = await Promise.all([
-    getBreedingRecordsByAnimalId(animal.id),
-    getCalvingsByAnimalId(animal.id),
-    getHealthRecordsByAnimalId(animal.id),
-    animal.dam_id ? getAnimalById(Number(animal.dam_id)) : Promise.resolve(null),
-    animal.sire_id ? getAnimalById(Number(animal.sire_id)) : Promise.resolve(null),
-  ]);
+  const [breedingRecords, calvings, healthRecords, dam, sire] =
+    await Promise.all([
+      getBreedingRecordsByAnimalId(animal.id),
+      getCalvingsByAnimalId(animal.id),
+      getHealthRecordsByAnimalId(animal.id),
+      animal.dam_id
+        ? getAnimalById(Number(animal.dam_id))
+        : Promise.resolve(null),
+      animal.sire_id
+        ? getAnimalById(Number(animal.sire_id))
+        : Promise.resolve(null),
+    ]);
 
   const damLabel = dam
     ? `${dam.ear_tag}${dam.name ? ` (${dam.name})` : ""}`
