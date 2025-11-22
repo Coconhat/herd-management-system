@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, Printer } from "lucide-react";
 import { getAnimalByEarTag, getAnimalById } from "@/lib/actions/animals";
 import { AnimalProfileContent } from "@/components/animal-profile-content";
 import Link from "next/link";
@@ -58,13 +58,25 @@ export default function AnimalProfile({ params }: AnimalProfilePageProps) {
                 </p>
               </div>
             </div>
-            <Link
-              href={`/animal/${animalEarTag}/edit`}
-              className="inline-flex items-center"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Animal
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/animal/${animalEarTag}/edit`}
+                className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Animal
+              </Link>
+              <Link
+                href={`/animal/${animalEarTag}/print`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Printer className="h-4 w-4" />
+                  Print Sheet
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>

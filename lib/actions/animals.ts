@@ -12,6 +12,7 @@ export interface Animal {
   name?: string;
   birth_date?: string;
   weight?: number;
+  health?: string;
   sex?: "Male" | "Female";
   dam_id?: number;
   sire_id?: number;

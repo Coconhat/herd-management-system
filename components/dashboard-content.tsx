@@ -197,6 +197,8 @@ export function DashboardContent({
                     <TableHead>Classification</TableHead>
                     <TableHead>Birth Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Health</TableHead>
+
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -238,6 +240,23 @@ export function DashboardContent({
                       </TableCell>
                       <TableCell>{formatDate(animal.birth_date)}</TableCell>
                       <TableCell>{renderStatusBadge(animal)}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              {animals.health}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem asChild>
+                              <Button>Healthy</Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Button>Unhealthy</Button>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
