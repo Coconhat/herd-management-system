@@ -24,6 +24,7 @@ export interface Calving {
   sire_id?: string | null;
   breeding_id?: string | null;
   notes?: string;
+  health?: "Healthy" | "Unhealthy" | null;
   user_id: string;
   created_at: string;
 }
@@ -105,7 +106,11 @@ export async function createCalvingFromPregnancy(formData: FormData) {
   const rawComplications = (formData.get("complications") as string) || null;
   const notes = (formData.get("notes") as string) || null;
   const rawSireInput = (formData.get("sire_ear_tag") as string) || "";
-
+  const healthRaw = formData.get("health");
+  const health =
+    typeof healthRaw === "string" && healthRaw.length > 0
+      ? (healthRaw as "Healthy" | "Unhealthy")
+      : null;
   if (!damId || !breedingRecordId || !calvingDateStr) {
     throw new Error("Missing required information to record calving.");
   }
@@ -162,6 +167,7 @@ export async function createCalvingFromPregnancy(formData: FormData) {
     assistance_required: assistanceRequired,
     sire_id: resolvedSireEarTag,
     notes,
+    health,
   };
 
   const { data: newCalving, error: calvingError } = await supabase
@@ -190,6 +196,7 @@ export async function createCalvingFromPregnancy(formData: FormData) {
       sire_fk_id: resolvedSireAnimalId,
       notes: `Born from calving event #${newCalving.id}`,
       status: "Active" as const,
+      health: health ?? "Healthy",
     };
 
     const { error: animalError } = await supabase
@@ -384,6 +391,11 @@ export async function createCalving(formData: FormData) {
   const calfName = formData.get("calf_name") as string | null;
   const rawComplications = (formData.get("complications") as string) || null;
   const notes = (formData.get("notes") as string) || null;
+  const healthRaw = formData.get("health");
+  const health =
+    typeof healthRaw === "string" && healthRaw.trim().length > 0
+      ? (healthRaw as "Healthy" | "Unhealthy")
+      : null;
   const farmSource =
     typeof farmSourceRaw === "string" && farmSourceRaw.trim() !== ""
       ? farmSourceRaw.trim()
@@ -414,6 +426,7 @@ export async function createCalving(formData: FormData) {
     assistance_required: assistanceRequired,
     sire_id: resolvedSireEarTag,
     notes,
+    health,
     user_id: user.id,
   };
 
@@ -447,6 +460,7 @@ export async function createCalving(formData: FormData) {
       farm_source: farmSource,
       notes: `Born from calving event #${newCalvingRecord.id}.`,
       user_id: user.id,
+      health: health ?? "Healthy",
     };
 
     // Insert the new calf into the 'animals' table.

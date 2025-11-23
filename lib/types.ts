@@ -49,6 +49,7 @@ export interface Calving {
   breeding_id?: string | null;
   notes?: string;
   created_at: string;
+  health?: "Healthy" | "Unhealthy" | null;
 }
 
 export interface HealthRecord {

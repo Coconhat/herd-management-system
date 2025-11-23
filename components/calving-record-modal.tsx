@@ -55,6 +55,7 @@ export function CalvingRecordModal({
 }: CalvingRecordModalProps) {
   const [calvingDate, setCalvingDate] = useState<Date>();
   const [isPending, startTransition] = useTransition();
+
   const { toast } = useToast();
 
   // Derive a safe array of pregnant animals:
@@ -268,6 +269,19 @@ export function CalvingRecordModal({
                 <SelectItem value="Stillbirth">Stillbirth</SelectItem>
                 <SelectItem value="Aborted">Aborted</SelectItem>
                 <SelectItem value="Assisted">Live Birth (Assisted)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="health">Health</Label>
+            <Select name="health" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Health Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Healthy">Healthy</SelectItem>
+                <SelectItem value="Unhealthy">Unhealthy</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,7 +27,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Ellipsis } from "lucide-react";
-import { deleteAnimal, type Animal } from "@/lib/actions/animals";
+import {
+  deleteAnimal,
+  setAnimalHealth,
+  type Animal,
+} from "@/lib/actions/animals";
 import { CalvingRecordModal } from "@/components/calving-record-modal";
 import { AddAnimalModal } from "@/components/add-animal-modal";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +44,7 @@ import DeleteAnimalModal from "./delete-animal-modal";
 import { getCombinedStatus } from "@/lib/status-helper";
 import { cn } from "@/lib/utils";
 import renderFarmSource from "./get-origin-color";
+import { styleText } from "util";
 
 interface DashboardContentProps {
   animals: Animal[];
@@ -61,6 +66,29 @@ export function DashboardContent({
   const [selectedAnimal, setSelectedAnimal] = useState<string | number | null>(
     null
   );
+  const [optimisticHealth, setOptimisticHealth] = useState<
+    Record<number, "Healthy" | "Unhealthy">
+  >({});
+  const [isPending, startTransition] = useTransition();
+  const handleHealthChange = (
+    animalId: number,
+    health: "Healthy" | "Unhealthy"
+  ) => {
+    setOptimisticHealth((prev) => ({ ...prev, [animalId]: health }));
+    startTransition(async () => {
+      try {
+        await setAnimalHealth(animalId, health);
+        toast({ title: "Health updated" });
+      } catch (err) {
+        toast({ title: "Update failed", variant: "destructive" });
+        setOptimisticHealth((prev) => {
+          const next = { ...prev };
+          delete next[animalId];
+          return next;
+        });
+      }
+    });
+  };
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -243,16 +271,42 @@ export function DashboardContent({
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              {animals.health}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                (optimisticHealth[animal.id] ??
+                                  animal.health) === "Healthy"
+                                  ? "  text-black "
+                                  : "bg-red-600 text-white hover:bg-red-700"
+                              )}
+                            >
+                              {optimisticHealth[animal.id] ??
+                                animal.health ??
+                                "Set Health"}
                             </Button>
                           </DropdownMenuTrigger>
+
                           <DropdownMenuContent>
-                            <DropdownMenuItem asChild>
-                              <Button>Healthy</Button>
+                            <DropdownMenuItem asChild className="mb-2">
+                              <Button
+                                value={"Healthy"}
+                                onClick={() =>
+                                  handleHealthChange(animal.id, "Healthy")
+                                }
+                              >
+                                Healthy
+                              </Button>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Button>Unhealthy</Button>
+                              <Button
+                                value={"Unhealthy"}
+                                onClick={() =>
+                                  handleHealthChange(animal.id, "Unhealthy")
+                                }
+                              >
+                                Unhealthy
+                              </Button>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

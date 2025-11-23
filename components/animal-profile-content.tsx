@@ -248,11 +248,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">
-                Created
+                Health
               </label>
-              <p className="text-lg font-semibold">
-                {formatDate(animal.created_at)}
-              </p>
+              <p className="text-lg font-semibold">{animal.health ?? "N/A"}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">
@@ -324,6 +322,7 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                         <TableHead>Calf Ear Tag</TableHead>
                         <TableHead>Sire Ear Tag</TableHead>
                         <TableHead>Calf Sex</TableHead>
+                        <TableHead>Calf Health</TableHead>
                         <TableHead>Birth Weight</TableHead>
                         <TableHead>Assistance Required</TableHead>
                         <TableHead>Complications</TableHead>
@@ -355,6 +354,17 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                             ) : (
                               "—"
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                calving.health === "Unhealthy"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                            >
+                              {calving.health ?? "—"}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {formatWeight(

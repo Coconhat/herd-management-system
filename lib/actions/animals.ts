@@ -12,7 +12,7 @@ export interface Animal {
   name?: string;
   birth_date?: string;
   weight?: number;
-  health?: string;
+  health?: "Healthy" | "Unhealthy" | null;
   sex?: "Male" | "Female";
   dam_id?: number;
   sire_id?: number;
@@ -123,6 +123,12 @@ export async function createAnimal(formData: FormData) {
     redirect("/auth/login");
   }
 
+  const rawHealth = formData.get("health");
+  const health: "Healthy" | "Unhealthy" =
+    typeof rawHealth === "string" && rawHealth.trim().length > 0
+      ? (rawHealth.trim() as "Healthy" | "Unhealthy")
+      : "Healthy";
+
   const animalData = {
     ear_tag: formData.get("ear_tag") as string,
     name: (formData.get("name") as string) || null,
@@ -149,6 +155,7 @@ export async function createAnimal(formData: FormData) {
         | "Dry") || "Active",
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
+    health,
   };
 
   const { error } = await supabase.from("animals").insert(animalData);
@@ -171,7 +178,33 @@ export async function updateAnimal(id: number, formData: FormData) {
     redirect("/auth/login");
   }
 
-  const animalData = {
+  const rawHealth = formData.get("health");
+  let health: "Healthy" | "Unhealthy" | null | undefined = undefined;
+  if (typeof rawHealth === "string") {
+    const trimmed = rawHealth.trim();
+    health = trimmed.length > 0 ? (trimmed as "Healthy" | "Unhealthy") : null;
+  }
+
+  const animalData: {
+    ear_tag: string;
+    name: string | null;
+    birth_date: string | null;
+    sex: "Male" | "Female" | null;
+    dam_id: number | null;
+    sire_id: number | null;
+    farm_source: string | null;
+    status:
+      | "Active"
+      | "Sold"
+      | "Deceased"
+      | "Culled"
+      | "Empty"
+      | "Open"
+      | "Dry";
+    notes: string | null;
+    updated_at: string;
+    health?: "Healthy" | "Unhealthy" | null;
+  } = {
     ear_tag: formData.get("ear_tag") as string,
     name: (formData.get("name") as string) || null,
     birth_date: (formData.get("birth_date") as string) || null,
@@ -205,6 +238,10 @@ export async function updateAnimal(id: number, formData: FormData) {
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),
   };
+
+  if (health !== undefined) {
+    animalData.health = health;
+  }
 
   // Debug logging
   console.log("Updating animal with data:", animalData);
@@ -420,4 +457,27 @@ export async function getAnimalsWithBreedingData(): Promise<Animal[]> {
   }
 
   return data || [];
+}
+
+export async function setAnimalHealth(
+  id: number,
+  health: "Healthy" | "Unhealthy"
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/auth/login");
+
+  const { error } = await supabase
+    .from("animals")
+    .update({ health })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error)
+    throw new Error("Failed to update health status: " + error.message);
+  revalidatePath("/");
+  revalidatePath("/inventory/animals");
 }
