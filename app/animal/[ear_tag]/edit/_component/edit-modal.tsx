@@ -77,6 +77,7 @@ export default function EditAnimalForm({
   const [sireId, setSireId] = useState(animal.sire_id?.toString() || "none");
   const [farmSource, setFarmSource] = useState(animal.farm_source || "");
   const [notes, setNotes] = useState(animal.notes || "");
+  const [health, setHealth] = useState(animal.health || "");
 
   // Create filtered lists for parent dropdowns, excluding the animal itself
   const potentialDams = allAnimals.filter(
@@ -100,7 +101,8 @@ export default function EditAnimalForm({
     damId !== (initialAnimal.dam_id?.toString() || "none") ||
     sireId !== (initialAnimal.sire_id?.toString() || "none") ||
     farmSource !== (initialAnimal.farm_source || "") ||
-    notes !== (initialAnimal.notes || "");
+    notes !== (initialAnimal.notes || "") ||
+    health !== (initialAnimal.health || "");
 
   // Check if the status change requires deletion
   const isTerminalStatus = ["Sold", "Deceased", "Culled"].includes(status);
@@ -156,6 +158,7 @@ export default function EditAnimalForm({
     formData.append("sire_id", sireId === "none" ? "" : sireId);
     formData.append("farm_source", farmSource.trim());
     formData.append("notes", notes);
+    formData.append("health", health.trim());
 
     startTransition(async () => {
       try {
@@ -243,6 +246,23 @@ export default function EditAnimalForm({
                 <SelectContent>
                   <SelectItem value="Male">Male</SelectItem>
                   <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="health">Health</Label>
+              <Select
+                value={health || ""}
+                onValueChange={(value) =>
+                  setHealth(value as "Healthy" | "Unhealthy")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select health" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Healthy">Healthy</SelectItem>
+                  <SelectItem value="Unhealthy">Unhealthy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
