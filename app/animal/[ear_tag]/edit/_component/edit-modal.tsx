@@ -24,7 +24,7 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { updateAnimal } from "@/lib/actions/animals"; // We use our server action
+import { updateAnimal } from "@/lib/actions/animals";
 import { useToast } from "@/hooks/use-toast";
 import type { Animal } from "@/lib/actions/animals";
 import { Separator } from "@/components/ui/separator";
