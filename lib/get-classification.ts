@@ -1,38 +1,97 @@
 import { Animal } from "./actions/animals";
 
+type Variant = "default" | "secondary" | "destructive" | "outline";
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const MONTH_IN_DAYS = 30.4375;
+
 export function getClassification(animal: Animal): {
   label: string;
-  variant: "default" | "secondary" | "destructive" | "outline";
+  variant: Variant;
 } {
-  if (animal.birth_date) {
-    const birth = new Date(animal.birth_date);
-    const today = new Date();
-    const diffTime = today.getTime() - birth.getTime();
-    const ageInDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    // Handle future birth dates (negative age)
-    if (ageInDays < 0) {
-      return { label: "Not Born Yet", variant: "outline" };
-    }
+  const daysUntilCalving = getDaysUntilExpectedCalving(animal, today);
+  const normalizedStatus = animal.status?.toLowerCase();
 
-    // Handle newborn animals (0-30 days)
-    if (ageInDays >= 0 && ageInDays <= 30) {
-      return { label: "Newborn", variant: "default" };
-    }
-
-    // Handle other age categories
-    if (ageInDays >= 31 && ageInDays <= 90)
-      return { label: "Newly Calved", variant: "default" };
-    if (ageInDays >= 91 && ageInDays <= 180)
-      return { label: "Weaning", variant: "secondary" };
-    if (ageInDays >= 181 && ageInDays <= 360)
-      return { label: "Yearling", variant: "outline" };
-    if (ageInDays >= 361 && ageInDays <= 450)
-      return { label: "Heifer", variant: "default" };
-    if (ageInDays >= 451 && ageInDays <= 540)
-      return { label: "Breedable Heifer", variant: "destructive" };
-
-    return { label: "Fully Grown", variant: "secondary" };
+  if (normalizedStatus === "fresh") {
+    return { label: "Milking", variant: "secondary" };
   }
-  return { label: "Unknown", variant: "outline" };
+
+  const isDryStage =
+    normalizedStatus === "dry" ||
+    (normalizedStatus === "pregnant" &&
+      daysUntilCalving !== null &&
+      daysUntilCalving <= 60 &&
+      daysUntilCalving >= 0);
+
+  if (isDryStage) {
+    return { label: "Dry", variant: "destructive" };
+  }
+
+  if (!animal.birth_date) {
+    return { label: "Unknown", variant: "outline" };
+  }
+
+  const birth = new Date(animal.birth_date);
+  const ageInDays = Math.floor(
+    (today.getTime() - birth.getTime()) / MS_PER_DAY
+  );
+
+  if (ageInDays < 0) {
+    return { label: "Not Born Yet", variant: "outline" };
+  }
+
+  const ageInMonths = ageInDays / MONTH_IN_DAYS;
+
+  if (ageInMonths <= 3) {
+    return { label: "Calf", variant: "default" };
+  }
+
+  if (ageInMonths <= 7) {
+    return { label: "Weaning", variant: "secondary" };
+  }
+
+  if (ageInMonths <= 13) {
+    return { label: "Yearling", variant: "outline" };
+  }
+
+  if (ageInMonths <= 15) {
+    return { label: "Heifer", variant: "default" };
+  }
+
+  if (normalizedStatus === "pregnant") {
+    return { label: "Pregnant Cow", variant: "secondary" };
+  }
+
+  return { label: "Adult Cow", variant: "default" };
+}
+
+function getDaysUntilExpectedCalving(
+  animal: Animal,
+  today: Date
+): number | null {
+  const records = animal.breeding_records || [];
+
+  const futureCalvings = records
+    .map((record) => record.expected_calving_date)
+    .filter(Boolean)
+    .map((dateString) => {
+      const expected = new Date(dateString as string);
+      return Math.ceil((expected.getTime() - today.getTime()) / MS_PER_DAY);
+    })
+    .filter((days) => !Number.isNaN(days));
+
+  if (futureCalvings.length === 0) {
+    return null;
+  }
+
+  const upcomingDays = futureCalvings.filter((days) => days >= 0);
+
+  if (upcomingDays.length === 0) {
+    return null;
+  }
+
+  return Math.min(...upcomingDays);
 }
