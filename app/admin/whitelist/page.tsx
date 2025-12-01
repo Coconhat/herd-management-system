@@ -328,8 +328,9 @@ export default function WhitelistAdminPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Email from Whitelist?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will prevent <strong>{emailToDelete}</strong> from signing
-              up. If they already have an account, they can still log in.
+              This will immediately revoke access for{" "}
+              <strong>{emailToDelete}</strong>. They will be signed out and must
+              be re-added before they can log in again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

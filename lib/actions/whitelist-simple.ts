@@ -1,5 +1,6 @@
 "use server";
 
+import { revokeAuthUserByEmail } from "@/lib/actions/revoke-auth-user";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -260,6 +261,9 @@ export async function removeEmailFromWhitelist(
 
     const normalizedEmail = email.toLowerCase().trim();
 
+    // Revoke any existing Supabase Auth user before disabling whitelist entry
+    await revokeAuthUserByEmail(normalizedEmail);
+
     // Deactivate instead of delete (keep history)
     const { error } = await supabase
       .from("email_whitelist")
@@ -274,7 +278,7 @@ export async function removeEmailFromWhitelist(
     revalidatePath("/admin");
     return {
       success: true,
-      message: "Email removed from whitelist successfully",
+      message: "Email removed and login access revoked",
     };
   } catch (error) {
     console.error("Unexpected error in removeEmailFromWhitelist:", error);
@@ -309,6 +313,9 @@ export async function deleteEmailFromWhitelist(
 
     const normalizedEmail = email.toLowerCase().trim();
 
+    // Ensure any linked Supabase Auth account is also removed
+    await revokeAuthUserByEmail(normalizedEmail);
+
     const { error } = await supabase
       .from("email_whitelist")
       .delete()
@@ -322,7 +329,7 @@ export async function deleteEmailFromWhitelist(
     revalidatePath("/admin");
     return {
       success: true,
-      message: "Email permanently deleted from whitelist",
+      message: "Email deleted and login access revoked",
     };
   } catch (error) {
     console.error("Unexpected error in deleteEmailFromWhitelist:", error);
