@@ -301,12 +301,12 @@ export default function WhitelistAdminPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => setEmailToDelete(item.email)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-1" /> Remove
                           </Button>
                         </TableCell>
                       </TableRow>

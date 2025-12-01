@@ -32,8 +32,11 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      setEmail(normalizedEmail);
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo:
@@ -44,7 +47,15 @@ export default function LoginPage() {
       if (error) throw error;
       router.push("/");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      if (error instanceof Error) {
+        const message =
+          error.message === "Invalid login credentials"
+            ? "Invalid login credentials. Double-check your password or reset it via Forgot Password."
+            : error.message;
+        setError(message);
+      } else {
+        setError("An error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +67,14 @@ export default function LoginPage() {
         <div className="flex flex-col gap-6">
           <div className="text-center">
             <div>
+                <div className="text-right text-sm">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="underline underline-offset-4 text-primary"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
               <Image
                 src="/farm-logo.jpg"
                 alt="Logo"
