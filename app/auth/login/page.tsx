@@ -67,14 +67,6 @@ export default function LoginPage() {
         <div className="flex flex-col gap-6">
           <div className="text-center">
             <div>
-                <div className="text-right text-sm">
-                  <Link
-                    href="/auth/forgot-password"
-                    className="underline underline-offset-4 text-primary"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
               <Image
                 src="/farm-logo.jpg"
                 alt="Logo"
@@ -113,7 +105,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
-                  <div className="grid gap-2">
+                  <div className="grid">
                     <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
@@ -123,6 +115,7 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   </div>
+
                   {error && <p className="text-sm text-red-500">{error}</p>}
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
@@ -136,6 +129,14 @@ export default function LoginPage() {
                   >
                     Sign up
                   </Link>
+                  <div className="text-center text-sm mt-4">
+                    <Link
+                      href="/auth/forgot-password"
+                      className="underline underline-offset-4 text-primary"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
               </form>
             </CardContent>
