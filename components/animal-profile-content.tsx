@@ -26,6 +26,7 @@ import type { HealthRecord } from "@/lib/actions/health-records";
 import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
 import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
 import { formatAge, formatWeight } from "@/lib/utils";
+import HealthRecordModal from "@/app/animal/[ear_tag]/health/_component/animal-health";
 
 interface AnimalProfileContentProps {
   animal: Animal;
@@ -37,6 +38,8 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
   const [loading, setLoading] = useState(true);
   const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
   const [sireDisplayName, setSireDisplayName] = useState<string | null>(null);
+
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -417,6 +420,7 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                 </div>
               ) : healthRecords.length > 0 ? (
                 <div className="overflow-x-auto">
+                  <HealthRecordModal animal={animal} />
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -425,7 +429,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                         <TableHead>Description</TableHead>
                         <TableHead>Treatment</TableHead>
                         <TableHead>Veterinarian</TableHead>
-                        <TableHead>Cost</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead>Syringes Used</TableHead>
+                        <TableHead>Syringe Type</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -442,7 +448,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                           <TableCell>{record.description || "—"}</TableCell>
                           <TableCell>{record.treatment || "—"}</TableCell>
                           <TableCell>{record.veterinarian || "—"}</TableCell>
-                          <TableCell>{formatCurrency(record.cost)}</TableCell>
+                          <TableCell>{record.notes || "—"}</TableCell>
+                          <TableCell>{record.syringes_used || "—"}</TableCell>
+                          <TableCell>{record.syringe_type || "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
