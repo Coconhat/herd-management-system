@@ -116,18 +116,18 @@ export function AddAnimalModal({
 
             <div className="space-y-2">
               <Label htmlFor="breed">Breed</Label>
-              <Select name="breed">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select breed" />
-                </SelectTrigger>
-                <SelectContent>
-                  {commonBreeds.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="breed"
+                name="breed"
+                list="breed-options"
+                placeholder="Type or select breed"
+                autoComplete="off"
+              />
+              <datalist id="breed-options">
+                {commonBreeds.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
