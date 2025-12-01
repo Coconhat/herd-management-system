@@ -400,10 +400,15 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           <Card>
             <CardHeader>
               <CardTitle>Health Records</CardTitle>
-              <CardDescription>
+
+              <CardDescription className="flex space-x-2 items-center">
                 {healthRecords.length} health records
               </CardDescription>
             </CardHeader>
+
+            <div className="px-6 pb-4">
+              <HealthRecordModal animal={animal} />
+            </div>
             <CardContent>
               {loading ? (
                 <div className="space-y-4">
@@ -420,7 +425,6 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                 </div>
               ) : healthRecords.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <HealthRecordModal animal={animal} />
                   <Table>
                     <TableHeader>
                       <TableRow>
