@@ -139,7 +139,35 @@ export async function recordMedicineUsage(formData: FormData) {
     throw new Error("Usage recorded, but failed to update stock quantity.");
   }
 
-  // 5. If this is post-PD treatment for a breeding record, update the animal status
+  // 5. Create a health_record entry for this treatment
+  const healthRecordType = usageData.breeding_record_id
+    ? "Post-PD Treatment"
+    : "Medicine Administration";
+
+  const healthDescription = usageData.breeding_record_id
+    ? `Post-pregnancy diagnosis vitamin/treatment protocol administered.`
+    : usageData.reason || `${currentMedicine.name} administered.`;
+
+  const healthTreatment = `${currentMedicine.name} - ${quantityUsed} dose(s)`;
+
+  const { error: healthError } = await supabase.from("health_records").insert({
+    animal_id: usageData.animal_id,
+    record_date: usageData.date_administered,
+    record_type: healthRecordType,
+    description: healthDescription,
+    treatment: healthTreatment,
+    notes: usageData.reason || null,
+    user_id: user.id,
+    syringes_used: Math.ceil(quantityUsed),
+    syringe_type: currentMedicine.name,
+  });
+
+  if (healthError) {
+    console.warn("Could not create health record:", healthError);
+    // Non-fatal: medicine usage is already recorded
+  }
+
+  // 6. If this is post-PD treatment for a breeding record, update the animal status
   // From "Empty" (not pregnant) to "Open" (ready for breeding after recovery)
   if (usageData.breeding_record_id) {
     // Get the animal's reopen_date to keep it
