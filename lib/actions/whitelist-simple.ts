@@ -194,7 +194,11 @@ export async function addEmailToWhitelist(
         // Reactivate the email
         const { error: updateError } = await supabase
           .from("email_whitelist")
-          .update({ is_active: true, notes: notes || null })
+          .update({
+            is_active: true,
+            is_registered: false,
+            notes: notes || null,
+          })
           .eq("email", normalizedEmail);
 
         if (updateError) {
@@ -264,10 +268,10 @@ export async function removeEmailFromWhitelist(
     // Revoke any existing Supabase Auth user before disabling whitelist entry
     await revokeAuthUserByEmail(normalizedEmail);
 
-    // Deactivate instead of delete (keep history)
+    // Deactivate instead of delete (keep history) and clear registration flag
     const { error } = await supabase
       .from("email_whitelist")
-      .update({ is_active: false })
+      .update({ is_active: false, is_registered: false })
       .eq("email", normalizedEmail);
 
     if (error) {

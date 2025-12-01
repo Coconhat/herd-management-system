@@ -145,7 +145,7 @@ export async function addEmailToWhitelist(
         // Reactivate the email
         const { error: updateError } = await supabase
           .from("email_whitelist")
-          .update({ is_active: true })
+          .update({ is_active: true, is_registered: false })
           .eq("email", normalizedEmail);
 
         if (updateError) {
@@ -367,7 +367,7 @@ export async function removeEmailFromWhitelist(
 
     const { error } = await supabase
       .from("email_whitelist")
-      .update({ is_active: false })
+      .update({ is_active: false, is_registered: false })
       .eq("email", normalizedEmail);
 
     if (error) {
