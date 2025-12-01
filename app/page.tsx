@@ -68,6 +68,7 @@ async function StatsCards() {
         weight: animal.weight,
         status: nextPregnancy.pd_result || "Pregnant",
         health: animal.health,
+        pdCheckDate: nextPregnancy.pregnancy_check_date,
       };
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
@@ -88,6 +89,7 @@ async function StatsCards() {
     status: string;
     weight?: number | null;
     health?: string | null;
+    pdCheckDate?: string | null;
   }>;
 
   const formatDate = (date?: string | null) =>
@@ -126,6 +128,7 @@ async function StatsCards() {
                   <TableHead>Dam</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Health</TableHead>
+                  <TableHead>PD Check Date</TableHead>
                   <TableHead>Expected Calving</TableHead>
                   <TableHead className="text-center">Days Left</TableHead>
                   <TableHead>Status</TableHead>
@@ -149,6 +152,8 @@ async function StatsCards() {
                       {row.weight ? `${row.weight} kg` : "—"}
                     </TableCell>
                     <TableCell>{row.health}</TableCell>
+                    <TableCell>{formatDate(row.pdCheckDate)}</TableCell>
+
                     <TableCell>{formatDate(row.expectedDate)}</TableCell>
                     <TableCell className="text-center">
                       {row.daysLeft !== null ? (
