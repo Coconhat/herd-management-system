@@ -158,8 +158,8 @@ export async function recordMedicineUsage(formData: FormData) {
     treatment: healthTreatment,
     notes: usageData.reason || null,
     user_id: user.id,
-    syringes_used: Math.ceil(quantityUsed),
-    syringe_type: currentMedicine.name,
+    ml: Math.ceil(quantityUsed),
+    medication: currentMedicine.name,
   });
 
   if (healthError) {

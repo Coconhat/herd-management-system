@@ -12,8 +12,8 @@ export interface HealthRecord {
   description?: string;
   treatment?: string;
   veterinarian?: string;
-  syringes_used: number;
-  syringe_type?: string;
+  ml: number;
+  medication?: string;
   notes?: string;
   user_id: string;
   created_at: string;
@@ -62,8 +62,8 @@ export async function createHealthRecord(formData: FormData) {
     description: (formData.get("description") as string) || null,
     treatment: (formData.get("treatment") as string) || null,
     veterinarian: (formData.get("veterinarian") as string) || null,
-    syringes_used: Number.parseInt(formData.get("syringes_used") as string),
-    syringe_type: (formData.get("syringe_type") as string) || null,
+    ml: Number.parseInt(formData.get("ml") as string),
+    medication: (formData.get("medication") as string) || null,
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
   };

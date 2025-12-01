@@ -80,11 +80,10 @@ export default function HealthRecordList({ records }: { records: any[] }) {
                     {selected.veterinarian || "—"}
                   </p>
                   <p>
-                    <strong>Syringes Used:</strong> {selected.syringes_used}
+                    <strong>mL:</strong> {selected.ml}
                   </p>
                   <p>
-                    <strong>Syringe Type:</strong>{" "}
-                    {selected.syringe_type || "—"}
+                    <strong>Medication:</strong> {selected.medication || "—"}
                   </p>
                   <p className="col-span-2">
                     <strong>Notes:</strong> {selected.notes || "—"}

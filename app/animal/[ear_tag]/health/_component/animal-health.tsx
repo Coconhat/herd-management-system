@@ -41,8 +41,8 @@ export default function HealthRecordModal({ animal }: { animal: any }) {
   const [description, setDescription] = useState("");
   const [treatment, setTreatment] = useState("");
   const [veterinarian, setVeterinarian] = useState("");
-  const [syringesUsed, setSyringesUsed] = useState("");
-  const [syringeType, setSyringeType] = useState("");
+  const [ml, setMl] = useState("");
+  const [medication, setMedication] = useState("");
   const [notes, setNotes] = useState("");
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,8 +59,8 @@ export default function HealthRecordModal({ animal }: { animal: any }) {
     formData.append("treatment", treatment);
     formData.append("veterinarian", veterinarian);
     formData.append("notes", notes);
-    formData.append("syringes_used", syringesUsed ? syringesUsed : "0");
-    formData.append("syringe_type", syringeType);
+    formData.append("ml", ml ? ml : "0");
+    formData.append("medication", medication ? medication : "");
 
     await createHealthRecord(formData);
 
@@ -156,25 +156,25 @@ export default function HealthRecordModal({ animal }: { animal: any }) {
             />
           </div>
 
-          {/* SYRINGES */}
+          {/* Medication */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Syringes Used</Label>
+              <Label>How many mL</Label>
               <Input
                 type="number"
                 min={0}
-                value={syringesUsed}
-                onChange={(e) => setSyringesUsed(e.target.value)}
+                value={ml}
+                onChange={(e) => setMl(e.target.value)}
                 placeholder="0"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Syringe Type</Label>
+              <Label>Medication</Label>
               <Input
-                value={syringeType}
-                onChange={(e) => setSyringeType(e.target.value)}
-                placeholder="e.g. 3ml, 5ml"
+                value={medication}
+                onChange={(e) => setMedication(e.target.value)}
+                placeholder="Type of medication"
               />
             </div>
           </div>

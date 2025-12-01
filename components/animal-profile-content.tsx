@@ -434,8 +434,8 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                         <TableHead>Treatment</TableHead>
                         <TableHead>Veterinarian</TableHead>
                         <TableHead>Notes</TableHead>
-                        <TableHead>Syringes Used</TableHead>
-                        <TableHead>Syringe Type</TableHead>
+                        <TableHead>Medication</TableHead>
+                        <TableHead>mL</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -453,8 +453,8 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                           <TableCell>{record.treatment || "—"}</TableCell>
                           <TableCell>{record.veterinarian || "—"}</TableCell>
                           <TableCell>{record.notes || "—"}</TableCell>
-                          <TableCell>{record.syringes_used || "—"}</TableCell>
-                          <TableCell>{record.syringe_type || "—"}</TableCell>
+                          <TableCell>{record.medication || "—"}</TableCell>
+                          <TableCell>{record.ml || "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
