@@ -494,3 +494,23 @@ export async function setAnimalHealth(
   revalidatePath("/");
   revalidatePath("/inventory/animals");
 }
+
+export async function updateAnimalNotes(id: number, notes: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/auth/login");
+
+  const { error } = await supabase
+    .from("animals")
+    .update({ notes, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error("Failed to update notes: " + error.message);
+
+  revalidatePath("/");
+  revalidatePath("/inventory/animals");
+}

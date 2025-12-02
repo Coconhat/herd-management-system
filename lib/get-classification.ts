@@ -45,16 +45,8 @@ export function getClassification(animal: Animal): {
 
   const ageInMonths = ageInDays / MONTH_IN_DAYS;
 
-  if (ageInMonths <= 3) {
-    return { label: "Calf", variant: "default" };
-  }
-
-  if (ageInMonths <= 7) {
-    return { label: "Weaning", variant: "secondary" };
-  }
-
   if (ageInMonths <= 13) {
-    return { label: "Yearling", variant: "outline" };
+    return { label: "Nursery", variant: "outline" };
   }
 
   if (ageInMonths <= 15) {
