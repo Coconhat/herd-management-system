@@ -17,6 +17,7 @@ export interface Animal {
   dam_id?: number;
   sire_id?: number;
   farm_source?: string | null;
+  // Legacy status field (kept for backward compatibility)
   status:
     | "Active"
     | "Sold"
@@ -27,6 +28,18 @@ export interface Animal {
     | "Open"
     | "Empty"
     | "Dry";
+  // New dual status system
+  pregnancy_status?:
+    | "Open" // Ready for breeding
+    | "Empty" // Recently bred, can't breed yet
+    | "Waiting for PD" // Bred but not yet confirmed
+    | "Pregnant" // Confirmed pregnant
+    | "Sold"
+    | "Deceased"
+    | "Culled";
+  milking_status?:
+    | "Milking" // Can be milked
+    | "Dry"; // 7+ months pregnant, can't be milked
   notes?: string;
   user_id: string;
   created_at: string;

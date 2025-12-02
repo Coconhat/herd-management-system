@@ -176,26 +176,44 @@ export function AddAnimalModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              {/* status select: female-only statuses are conditionally rendered inside SelectContent */}
-              <Select name="status" defaultValue="Active">
+              <Label htmlFor="pregnancy_status">Pregnancy Status</Label>
+              <Select
+                name="pregnancy_status"
+                defaultValue="Open"
+                disabled={selectedSex !== "Female"}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Select pregnancy status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectedSex === "Female" && (
-                    <>
-                      <SelectItem value="Fresh">Fresh</SelectItem>
-                      <SelectItem value="Pregnant">Pregnant</SelectItem>
-                      <SelectItem value="Empty">Empty</SelectItem>
-                      <SelectItem value="Open">Open</SelectItem>
-                    </>
-                  )}
-
-                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Open">
+                    Open (Ready for breeding)
+                  </SelectItem>
+                  <SelectItem value="Empty">Empty (Recovery period)</SelectItem>
+                  <SelectItem value="Waiting for PD">Waiting for PD</SelectItem>
+                  <SelectItem value="Pregnant">Pregnant</SelectItem>
                   <SelectItem value="Sold">Sold</SelectItem>
                   <SelectItem value="Deceased">Deceased</SelectItem>
                   <SelectItem value="Culled">Culled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="milking_status">Milking Status</Label>
+              <Select
+                name="milking_status"
+                defaultValue="Milking"
+                disabled={selectedSex !== "Female"}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select milking status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Milking">
+                    Milking (Can be milked)
+                  </SelectItem>
+                  <SelectItem value="Dry">Dry (7+ months pregnant)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
