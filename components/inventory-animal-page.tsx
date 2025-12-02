@@ -455,7 +455,15 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusInfo.variant === "success" ? "secondary" : statusInfo.variant === "warning" ? "outline" : statusInfo.variant}>
+                        <Badge
+                          variant={
+                            statusInfo.variant === "success"
+                              ? "secondary"
+                              : statusInfo.variant === "warning"
+                              ? "outline"
+                              : statusInfo.variant
+                          }
+                        >
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
@@ -547,7 +555,15 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusInfo.variant === "success" ? "secondary" : statusInfo.variant === "warning" ? "outline" : statusInfo.variant}>
+                        <Badge
+                          variant={
+                            statusInfo.variant === "success"
+                              ? "secondary"
+                              : statusInfo.variant === "warning"
+                              ? "outline"
+                              : statusInfo.variant
+                          }
+                        >
                           {statusInfo.label}
                           {daysUntilDue !== null ? ` — ${daysUntilDue}d` : ""}
                         </Badge>
@@ -564,7 +580,11 @@ export default function InventoryAnimalsPage({
                               : milkingInfo.variant === "warning"
                               ? "outline"
                               : milkingInfo.variant;
-                          return <Badge variant={safeVariant}>{milkingInfo.label}</Badge>;
+                          return (
+                            <Badge variant={safeVariant}>
+                              {milkingInfo.label}
+                            </Badge>
+                          );
                         })()}
                       </TableCell>
                     </TableRow>
