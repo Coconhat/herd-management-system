@@ -48,7 +48,7 @@ import Link from "next/link";
 import type { Calving } from "@/lib/types";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "@/components/delete-animal-modal";
-import { getCombinedStatus } from "@/lib/status-helper";
+import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
 import {
   PieChart,
   Pie,
@@ -726,6 +726,9 @@ export default function Page() {
                     Status
                   </TableHead>
                   <TableHead className="font-semibold text-gray-800">
+                    Milking Status
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-800">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -787,6 +790,26 @@ export default function Page() {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      {(() => {
+                        if (animal.sex !== "Female") {
+                          return <Badge variant="outline">N/A</Badge>;
+                        }
+                        const milkingInfo = getMilkingStatus(animal);
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={
+                              milkingInfo.status === "Milking"
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-orange-50 text-orange-700 border-orange-200"
+                            }
+                          >
+                            {milkingInfo.label}
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -831,7 +854,7 @@ export default function Page() {
 
                 {paginatedAnimals.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={8} className="text-center py-12">
                       <div className="flex flex-col items-center gap-3 text-muted-foreground">
                         <Users className="h-12 w-12 opacity-50" />
                         <p className="text-lg font-medium">No animals found</p>

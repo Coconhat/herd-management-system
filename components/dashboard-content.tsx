@@ -41,7 +41,7 @@ import type { Calving } from "@/lib/types";
 import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "./delete-animal-modal";
-import { getCombinedStatus } from "@/lib/status-helper";
+import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
 import { cn } from "@/lib/utils";
 import renderFarmSource from "./get-origin-color";
 import { styleText } from "util";
@@ -170,6 +170,21 @@ export function DashboardContent({
     return <Badge variant={safeVariant}>{statusInfo.label}</Badge>;
   };
 
+  // Render milking status badge
+  const renderMilkingStatusBadge = (animal: Animal) => {
+    if (animal.sex !== "Female") {
+      return <Badge variant="outline">N/A</Badge>;
+    }
+    const milkingInfo = getMilkingStatus(animal);
+    const safeVariant =
+      milkingInfo.variant === "success"
+        ? "secondary"
+        : milkingInfo.variant === "warning"
+        ? "outline"
+        : milkingInfo.variant;
+    return <Badge variant={safeVariant}>{milkingInfo.label}</Badge>;
+  };
+
   return (
     <>
       {/* Action Buttons and Search */}
@@ -225,6 +240,7 @@ export function DashboardContent({
                     <TableHead>Classification</TableHead>
                     <TableHead>Birth Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Milking Status</TableHead>
                     <TableHead>Health</TableHead>
 
                     <TableHead>Actions</TableHead>
@@ -268,6 +284,7 @@ export function DashboardContent({
                       </TableCell>
                       <TableCell>{formatDate(animal.birth_date)}</TableCell>
                       <TableCell>{renderStatusBadge(animal)}</TableCell>
+                      <TableCell>{renderMilkingStatusBadge(animal)}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

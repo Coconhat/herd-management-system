@@ -51,7 +51,7 @@ import {
 
 import { getAnimalStats, type Animal } from "@/lib/actions/animals";
 import type { Calving, BreedingRecord } from "@/lib/types";
-import { getCombinedStatus } from "@/lib/status-helper";
+import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
 import {
   ChartConfig,
   ChartContainer,
@@ -90,8 +90,7 @@ export default function InventoryAnimalsPage({
 
   // Helper function to get combined status for an animal
   const getCombinedStatusFor = (animal: Animal) => {
-    const breedingRecords = (animal as any)?.breeding_records || [];
-    return getCombinedStatus(animal, breedingRecords);
+    return getCombinedStatus(animal);
   };
 
   // Updated status counts using combined status
@@ -456,7 +455,7 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusInfo.variant}>
+                        <Badge variant={statusInfo.variant === "success" ? "secondary" : statusInfo.variant === "warning" ? "outline" : statusInfo.variant}>
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
@@ -502,6 +501,7 @@ export default function InventoryAnimalsPage({
                   <TableHead>Sex</TableHead>
                   <TableHead>Birth Date</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Milking Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -547,10 +547,25 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusInfo.variant}>
+                        <Badge variant={statusInfo.variant === "success" ? "secondary" : statusInfo.variant === "warning" ? "outline" : statusInfo.variant}>
                           {statusInfo.label}
                           {daysUntilDue !== null ? ` — ${daysUntilDue}d` : ""}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          if (a.sex !== "Female") {
+                            return <Badge variant="outline">N/A</Badge>;
+                          }
+                          const milkingInfo = getMilkingStatus(a);
+                          const safeVariant =
+                            milkingInfo.variant === "success"
+                              ? "secondary"
+                              : milkingInfo.variant === "warning"
+                              ? "outline"
+                              : milkingInfo.variant;
+                          return <Badge variant={safeVariant}>{milkingInfo.label}</Badge>;
+                        })()}
                       </TableCell>
                     </TableRow>
                   );
