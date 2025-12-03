@@ -42,10 +42,10 @@ export function formatAge(birthDate: string): string {
   const { years, months } = calculateAge(birthDate);
 
   if (years === 0 && months === 0) return "Less than 1 month";
-  if (years === 0) return `${months} month${months !== 1 ? "s" : ""}`;
-  if (months === 0) return `${years} year${years !== 1 ? "s" : ""}`;
+  if (years === 0) return `${months} mo${months !== 1 ? "s" : ""}`;
+  if (months === 0) return `${years} yr${years !== 1 ? "s" : ""}`;
 
-  return `${years} year${years !== 1 ? "s" : ""}, ${months} month${
+  return `${years} yr${years !== 1 ? "s" : ""}, ${months} mo${
     months !== 1 ? "s" : ""
   }`;
 }
