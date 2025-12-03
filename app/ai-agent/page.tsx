@@ -25,17 +25,15 @@ export default function Chat() {
   const formatMessage = (text: string) => {
     // Split by lines and process
     const lines = text.split("\n");
-    
+
     return lines.map((line, i) => {
       const trimmedLine = line.trim();
-      
+
       // Handle horizontal rules (---)
       if (trimmedLine === "---" || trimmedLine === "---") {
-        return (
-          <hr key={i} className="my-3 border-emerald-100" />
-        );
+        return <hr key={i} className="my-3 border-emerald-100" />;
       }
-      
+
       // Handle numbered items with bold (1. **Title**)
       const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
       if (numberedMatch) {
@@ -44,11 +42,13 @@ export default function Chat() {
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold mr-2">
               {numberedMatch[1]}
             </span>
-            <span className="font-semibold text-gray-800">{numberedMatch[2]}</span>
+            <span className="font-semibold text-gray-800">
+              {numberedMatch[2]}
+            </span>
           </div>
         );
       }
-      
+
       // Handle indented bullet points (  - Field: Value)
       if (trimmedLine.startsWith("- ") && line.startsWith("  ")) {
         const content = trimmedLine.slice(2);
@@ -69,7 +69,7 @@ export default function Chat() {
           </div>
         );
       }
-      
+
       // Handle regular bullet points (• item or - item)
       if (trimmedLine.startsWith("• ") || trimmedLine.startsWith("- ")) {
         const content = trimmedLine.slice(2);
@@ -94,21 +94,24 @@ export default function Chat() {
           </div>
         );
       }
-      
+
       // Handle record headers (Record 1, Record 2, etc.)
       if (trimmedLine.match(/^(Record|Calving|Breeding|Health)\s+\d+/i)) {
         return (
-          <div key={i} className="font-semibold text-emerald-700 mt-3 mb-1 pb-1 border-b border-emerald-100">
+          <div
+            key={i}
+            className="font-semibold text-emerald-700 mt-3 mb-1 pb-1 border-b border-emerald-100"
+          >
             {trimmedLine}
           </div>
         );
       }
-      
+
       // Empty lines
       if (trimmedLine === "") {
         return <div key={i} className="h-2" />;
       }
-      
+
       // Regular text
       return (
         <div key={i} className="py-0.5">
