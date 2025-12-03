@@ -14,21 +14,26 @@ export async function revokeAuthUserByEmail(email: string) {
     const supabaseAdmin = createServiceRoleClient();
     const normalizedEmail = email.toLowerCase().trim();
 
-    const { data, error } = await supabaseAdmin
-      .from("auth.users")
-      .select("id")
-      .eq("email", normalizedEmail)
-      .limit(1);
+    // Use Admin API to list users and find by email
+    const { data: usersData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers();
 
-    if (error) {
-      console.error("Failed to locate auth user for revocation:", error);
+    if (listError) {
+      console.error("Failed to list users for revocation:", listError);
       return;
     }
 
-    const authUser = Array.isArray(data) ? data[0] : null;
+    // Find user by email
+    const authUser = usersData.users.find(
+      (u) => u.email?.toLowerCase() === normalizedEmail
+    );
+
     if (!authUser?.id) {
+      console.log("No auth user found for email:", normalizedEmail);
       return;
     }
+
+    console.log("Found auth user to delete:", authUser.id, authUser.email);
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
       authUser.id
@@ -36,6 +41,8 @@ export async function revokeAuthUserByEmail(email: string) {
 
     if (deleteError) {
       console.error("Failed to delete Supabase auth user:", deleteError);
+    } else {
+      console.log("Successfully deleted auth user:", normalizedEmail);
     }
   } catch (error) {
     console.error("Unexpected error revoking auth user:", error);
