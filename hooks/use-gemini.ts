@@ -120,13 +120,25 @@ You have access to a PostgreSQL database via Supabase. When users ask questions 
 ## Available Function:
 - executeQuery: Execute a SQL SELECT query against the database
 
+## CRITICAL - User Data Security:
+You MUST always filter queries by user_id to ensure users only see their own data.
+Use the placeholder {{USER_ID}} in your queries - it will be replaced with the actual user's ID.
+
+For example:
+- SELECT * FROM animals WHERE user_id = '{{USER_ID}}' AND status = 'Pregnant'
+- SELECT * FROM calvings WHERE user_id = '{{USER_ID}}' ORDER BY calving_date DESC
+- SELECT * FROM breeding_records WHERE user_id = '{{USER_ID}}' AND pd_result = 'Pregnant'
+
+Tables that require user_id filter: animals, breeding_records, calvings, health_records
+Tables that do NOT have user_id (shared data): diesel, feeds
+
 ## Rules:
 - ONLY generate SELECT queries (no INSERT, UPDATE, DELETE, DROP, etc.)
+- ALWAYS include user_id = '{{USER_ID}}' filter for tables that have user_id
 - Always use proper JOINs when accessing related tables
 - Be mindful of performance - use LIMIT when appropriate
 - Handle NULL values gracefully
 - Use proper date comparisons
-- Always filter by user_id when relevant (though this is handled automatically)
 
 ## Communication Style:
 - Be conversational and friendly
@@ -213,7 +225,16 @@ export type ChatMessage = {
 async function executeQuery(rawQuery: string, explanation: string) {
   const supabase = createClient();
 
-  const query = sanitizeQuery(rawQuery);
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+  const userId = user.id;
+
+  let query = sanitizeQuery(rawQuery);
 
   if (!query) {
     throw new Error("Query is empty after sanitization");
@@ -241,8 +262,17 @@ async function executeQuery(rawQuery: string, explanation: string) {
     }
   }
 
+  // Inject user_id filter into the query for tables that have user_id
+  // This ensures users can only see their own data
+  // Replace placeholder {{USER_ID}} with actual user ID
+  query = query.replace(/\{\{USER_ID\}\}/gi, userId);
+
+  // Also handle cases where AI might use :user_id or $user_id placeholders
+  query = query.replace(/(:user_id|\$user_id)/gi, `'${userId}'`);
+
   console.log("🔍 Executing query:", explanation);
   console.log("📝 SQL:", query);
+  console.log("👤 User ID:", userId);
 
   try {
     // Execute the raw SQL query
@@ -277,6 +307,12 @@ async function executeQuery(rawQuery: string, explanation: string) {
 async function executeWithQueryBuilder(query: string) {
   const supabase = createClient();
 
+  // Get current user for filtering
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   // Simple parser for basic SELECT queries
   const match = query.match(
     /SELECT\s+(.+?)\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+?))?(?:\s+ORDER BY\s+(.+?))?(?:\s+LIMIT\s+(\d+))?/i
@@ -289,6 +325,17 @@ async function executeWithQueryBuilder(query: string) {
   const [, columns, table, whereClause, orderBy, limit] = match;
 
   let queryBuilder = supabase.from(table).select(columns.trim());
+
+  // Always filter by user_id for tables that have it
+  const tablesWithUserId = [
+    "animals",
+    "breeding_records",
+    "calvings",
+    "health_records",
+  ];
+  if (userId && tablesWithUserId.includes(table.toLowerCase())) {
+    queryBuilder = queryBuilder.eq("user_id", userId);
+  }
 
   // Basic WHERE parsing (only handles simple cases)
   if (whereClause) {
