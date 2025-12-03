@@ -60,17 +60,52 @@ const DATABASE_SCHEMA = `
 - user_id: uuid
 - created_at: timestamp
 
+## Table: health_records
+- id: serial (primary key)
+- animal_id: integer (foreign key to animals.id)
+- record_date: date
+- record_type: varchar(50) (e.g., 'Vaccination', 'Treatment', 'Checkup', 'Medicine')
+- description: text
+- treatment: text
+- veterinarian: varchar(100)
+- notes: text
+- user_id: uuid
+- created_at: timestamp
+- ml: integer (milliliters of medication)
+- medication: varchar (name of medication used)
+
+## Table: diesel
+- id: uuid (primary key)
+- event_date: timestamp with time zone
+- volume_liters: numeric(10,2) (amount of diesel in liters)
+- reference: text (receipt or reference number)
+- recorded_by: text (who recorded the entry)
+- type: text ('addition' or 'usage' - default is 'addition')
+
+## Table: feeds
+- id: uuid (primary key)
+- event_date: timestamp with time zone
+- feeds: numeric(10,2) (amount of feed, e.g., in kg or bags)
+- reference: text (receipt or reference number)
+- recorded_by: text (who recorded the entry)
+
 ## Important Relationships:
 - animals.dam_id → animals.id (mother reference)
 - animals.sire_id → animals.id (father reference)
 - breeding_records.animal_id → animals.id
 - calvings.animal_id → animals.id
+- health_records.animal_id → animals.id
 
 ## Common Queries:
 - Get all pregnant animals: SELECT * FROM animals WHERE status = 'Pregnant'
 - Get breeding history: SELECT * FROM breeding_records WHERE animal_id = X ORDER BY breeding_date DESC
 - Get calving history: SELECT * FROM calvings WHERE animal_id = X ORDER BY calving_date DESC
 - Animals ready for breeding: SELECT * FROM animals WHERE status IN ('Empty', 'Open') AND reopen_date <= CURRENT_DATE
+- Get health records for an animal: SELECT * FROM health_records WHERE animal_id = X ORDER BY record_date DESC
+- Get diesel usage: SELECT * FROM diesel ORDER BY event_date DESC
+- Get feed records: SELECT * FROM feeds ORDER BY event_date DESC
+- Total diesel added: SELECT SUM(volume_liters) FROM diesel WHERE type = 'addition'
+- Total diesel used: SELECT SUM(volume_liters) FROM diesel WHERE type = 'usage'
 `;
 
 const SYSTEM_PROMPT = `
@@ -368,5 +403,18 @@ export function useGeminiChat() {
 }
 
 function stripBasicMarkdown(text: string) {
-  return text.replace(/\*\*(.*?)\*\*/g, "$1");
+  return (
+    text
+      // Remove bold markers
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      // Remove italic markers
+      .replace(/\*(.*?)\*/g, "$1")
+      // Convert bullet points (* item) to proper dash format
+      .replace(/^\s*\*\s+/gm, "• ")
+      // Remove any remaining standalone asterisks used as bullets
+      .replace(/\n\s*\*\s*/g, "\n• ")
+      // Clean up any double spaces
+      .replace(/  +/g, " ")
+      .trim()
+  );
 }
