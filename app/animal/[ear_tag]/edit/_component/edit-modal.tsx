@@ -76,6 +76,7 @@ export default function EditAnimalForm({
     animal.pregnancy_status || "Open"
   );
   const [milkingStatus, setMilkingStatus] = useState(animal.milking_status);
+  const [weight, setWeight] = useState(animal.weight || "");
   const [damId, setDamId] = useState(animal.dam_id?.toString() || "none");
   const [sireId, setSireId] = useState(animal.sire_id?.toString() || "none");
   const [farmSource, setFarmSource] = useState(animal.farm_source || "");
@@ -101,6 +102,8 @@ export default function EditAnimalForm({
     sex !== initialAnimal.sex ||
     breed !== (initialAnimal.breed || "") ||
     pregnancyStatus !== initialAnimal.pregnancy_status ||
+    milkingStatus !== (initialAnimal.milking_status || "") ||
+    weight !== (initialAnimal.weight || "") ||
     damId !== (initialAnimal.dam_id?.toString() || "none") ||
     sireId !== (initialAnimal.sire_id?.toString() || "none") ||
     farmSource !== (initialAnimal.farm_source || "") ||
@@ -164,6 +167,7 @@ export default function EditAnimalForm({
     formData.append("breed", breed);
     formData.append("pregnancy_status", pregnancyStatus);
     formData.append("milking_status", milkingStatus || "");
+    formData.append("weight", weight.toString());
     formData.append("dam_id", damId === "none" ? "" : damId);
     formData.append("sire_id", sireId === "none" ? "" : sireId);
     formData.append("farm_source", farmSource.trim());
@@ -275,6 +279,16 @@ export default function EditAnimalForm({
                   <SelectItem value="Unhealthy">Unhealthy</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <Input
+                id="weight"
+                type="number"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder="e.g., 450"
+              />
             </div>
           </div>
         </div>

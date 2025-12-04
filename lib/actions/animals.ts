@@ -204,6 +204,10 @@ export async function updateAnimal(id: number, formData: FormData) {
     (formData.get("status") as string) ||
     "Open";
 
+  // Get weight value
+  const weightValue = formData.get("weight");
+  const weight = weightValue && weightValue !== "" ? Number(weightValue) : null;
+
   const animalData: {
     ear_tag: string;
     name: string | null;
@@ -214,6 +218,7 @@ export async function updateAnimal(id: number, formData: FormData) {
     farm_source: string | null;
     pregnancy_status: string;
     milking_status: string | null;
+    weight: number | null;
     notes: string | null;
     updated_at: string;
     health?: "Healthy" | "Unhealthy" | null;
@@ -241,6 +246,7 @@ export async function updateAnimal(id: number, formData: FormData) {
         : null,
     pregnancy_status: pregnancyStatusValue,
     milking_status: formData.get("milking_status") as string,
+    weight: weight,
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),
   };
