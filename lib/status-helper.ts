@@ -164,7 +164,11 @@ function getPregnancyInfo(animal: Animal): {
  */
 export function getPregnancyStatus(animal: Animal): PregnancyStatusInfo {
   // Handle non-breeding statuses first
-  const dbStatus = (animal.status && animal.status.trim()) || "";
+  // Check pregnancy_status first (new field), fall back to status (legacy field)
+  const dbStatus =
+    (animal.pregnancy_status && animal.pregnancy_status.trim()) ||
+    (animal.status && animal.status.trim()) ||
+    "";
 
   if (["Sold", "Deceased", "Culled"].includes(dbStatus)) {
     return {
@@ -173,6 +177,48 @@ export function getPregnancyStatus(animal: Animal): PregnancyStatusInfo {
       variant: dbStatus === "Deceased" ? "destructive" : "outline",
       priority: 0,
     };
+  }
+
+  // If pregnancy_status is explicitly set to a known value, use it
+  if (
+    ["Pregnant", "Open", "Empty", "Waiting for PD", "Dry"].includes(dbStatus)
+  ) {
+    const statusMap: Record<string, PregnancyStatusInfo> = {
+      Pregnant: {
+        status: "Pregnant",
+        label: "Pregnant",
+        variant: "success",
+        priority: 6,
+      },
+      "Waiting for PD": {
+        status: "Waiting for PD",
+        label: "Waiting for PD",
+        variant: "warning",
+        priority: 4,
+      },
+      Empty: {
+        status: "Empty",
+        label: "Empty",
+        variant: "secondary",
+        priority: 2,
+      },
+      Open: {
+        status: "Open",
+        label: "Open",
+        variant: "outline",
+        priority: 3,
+      },
+      Dry: {
+        status: "Open",
+        label: "Dry",
+        variant: "outline",
+        priority: 3,
+      },
+    };
+
+    if (statusMap[dbStatus]) {
+      return statusMap[dbStatus];
+    }
   }
 
   // Only females have pregnancy status tracking
@@ -256,8 +302,10 @@ export function getPregnancyStatus(animal: Animal): PregnancyStatusInfo {
 /**
  * Determines the MILKING STATUS of an animal
  *
- * - Milking: Can be milked
- * - Dry: 7+ months (30+ weeks) pregnant, should not be milked
+ * Smart Hybrid Logic:
+ * - Respects manual "Dry" setting only if animal is still pregnant
+ * - Auto-resets after calving (fresh cows can be milked)
+ * - Falls back to auto-calculation if no manual setting
  */
 export function getMilkingStatus(animal: Animal): MilkingStatusInfo {
   // Only females can be milked
@@ -270,18 +318,56 @@ export function getMilkingStatus(animal: Animal): MilkingStatusInfo {
   }
 
   const pregnancyInfo = getPregnancyInfo(animal);
+  const dbMilkingStatus = animal.milking_status?.trim();
 
-  // If pregnant and 30+ weeks, animal should be dry
-  if (pregnancyInfo.isPregnant && pregnancyInfo.weeksPregnant >= 30) {
+  // Check if recently calved (within 60 days) - auto-reset to Milking
+  // Fresh cows should be milked regardless of previous manual "Dry" setting
+  if (pregnancyInfo.lastCalvingDate) {
+    const daysSinceCalving = differenceInDays(
+      new Date(),
+      pregnancyInfo.lastCalvingDate
+    );
+    // If calved recently and not pregnant again, they should be milking
+    if (daysSinceCalving <= 60 && !pregnancyInfo.isPregnant) {
+      return {
+        status: "Milking",
+        label: "Milking",
+        variant: "success",
+      };
+    }
+  }
+
+  // Respect manual "Dry" only if animal is still pregnant
+  // This prevents stale "Dry" status after calving
+  if (dbMilkingStatus === "Dry" && pregnancyInfo.isPregnant) {
     return {
       status: "Dry",
-      label: `Dry`,
+      label: "Dry",
       variant: "warning",
       weeksPregnant: pregnancyInfo.weeksPregnant,
     };
   }
 
-  // Otherwise, animal can be milked
+  // Respect manual "Milking" setting
+  if (dbMilkingStatus === "Milking") {
+    return {
+      status: "Milking",
+      label: "Milking",
+      variant: "success",
+    };
+  }
+
+  // Auto-calculate: If pregnant and 30+ weeks, animal should be dry
+  if (pregnancyInfo.isPregnant && pregnancyInfo.weeksPregnant >= 30) {
+    return {
+      status: "Dry",
+      label: "Dry",
+      variant: "warning",
+      weeksPregnant: pregnancyInfo.weeksPregnant,
+    };
+  }
+
+  // Default: animal can be milked
   return {
     status: "Milking",
     label: "Milking",

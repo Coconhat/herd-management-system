@@ -198,6 +198,12 @@ export async function updateAnimal(id: number, formData: FormData) {
     health = trimmed.length > 0 ? (trimmed as "Healthy" | "Unhealthy") : null;
   }
 
+  // Get pregnancy_status (or fall back to status for backward compatibility)
+  const pregnancyStatusValue =
+    (formData.get("pregnancy_status") as string) ||
+    (formData.get("status") as string) ||
+    "Open";
+
   const animalData: {
     ear_tag: string;
     name: string | null;
@@ -206,14 +212,8 @@ export async function updateAnimal(id: number, formData: FormData) {
     dam_id: number | null;
     sire_id: number | null;
     farm_source: string | null;
-    status:
-      | "Active"
-      | "Sold"
-      | "Deceased"
-      | "Culled"
-      | "Empty"
-      | "Open"
-      | "Dry";
+    pregnancy_status: string;
+    milking_status: string | null;
     notes: string | null;
     updated_at: string;
     health?: "Healthy" | "Unhealthy" | null;
@@ -239,15 +239,8 @@ export async function updateAnimal(id: number, formData: FormData) {
       (formData.get("farm_source") as string).trim() !== ""
         ? (formData.get("farm_source") as string).trim()
         : null,
-    status:
-      (formData.get("status") as
-        | "Active"
-        | "Sold"
-        | "Deceased"
-        | "Culled"
-        | "Empty"
-        | "Open"
-        | "Dry") || "Active",
+    pregnancy_status: pregnancyStatusValue,
+    milking_status: formData.get("milking_status") as string,
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),
   };

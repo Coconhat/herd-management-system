@@ -256,7 +256,17 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
               <Badge
                 variant={animal.sex === "Female" ? "secondary" : "outline"}
               >
-                {animal.status}
+                {animal.pregnancy_status}
+              </Badge>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mr-4">
+                Milking Status
+              </label>
+              <Badge
+                variant={animal.sex === "Female" ? "secondary" : "outline"}
+              >
+                {animal.milking_status}
               </Badge>
             </div>
             <div>

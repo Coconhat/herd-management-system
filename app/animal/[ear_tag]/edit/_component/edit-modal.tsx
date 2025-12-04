@@ -72,7 +72,10 @@ export default function EditAnimalForm({
   );
   const [sex, setSex] = useState(animal.sex);
   const [breed, setBreed] = useState(animal.breed || "");
-  const [status, setStatus] = useState(animal.status);
+  const [pregnancyStatus, setPregnancyStatus] = useState(
+    animal.pregnancy_status || "Open"
+  );
+  const [milkingStatus, setMilkingStatus] = useState(animal.milking_status);
   const [damId, setDamId] = useState(animal.dam_id?.toString() || "none");
   const [sireId, setSireId] = useState(animal.sire_id?.toString() || "none");
   const [farmSource, setFarmSource] = useState(animal.farm_source || "");
@@ -97,7 +100,7 @@ export default function EditAnimalForm({
         : null) ||
     sex !== initialAnimal.sex ||
     breed !== (initialAnimal.breed || "") ||
-    status !== initialAnimal.status ||
+    pregnancyStatus !== initialAnimal.pregnancy_status ||
     damId !== (initialAnimal.dam_id?.toString() || "none") ||
     sireId !== (initialAnimal.sire_id?.toString() || "none") ||
     farmSource !== (initialAnimal.farm_source || "") ||
@@ -105,14 +108,16 @@ export default function EditAnimalForm({
     health !== (initialAnimal.health || "");
 
   // Check if the status change requires deletion
-  const isTerminalStatus = ["Sold", "Deceased", "Culled"].includes(status);
+  const isTerminalStatus = ["Sold", "Deceased", "Culled"].includes(
+    pregnancyStatus
+  );
   const wasTerminalStatus = ["Sold", "Deceased", "Culled"].includes(
-    initialAnimal.status
+    initialAnimal.pregnancy_status || ""
   );
   const statusChangedToTerminal = isTerminalStatus && !wasTerminalStatus;
 
   const handleStatusChange = (newStatus: string) => {
-    setStatus(newStatus as typeof status);
+    setPregnancyStatus(newStatus as typeof pregnancyStatus);
 
     // If changing to a terminal status, show delete confirmation
     if (
@@ -121,6 +126,10 @@ export default function EditAnimalForm({
     ) {
       setShowDeleteConfirm(true);
     }
+  };
+
+  const handleMilkingStatusChange = (newStatus: string) => {
+    setMilkingStatus(newStatus as typeof milkingStatus);
   };
 
   const handleDeleteConfirm = () => {
@@ -153,7 +162,8 @@ export default function EditAnimalForm({
       formData.append("birth_date", birthDate.toISOString().split("T")[0]);
     if (sex) formData.append("sex", sex);
     formData.append("breed", breed);
-    formData.append("status", status);
+    formData.append("pregnancy_status", pregnancyStatus);
+    formData.append("milking_status", milkingStatus || "");
     formData.append("dam_id", damId === "none" ? "" : damId);
     formData.append("sire_id", sireId === "none" ? "" : sireId);
     formData.append("farm_source", farmSource.trim());
@@ -323,8 +333,11 @@ export default function EditAnimalForm({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={handleStatusChange}>
+              <Label htmlFor="pregnancy_status">Status</Label>
+              <Select
+                value={pregnancyStatus}
+                onValueChange={handleStatusChange}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -332,14 +345,29 @@ export default function EditAnimalForm({
                   <SelectItem value="Sold">Sold</SelectItem>
                   <SelectItem value="Deceased">Deceased</SelectItem>
                   <SelectItem value="Culled">Culled</SelectItem>
-                  <SelectItem value="Fresh">Fresh</SelectItem>
                   <SelectItem value="Pregnant">Pregnant</SelectItem>
                   <SelectItem value="Dry">Dry</SelectItem>
                   <SelectItem value="Empty">Empty</SelectItem>
                   <SelectItem value="Open">Open</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="space-y-2">
+                <Label htmlFor="milking_status">Milking Status</Label>
+                <Select
+                  value={milkingStatus}
+                  onValueChange={handleMilkingStatusChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select milking status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Milking">Milking</SelectItem>
+                    <SelectItem value="Dry">Dry</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="farm_source">Farm Source / Origin</Label>
               <Input
@@ -381,8 +409,8 @@ export default function EditAnimalForm({
             <AlertDialogTitle>Remove Animal from Farm?</AlertDialogTitle>
             <AlertDialogDescription>
               You've marked {earTag} ({name || "Unnamed"}) as{" "}
-              {status.toLowerCase()}. This typically means the animal is no
-              longer part of the active herd.
+              {pregnancyStatus.toLowerCase()}. This typically means the animal
+              is no longer part of the active herd.
               <br />
               <br />
               <strong>
@@ -401,7 +429,7 @@ export default function EditAnimalForm({
             <AlertDialogCancel
               onClick={() => {
                 // Reset status back to original if user cancels
-                setStatus(initialAnimal.status);
+                setPregnancyStatus(initialAnimal.pregnancy_status || "Open");
                 setShowDeleteConfirm(false);
               }}
             >
