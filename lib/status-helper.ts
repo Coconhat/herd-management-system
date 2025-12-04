@@ -27,7 +27,8 @@ export type PregnancyStatus =
 // ============================================
 export type MilkingStatus =
   | "Milking" // Can be milked
-  | "Dry"; // 7+ months pregnant, can't be milked
+  | "Dry" // 7+ months pregnant, can't be milked
+  | "N/A"; // Not applicable (males, young animals)
 
 // ============================================
 // STATUS INFO INTERFACES
@@ -299,10 +300,37 @@ export function getPregnancyStatus(animal: Animal): PregnancyStatusInfo {
   };
 }
 
+// Constants for age calculation
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const MONTH_IN_DAYS = 30.4375;
+const NURSERY_AGE_MONTHS = 13; // Animals <= 13 months are considered nursery
+
+/**
+ * Gets the animal's age in months
+ */
+function getAgeInMonths(animal: Animal): number | null {
+  if (!animal.birth_date) return null;
+
+  try {
+    const birth = parseISO(animal.birth_date);
+    if (!isValid(birth)) return null;
+
+    const today = new Date();
+    const ageInDays = Math.floor(
+      (today.getTime() - birth.getTime()) / MS_PER_DAY
+    );
+    return ageInDays / MONTH_IN_DAYS;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Determines the MILKING STATUS of an animal
  *
  * Smart Hybrid Logic:
+ * - Young animals (≤13 months / Nursery) show "N/A"
+ * - Males show "N/A"
  * - Respects manual "Dry" setting only if animal is still pregnant
  * - Auto-resets after calving (fresh cows can be milked)
  * - Falls back to auto-calculation if no manual setting
@@ -311,9 +339,19 @@ export function getMilkingStatus(animal: Animal): MilkingStatusInfo {
   // Only females can be milked
   if (animal.sex !== "Female") {
     return {
-      status: "Dry",
+      status: "N/A" as MilkingStatus,
       label: "N/A",
       variant: "default",
+    };
+  }
+
+  // Check age - young animals (nursery) can't be milked
+  const ageInMonths = getAgeInMonths(animal);
+  if (ageInMonths !== null && ageInMonths <= NURSERY_AGE_MONTHS) {
+    return {
+      status: "N/A" as MilkingStatus,
+      label: "Nursery",
+      variant: "outline",
     };
   }
 

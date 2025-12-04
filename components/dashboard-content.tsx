@@ -42,6 +42,7 @@ import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "./delete-animal-modal";
 import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
+import { AnimalSort, SortConfig, sortAnimals, DEFAULT_SORT_CONFIG } from "@/components/animal-sort";
 import { cn } from "@/lib/utils";
 import renderFarmSource from "./get-origin-color";
 import { styleText } from "util";
@@ -93,19 +94,23 @@ export function DashboardContent({
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
 
   const { toast } = useToast();
 
-  const filteredAnimals = animals.filter(
-    (animal) =>
-      animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAnimals = sortAnimals(
+    animals.filter(
+      (animal) =>
+        animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        animal.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    sortConfig
   );
 
-  // Reset to first page when search or pageSize or animals change
+  // Reset to first page when search or pageSize or animals or sort change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, pageSize, animals.length]);
+  }, [searchTerm, pageSize, animals.length, sortConfig]);
 
   const totalItems = filteredAnimals.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -198,6 +203,8 @@ export function DashboardContent({
             className="pl-10 border-0"
           />
         </div>
+
+        <AnimalSort value={sortConfig} onChange={setSortConfig} />
 
         {/* Page size selector */}
         <div className="ml-auto flex items-center gap-2">

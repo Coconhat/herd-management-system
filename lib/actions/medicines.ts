@@ -180,9 +180,9 @@ export async function recordMedicineUsage(formData: FormData) {
     // Change animal status from "Empty" to "Open" after treatment
     const { error: animalUpdateError } = await supabase
       .from("animals")
-      .update({ status: "Open" })
+      .update({ pregnancy_status: "Open" })
       .eq("id", usageData.animal_id)
-      .eq("status", "Empty"); // Only update if currently Empty
+      .eq("pregnancy_status", "Empty"); // Only update if currently Empty
 
     if (animalUpdateError) {
       console.warn(

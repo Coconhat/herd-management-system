@@ -158,14 +158,15 @@ export async function createAnimal(formData: FormData) {
       (formData.get("farm_source") as string).trim() !== ""
         ? (formData.get("farm_source") as string).trim()
         : null,
-    status:
-      (formData.get("status") as
-        | "Active"
+    pregnancy_status:
+      (formData.get("pregnancy_status") as
+        | "Open"
+        | "Waiting for PD"
+        | "Pregnant"
+        | "Empty"
         | "Sold"
         | "Deceased"
-        | "Culled"
-        | "Empty"
-        | "Dry") || "Active",
+        | "Culled") || "Open",
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
     health,
@@ -388,12 +389,12 @@ export async function getAnimalStats() {
     .from("animals")
     .select("*", { count: "exact", head: true });
 
-  // Get female animals for breeding
+  // Get female animals for breeding (exclude sold/deceased/culled)
   const { count: femaleAnimals } = await supabase
     .from("animals")
     .select("*", { count: "exact", head: true })
-    .eq("status", "Active")
-    .eq("sex", "Female");
+    .eq("sex", "Female")
+    .not("pregnancy_status", "in", "(Sold,Deceased,Culled)");
 
   // Get recent calvings (last 30 days)
   const thirtyDaysAgo = new Date();
@@ -408,7 +409,7 @@ export async function getAnimalStats() {
   const { count: pregnantCows } = await supabase
     .from("animals")
     .select("*", { count: "exact", head: true })
-    .eq("status", "Pregnant");
+    .eq("pregnancy_status", "Pregnant");
 
   return {
     totalAnimals: totalAnimals || 0,
@@ -460,7 +461,7 @@ export async function getAnimalsWithBreedingData(): Promise<Animal[]> {
     `
     )
     .eq("user_id", user.id)
-    .in("status", ["Active", "Empty", "Pregnant", "Open"]) // Include Active, Empty, Open, and Pregnant animals for breeding management
+    .not("pregnancy_status", "in", "(Sold,Deceased,Culled)") // Exclude terminal statuses from breeding management
     .order("ear_tag", { ascending: true });
 
   if (error) {

@@ -556,7 +556,7 @@ export function PregnancyClient({ animals }: PregnancyClientProps) {
               ear_tag: selectedRecord.dam_ear_tag,
               name: selectedRecord.dam_name,
               breeding_records: [selectedRecord],
-              status: "Active",
+              pregnancy_status: "Pregnant",
               created_at: "",
               updated_at: "",
             },

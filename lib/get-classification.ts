@@ -13,7 +13,10 @@ export function getClassification(animal: Animal): {
   today.setHours(0, 0, 0, 0);
 
   const daysUntilCalving = getDaysUntilExpectedCalving(animal, today);
-  const normalizedStatus = animal.status?.toLowerCase();
+  // Use pregnancy_status first, fall back to status for backward compatibility
+  const normalizedStatus = (
+    animal.pregnancy_status || animal.status
+  )?.toLowerCase();
 
   if (normalizedStatus === "fresh") {
     return { label: "Milking", variant: "secondary" };

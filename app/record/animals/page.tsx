@@ -49,6 +49,7 @@ import type { Calving } from "@/lib/types";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "@/components/delete-animal-modal";
 import { getPregnancyStatus, getMilkingStatus } from "@/lib/status-helper";
+import { AnimalSort, SortConfig, sortAnimals, DEFAULT_SORT_CONFIG } from "@/components/animal-sort";
 import {
   PieChart,
   Pie,
@@ -134,7 +135,7 @@ const exportToCSV = (animals: Animal[]) => {
             : "",
           age,
           `"${animal.breed || ""}"`,
-          animal.status || "",
+          animal.pregnancy_status || animal.status || "",
           (animal as any).dam_ear_tag || "",
           (animal as any).sire_ear_tag || "",
           calvings.length.toString(),
@@ -158,7 +159,7 @@ const exportToCSV = (animals: Animal[]) => {
           : "",
         age,
         `"${animal.breed || ""}"`,
-        animal.status || "",
+        animal.pregnancy_status || animal.status || "",
         (animal as any).dam_ear_tag || "",
         (animal as any).sire_ear_tag || "",
         "0",
@@ -203,6 +204,7 @@ export default function Page() {
   const [showCharts, setShowCharts] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [sexFilter, setSexFilter] = useState("all");
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
 
   const [animals, setAnimals] = useState<Animal[]>([]);
 
@@ -220,24 +222,27 @@ export default function Page() {
 
   const { toast } = useToast();
 
-  // Enhanced filtering
-  const filteredAnimals = animals.filter((animal) => {
-    const matchesSearch =
-      animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Enhanced filtering and sorting
+  const filteredAnimals = sortAnimals(
+    animals.filter((animal) => {
+      const matchesSearch =
+        animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        animal.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const pregnancyInfo = getPregnancyStatus(animal);
-    const matchesStatus =
-      statusFilter === "all" || pregnancyInfo.status === statusFilter;
-    const matchesSex = sexFilter === "all" || animal.sex === sexFilter;
+      const pregnancyInfo = getPregnancyStatus(animal);
+      const matchesStatus =
+        statusFilter === "all" || pregnancyInfo.status === statusFilter;
+      const matchesSex = sexFilter === "all" || animal.sex === sexFilter;
 
-    return matchesSearch && matchesStatus && matchesSex;
-  });
+      return matchesSearch && matchesStatus && matchesSex;
+    }),
+    sortConfig
+  );
 
   // Reset to first page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, pageSize, animals.length, statusFilter, sexFilter]);
+  }, [searchTerm, pageSize, animals.length, statusFilter, sexFilter, sortConfig]);
 
   const totalItems = filteredAnimals.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -684,6 +689,8 @@ export default function Page() {
                   </option>
                 ))}
               </select>
+
+              <AnimalSort value={sortConfig} onChange={setSortConfig} />
             </div>
           </div>
         </CardContent>

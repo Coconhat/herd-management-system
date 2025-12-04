@@ -74,9 +74,7 @@ export async function getFemaleCattleWithMilkingRecords() {
     .from("animals")
     .select("*, milking_records(*), breeding_records(*), calvings(*)")
     .eq("sex", "Female")
-    .neq("status", "Sold")
-    .neq("status", "Deceased")
-    .neq("status", "Culled")
+    .not("pregnancy_status", "in", "(Sold,Deceased,Culled)")
     .order("ear_tag", { ascending: true });
 
   if (error) {

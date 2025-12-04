@@ -389,7 +389,7 @@ export async function structuredImportAction(sheetsData: SheetData[]) {
             sire_id: animal.sire_id,
             breed: animal.breed,
             weight: animal.weight,
-            status: "Active",
+            pregnancy_status: "Open",
           }))
         )
         .select("id, ear_tag");

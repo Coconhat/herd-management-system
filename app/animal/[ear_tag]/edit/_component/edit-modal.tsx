@@ -125,7 +125,9 @@ export default function EditAnimalForm({
     // If changing to a terminal status, show delete confirmation
     if (
       ["Sold", "Deceased", "Culled"].includes(newStatus) &&
-      !["Sold", "Deceased", "Culled"].includes(initialAnimal.status)
+      !["Sold", "Deceased", "Culled"].includes(
+        initialAnimal.pregnancy_status || ""
+      )
     ) {
       setShowDeleteConfirm(true);
     }
