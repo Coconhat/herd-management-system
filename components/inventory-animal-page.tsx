@@ -52,7 +52,12 @@ import {
 import { getAnimalStats, type Animal } from "@/lib/actions/animals";
 import type { Calving, BreedingRecord } from "@/lib/types";
 import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
-import { AnimalSort, SortConfig, sortAnimals, DEFAULT_SORT_CONFIG } from "@/components/animal-sort";
+import {
+  AnimalSort,
+  SortConfig,
+  sortAnimals,
+  DEFAULT_SORT_CONFIG,
+} from "@/components/animal-sort";
 import {
   ChartConfig,
   ChartContainer,

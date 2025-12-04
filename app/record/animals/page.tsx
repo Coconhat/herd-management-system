@@ -49,7 +49,12 @@ import type { Calving } from "@/lib/types";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "@/components/delete-animal-modal";
 import { getPregnancyStatus, getMilkingStatus } from "@/lib/status-helper";
-import { AnimalSort, SortConfig, sortAnimals, DEFAULT_SORT_CONFIG } from "@/components/animal-sort";
+import {
+  AnimalSort,
+  SortConfig,
+  sortAnimals,
+  DEFAULT_SORT_CONFIG,
+} from "@/components/animal-sort";
 import {
   PieChart,
   Pie,
@@ -242,7 +247,14 @@ export default function Page() {
   // Reset to first page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, pageSize, animals.length, statusFilter, sexFilter, sortConfig]);
+  }, [
+    searchTerm,
+    pageSize,
+    animals.length,
+    statusFilter,
+    sexFilter,
+    sortConfig,
+  ]);
 
   const totalItems = filteredAnimals.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));

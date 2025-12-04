@@ -42,7 +42,12 @@ import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "./delete-animal-modal";
 import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
-import { AnimalSort, SortConfig, sortAnimals, DEFAULT_SORT_CONFIG } from "@/components/animal-sort";
+import {
+  AnimalSort,
+  SortConfig,
+  sortAnimals,
+  DEFAULT_SORT_CONFIG,
+} from "@/components/animal-sort";
 import { cn } from "@/lib/utils";
 import renderFarmSource from "./get-origin-color";
 import { styleText } from "util";

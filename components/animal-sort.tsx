@@ -90,10 +90,10 @@ export function AnimalSort({ value, onChange, className }: AnimalSortProps) {
   return (
     <div className={`flex items-center gap-2 ${className || ""}`}>
       <ArrowUpDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-      
+
       {/* Primary Sort Category */}
-      <Select 
-        value={value.category} 
+      <Select
+        value={value.category}
         onValueChange={(v) => handleCategoryChange(v as SortCategory)}
       >
         <SelectTrigger className="w-[140px]">
@@ -111,10 +111,7 @@ export function AnimalSort({ value, onChange, className }: AnimalSortProps) {
 
       {/* Secondary Sub-Option */}
       {subOptions.length > 0 && (
-        <Select
-          value={value.subOption}
-          onValueChange={handleSubOptionChange}
-        >
+        <Select value={value.subOption} onValueChange={handleSubOptionChange}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Option..." />
           </SelectTrigger>
@@ -140,32 +137,32 @@ export const DEFAULT_SORT_CONFIG: SortConfig = {
 // Classification priority order (default)
 const CLASSIFICATION_ORDER: Record<string, number> = {
   "Pregnant Cow": 1,
-  "Dry": 2,
-  "Milking": 3,
+  Dry: 2,
+  Milking: 3,
   "Adult Cow": 4,
-  "Heifer": 5,
-  "Nursery": 6,
+  Heifer: 5,
+  Nursery: 6,
   "Not Born Yet": 7,
-  "Unknown": 8,
+  Unknown: 8,
 };
 
 // Pregnancy status priority order (default)
 const PREGNANCY_STATUS_ORDER: Record<string, number> = {
-  "Pregnant": 1,
+  Pregnant: 1,
   "Waiting for PD": 2,
-  "Empty": 3,
-  "Open": 4,
-  "Sold": 5,
-  "Deceased": 6,
-  "Culled": 7,
+  Empty: 3,
+  Open: 4,
+  Sold: 5,
+  Deceased: 6,
+  Culled: 7,
 };
 
 // Milking status priority order (default)
 const MILKING_STATUS_ORDER: Record<string, number> = {
-  "Milking": 1,
-  "Dry": 2,
+  Milking: 1,
+  Dry: 2,
   "N/A": 3,
-  "Nursery": 4,
+  Nursery: 4,
 };
 
 /**
@@ -175,7 +172,9 @@ function getAgeInDays(animal: Animal): number {
   if (!animal.birth_date) return Infinity;
   const birth = new Date(animal.birth_date);
   const today = new Date();
-  return Math.floor((today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor(
+    (today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24)
+  );
 }
 
 /**
@@ -189,7 +188,11 @@ export function sortAnimals(animals: Animal[], config: SortConfig): Animal[] {
     case "default":
       // Sort by ear tag
       return sorted.sort((a, b) => {
-        const cmp = (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, { numeric: true });
+        const cmp = (a.ear_tag || "").localeCompare(
+          b.ear_tag || "",
+          undefined,
+          { numeric: true }
+        );
         return subOption === "desc" ? -cmp : cmp;
       });
 
@@ -197,7 +200,7 @@ export function sortAnimals(animals: Animal[], config: SortConfig): Animal[] {
       return sorted.sort((a, b) => {
         const classA = getClassification(a).label;
         const classB = getClassification(b).label;
-        
+
         if (subOption !== "all") {
           // Specific classification first
           const aIsTarget = classA === subOption;
@@ -205,20 +208,22 @@ export function sortAnimals(animals: Animal[], config: SortConfig): Animal[] {
           if (aIsTarget && !bIsTarget) return -1;
           if (!aIsTarget && bIsTarget) return 1;
         }
-        
+
         // Then by default order
         const orderA = CLASSIFICATION_ORDER[classA] ?? 99;
         const orderB = CLASSIFICATION_ORDER[classB] ?? 99;
         if (orderA !== orderB) return orderA - orderB;
-        
-        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, { numeric: true });
+
+        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, {
+          numeric: true,
+        });
       });
 
     case "sex":
       return sorted.sort((a, b) => {
         const aIsFemale = a.sex === "Female";
         const bIsFemale = b.sex === "Female";
-        
+
         if (subOption === "female_first") {
           if (aIsFemale && !bIsFemale) return -1;
           if (!aIsFemale && bIsFemale) return 1;
@@ -227,15 +232,17 @@ export function sortAnimals(animals: Animal[], config: SortConfig): Animal[] {
           if (!aIsFemale && bIsFemale) return -1;
           if (aIsFemale && !bIsFemale) return 1;
         }
-        
-        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, { numeric: true });
+
+        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, {
+          numeric: true,
+        });
       });
 
     case "pregnancy_status":
       return sorted.sort((a, b) => {
         const statusA = getCombinedStatus(a).status;
         const statusB = getCombinedStatus(b).status;
-        
+
         if (subOption !== "all") {
           // Specific status first
           const aIsTarget = statusA === subOption;
@@ -243,20 +250,22 @@ export function sortAnimals(animals: Animal[], config: SortConfig): Animal[] {
           if (aIsTarget && !bIsTarget) return -1;
           if (!aIsTarget && bIsTarget) return 1;
         }
-        
+
         // Then by default order
         const orderA = PREGNANCY_STATUS_ORDER[statusA] ?? 99;
         const orderB = PREGNANCY_STATUS_ORDER[statusB] ?? 99;
         if (orderA !== orderB) return orderA - orderB;
-        
-        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, { numeric: true });
+
+        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, {
+          numeric: true,
+        });
       });
 
     case "milking_status":
       return sorted.sort((a, b) => {
         const milkA = getMilkingStatus(a).status;
         const milkB = getMilkingStatus(b).status;
-        
+
         if (subOption !== "all") {
           // Specific status first
           const aIsTarget = milkA === subOption;
@@ -264,33 +273,37 @@ export function sortAnimals(animals: Animal[], config: SortConfig): Animal[] {
           if (aIsTarget && !bIsTarget) return -1;
           if (!aIsTarget && bIsTarget) return 1;
         }
-        
+
         // Then by default order
         const orderA = MILKING_STATUS_ORDER[milkA] ?? 99;
         const orderB = MILKING_STATUS_ORDER[milkB] ?? 99;
         if (orderA !== orderB) return orderA - orderB;
-        
-        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, { numeric: true });
+
+        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, {
+          numeric: true,
+        });
       });
 
     case "age":
       return sorted.sort((a, b) => {
         const ageA = getAgeInDays(a);
         const ageB = getAgeInDays(b);
-        
+
         // Handle unknown ages
         if (ageA === Infinity && ageB === Infinity) return 0;
         if (ageA === Infinity) return 1;
         if (ageB === Infinity) return -1;
-        
+
         if (subOption === "youngest") {
           if (ageA !== ageB) return ageA - ageB;
         } else {
           // oldest
           if (ageA !== ageB) return ageB - ageA;
         }
-        
-        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, { numeric: true });
+
+        return (a.ear_tag || "").localeCompare(b.ear_tag || "", undefined, {
+          numeric: true,
+        });
       });
 
     default:
