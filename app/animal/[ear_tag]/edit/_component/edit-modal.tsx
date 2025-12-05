@@ -225,7 +225,7 @@ export default function EditAnimalForm({
               />
             </div>
             <div className="space-y-2">
-              <Label>Birth Date</Label>
+              <Label>B-Day</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button

@@ -130,7 +130,11 @@ export function DashboardContent({
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}/${day}/${year}`;
   };
 
   const pageSizes = [5, 10, 25, 50];
@@ -250,7 +254,7 @@ export function DashboardContent({
                     <TableHead>Sex</TableHead>
                     <TableHead>Age</TableHead>
                     <TableHead>Classification</TableHead>
-                    <TableHead>Birth Date</TableHead>
+                    <TableHead>B-Day</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Milking Status</TableHead>
                     <TableHead>Health</TableHead>
@@ -304,15 +308,16 @@ export function DashboardContent({
                               variant="outline"
                               size="sm"
                               className={cn(
+                                "text-xs px-2 h-7",
                                 (optimisticHealth[animal.id] ??
                                   animal.health) === "Healthy"
-                                  ? "  text-black "
+                                  ? "text-black"
                                   : "bg-red-600 text-white hover:bg-red-700"
                               )}
                             >
                               {optimisticHealth[animal.id] ??
                                 animal.health ??
-                                "Set Health"}
+                                "Set"}
                             </Button>
                           </DropdownMenuTrigger>
 
