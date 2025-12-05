@@ -249,7 +249,15 @@ export function AddAnimalModal({
                   >
                     {damValue
                       ? femaleAnimals.find((a) => a.id.toString() === damValue)
-                        ? `${femaleAnimals.find((a) => a.id.toString() === damValue)?.ear_tag} - ${femaleAnimals.find((a) => a.id.toString() === damValue)?.name || "Unnamed"}`
+                        ? `${
+                            femaleAnimals.find(
+                              (a) => a.id.toString() === damValue
+                            )?.ear_tag
+                          } - ${
+                            femaleAnimals.find(
+                              (a) => a.id.toString() === damValue
+                            )?.name || "Unnamed"
+                          }`
                         : "Unknown"
                       : "Select dam..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -317,7 +325,15 @@ export function AddAnimalModal({
                   >
                     {sireValue
                       ? maleAnimals.find((a) => a.id.toString() === sireValue)
-                        ? `${maleAnimals.find((a) => a.id.toString() === sireValue)?.ear_tag} - ${maleAnimals.find((a) => a.id.toString() === sireValue)?.name || "Unnamed"}`
+                        ? `${
+                            maleAnimals.find(
+                              (a) => a.id.toString() === sireValue
+                            )?.ear_tag
+                          } - ${
+                            maleAnimals.find(
+                              (a) => a.id.toString() === sireValue
+                            )?.name || "Unnamed"
+                          }`
                         : "Unknown"
                       : "Select sire..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
