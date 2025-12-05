@@ -216,7 +216,7 @@ export function AddAnimalModal({
                   <SelectItem value="Milking">
                     Milking (Can be milked)
                   </SelectItem>
-                  <SelectItem value="Dry">Dry (7+ months pregnant)</SelectItem>
+                  <SelectItem value="Dry">Dry</SelectItem>
                 </SelectContent>
               </Select>
             </div>
