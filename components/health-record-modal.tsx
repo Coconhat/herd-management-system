@@ -55,20 +55,7 @@ export default function HealthRecordModal({
     if (recordDate)
       fd.set("record_date", recordDate.toISOString().split("T")[0]);
 
-    // Required DB values
-    fd.set("animal_id", String(animalId));
-    fd.set("user_id", userId);
-
     if (onSubmit) {
-      startTransition(async () => {
-        try {
-          await onSubmit(fd);
-          setRecordDate(undefined);
-          onOpenChange(false);
-        } catch (err) {
-          console.error("HealthRecordModal submit failed:", err);
-        }
-      });
     } else {
       console.log("Health Record Payload:", Object.fromEntries(fd.entries()));
       onOpenChange(false);

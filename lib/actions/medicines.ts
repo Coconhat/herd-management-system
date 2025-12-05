@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { format, isBefore, parseISO } from "date-fns";
+import { create } from "domain";
 
 export interface Medicine {
   id: number;
@@ -236,4 +237,66 @@ export async function hasBreedingRecordTreatment(
   }
 
   return data && data.length > 0;
+}
+
+export async function editMedicineQuantity(
+  medicineId: number,
+  formData: FormData
+) {
+  const supabase = await createClient();
+  const newQuantity = Number(formData.get("stock_quantity"));
+
+  const { error } = await supabase
+    .from("medicines")
+    .update({
+      stock_quantity: newQuantity,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", medicineId);
+  if (error) {
+    console.error("Error updating medicine quantity:", error);
+    throw new Error("Could not update medicine quantity.");
+  }
+}
+
+export async function editMedicineExpiration(
+  medicineId: number,
+  formData: FormData
+) {
+  const supabase = await createClient();
+  const newExpirationDate = formData.get("expiration_date") as string;
+
+  const { error } = await supabase
+    .from("medicines")
+    .update({
+      expiration_date: newExpirationDate,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", medicineId);
+  if (error) {
+    console.error("Error updating medicine expiration date:", error);
+    throw new Error("Could not update medicine expiration date.");
+  }
+  revalidatePath("/inventory/medicine");
+}
+
+export async function deleteMedicine(medicineId: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Authentication required.");
+
+  const { error } = await supabase
+    .from("medicines")
+    .delete()
+    .eq("id", medicineId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Error deleting medicine:", error);
+    throw new Error("Could not delete medicine.");
+  }
+
+  revalidatePath("/inventory/medicine");
 }

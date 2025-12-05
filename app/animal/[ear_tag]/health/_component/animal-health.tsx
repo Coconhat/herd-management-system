@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,9 @@ import { createHealthRecord } from "@/lib/actions/health-records";
 
 export default function HealthRecordModal({ animal }: { animal: any }) {
   const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const { toast } = useToast();
 
   // form state
   const [recordDate, setRecordDate] = useState<Date | undefined>();
@@ -44,6 +49,17 @@ export default function HealthRecordModal({ animal }: { animal: any }) {
   const [ml, setMl] = useState("");
   const [medication, setMedication] = useState("");
   const [notes, setNotes] = useState("");
+
+  const resetForm = () => {
+    setRecordDate(undefined);
+    setRecordType("");
+    setDescription("");
+    setTreatment("");
+    setVeterinarian("");
+    setMl("");
+    setMedication("");
+    setNotes("");
+  };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,9 +78,27 @@ export default function HealthRecordModal({ animal }: { animal: any }) {
     formData.append("ml", ml ? ml : "0");
     formData.append("medication", medication ? medication : "");
 
-    await createHealthRecord(formData);
+    startTransition(async () => {
+      try {
+        await createHealthRecord(formData);
 
-    setOpen(false);
+        toast({
+          title: "Success",
+          description: "Health record created successfully",
+        });
+
+        resetForm();
+        setOpen(false);
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to create health record:", error);
+        toast({
+          title: "Error",
+          description: "Failed to create health record. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   return (
@@ -190,7 +224,17 @@ export default function HealthRecordModal({ animal }: { animal: any }) {
           </div>
 
           <DialogFooter>
-            <Button type="submit">Save Record</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving..." : "Save Record"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

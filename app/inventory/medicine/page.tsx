@@ -38,6 +38,7 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
+import { EditMedicineModal } from "./_components/edit-medicine-modal";
 
 // Define a type for the variant of the badge component, assuming 'warning' is available.
 type BadgeVariant = "default" | "secondary" | "destructive" | "warning";
@@ -50,6 +51,7 @@ interface StatusResult {
 
 export default async function MedicineInventoryPage() {
   const medicines = await getMedicines();
+
   const today = startOfToday();
 
   const getStatus = (expDate: string | null | undefined): StatusResult => {
@@ -306,6 +308,9 @@ l-amber-500 hover:shadow-lg transition-all duration-300"
                     <TableHead className="whitespace-nowrap font-semibold">
                       Status
                     </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -405,6 +410,9 @@ l-amber-500 hover:shadow-lg transition-all duration-300"
                             >
                               {status.text}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <EditMedicineModal medicineId={med.id} />
                           </TableCell>
                         </TableRow>
                       );

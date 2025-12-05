@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addMedicine } from "@/lib/actions/medicines";
-import { useToast } from "@/components/ui/use-toast"; // Ensure correct import path
+import { useToast } from "@/components/ui/use-toast";
 import { PlusCircle } from "lucide-react";
 
 export function AddMedicineModal() {
