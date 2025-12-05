@@ -170,6 +170,9 @@ export function AddAnimalModal({
                     selected={birthDate}
                     onSelect={setBirthDate}
                     initialFocus
+                    captionLayout="dropdown"
+                    fromYear={1990}
+                    toYear={new Date().getFullYear()}
                   />
                 </PopoverContent>
               </Popover>
