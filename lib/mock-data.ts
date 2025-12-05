@@ -1,4 +1,10 @@
-import type { Animal, Calving, HealthRecord, BreedingRecord, AnimalWithDetails } from "./types"
+import type {
+  Animal,
+  Calving,
+  HealthRecord,
+  BreedingRecord,
+  AnimalWithDetails,
+} from "./types";
 
 export const mockAnimals: Animal[] = [
   {
@@ -89,7 +95,7 @@ export const mockAnimals: Animal[] = [
     created_at: "2023-01-01T00:00:00Z",
     updated_at: "2023-01-01T00:00:00Z",
   },
-]
+];
 
 export const mockCalvings: Calving[] = [
   {
@@ -142,7 +148,7 @@ export const mockCalvings: Calving[] = [
     assistance_required: false,
     created_at: "2023-06-30T00:00:00Z",
   },
-]
+];
 
 export const mockHealthRecords: HealthRecord[] = [
   {
@@ -185,7 +191,7 @@ export const mockHealthRecords: HealthRecord[] = [
     cost: 30.0,
     created_at: "2023-05-10T00:00:00Z",
   },
-]
+];
 
 export const mockBreedingRecords: BreedingRecord[] = [
   {
@@ -228,33 +234,49 @@ export const mockBreedingRecords: BreedingRecord[] = [
     confirmed_pregnant: true,
     created_at: "2023-09-05T00:00:00Z",
   },
-]
+];
 
 // Helper function to get animal with all related data
-export function getAnimalWithDetails(animalId: number): AnimalWithDetails | undefined {
-  const animal = mockAnimals.find((a) => a.id === animalId)
-  if (!animal) return undefined
+export function getAnimalWithDetails(
+  animalId: number
+): AnimalWithDetails | undefined {
+  const animal = mockAnimals.find((a) => a.id === animalId);
+  if (!animal) return undefined;
 
   return {
     ...animal,
     calvings: mockCalvings.filter((c) => c.animal_id === animalId),
     health_records: mockHealthRecords.filter((h) => h.animal_id === animalId),
-    breeding_records: mockBreedingRecords.filter((b) => b.animal_id === animalId),
-    dam: animal.dam_id ? mockAnimals.find((a) => a.id === animal.dam_id) : undefined,
-    sire: animal.sire_id ? mockAnimals.find((a) => a.id === animal.sire_id) : undefined,
-  }
+    breeding_records: mockBreedingRecords.filter(
+      (b) => b.animal_id === animalId
+    ),
+    dam: animal.dam_id
+      ? mockAnimals.find((a) => a.id === animal.dam_id)
+      : undefined,
+    sire: animal.sire_id
+      ? mockAnimals.find((a) => a.id === animal.sire_id)
+      : undefined,
+  };
 }
 
 // Helper function to get herd statistics
 export function getHerdStats() {
-  const totalAnimals = mockAnimals.filter((a) => a.status === "Active").length
-  const totalFemales = mockAnimals.filter((a) => a.status === "Active" && a.sex === "Female").length
-  const totalMales = mockAnimals.filter((a) => a.status === "Active" && a.sex === "Male").length
-  const totalCalvings = mockCalvings.length
+  const isActiveAnimal = (a: any) =>
+    !["Sold", "Deceased", "Culled"].includes(a.pregnancy_status || a.status);
+  const totalAnimals = mockAnimals.filter(isActiveAnimal).length;
+  const totalFemales = mockAnimals.filter(
+    (a) => isActiveAnimal(a) && a.sex === "Female"
+  ).length;
+  const totalMales = mockAnimals.filter(
+    (a) => isActiveAnimal(a) && a.sex === "Male"
+  ).length;
+  const totalCalvings = mockCalvings.length;
   const calvingsThisYear = mockCalvings.filter(
-    (c) => new Date(c.calving_date).getFullYear() === new Date().getFullYear(),
-  ).length
-  const pregnantCows = mockBreedingRecords.filter((b) => b.confirmed_pregnant === true).length
+    (c) => new Date(c.calving_date).getFullYear() === new Date().getFullYear()
+  ).length;
+  const pregnantCows = mockBreedingRecords.filter(
+    (b) => b.confirmed_pregnant === true
+  ).length;
 
   return {
     totalAnimals,
@@ -263,5 +285,5 @@ export function getHerdStats() {
     totalCalvings,
     calvingsThisYear,
     pregnantCows,
-  }
+  };
 }

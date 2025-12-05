@@ -1,55 +1,58 @@
-"use server"
+"use server";
 
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export interface HealthRecord {
-  id: number
-  animal_id: number
-  record_date: string
-  record_type: string
-  description?: string
-  treatment?: string
-  veterinarian?: string
-  cost?: number
-  notes?: string
-  user_id: string
-  created_at: string
+  id: number;
+  animal_id: number;
+  record_date: string;
+  record_type: string;
+  description?: string;
+  treatment?: string;
+  veterinarian?: string;
+  ml: number;
+  medication?: string;
+  notes?: string;
+  user_id: string;
+  created_at: string;
 }
 
-export async function getHealthRecordsByAnimalId(animalId: number): Promise<HealthRecord[]> {
-  const supabase = await createClient()
+export async function getHealthRecordsByAnimalId(
+  animalId: number
+): Promise<HealthRecord[]> {
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/auth/login")
+    redirect("/auth/login");
   }
 
   const { data, error } = await supabase
     .from("health_records")
     .select("*")
     .eq("animal_id", animalId)
-    .order("record_date", { ascending: false })
+    .order("record_date", { ascending: false });
 
   if (error) {
-    console.error("Error fetching health records:", error)
-    return []
+    console.error("Error fetching health records:", error);
+    return [];
   }
 
-  return data || []
+  return data || [];
 }
 
 export async function createHealthRecord(formData: FormData) {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/auth/login")
+    redirect("/auth/login");
   }
 
   const healthData = {
@@ -59,17 +62,18 @@ export async function createHealthRecord(formData: FormData) {
     description: (formData.get("description") as string) || null,
     treatment: (formData.get("treatment") as string) || null,
     veterinarian: (formData.get("veterinarian") as string) || null,
-    cost: formData.get("cost") ? Number.parseFloat(formData.get("cost") as string) : null,
+    ml: Number.parseInt(formData.get("ml") as string),
+    medication: (formData.get("medication") as string) || null,
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
-  }
+  };
 
-  const { error } = await supabase.from("health_records").insert(healthData)
+  const { error } = await supabase.from("health_records").insert(healthData);
 
   if (error) {
-    console.error("Error creating health record:", error)
-    throw new Error("Failed to create health record")
+    console.error("Error creating health record:", error);
+    throw new Error("Failed to create health record");
   }
 
-  revalidatePath(`/animal/${healthData.animal_id}`)
+  revalidatePath(`/`);
 }

@@ -96,7 +96,10 @@ export function RecordBreedingModal({
   const openFemales = sortByRelevance(
     animals.filter(
       (a) =>
-        a.sex === "Female" && (a.status === "Open" || a.status === "Active")
+        a.sex === "Female" &&
+        ((a.pregnancy_status || a.status) === "Open" ||
+          (a.pregnancy_status || a.status) === "Active" ||
+          (a.pregnancy_status || a.status) === "Empty")
     ),
     damSearchQuery
   );

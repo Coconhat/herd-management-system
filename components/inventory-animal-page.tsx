@@ -51,7 +51,13 @@ import {
 
 import { getAnimalStats, type Animal } from "@/lib/actions/animals";
 import type { Calving, BreedingRecord } from "@/lib/types";
-import { getCombinedStatus } from "@/lib/status-helper";
+import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
+import {
+  AnimalSort,
+  SortConfig,
+  sortAnimals,
+  DEFAULT_SORT_CONFIG,
+} from "@/components/animal-sort";
 import {
   ChartConfig,
   ChartContainer,
@@ -87,11 +93,11 @@ export default function InventoryAnimalsPage({
   const [addOpen, setAddOpen] = useState(false);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
 
   // Helper function to get combined status for an animal
   const getCombinedStatusFor = (animal: Animal) => {
-    const breedingRecords = (animal as any)?.breeding_records || [];
-    return getCombinedStatus(animal, breedingRecords);
+    return getCombinedStatus(animal);
   };
 
   // Updated status counts using combined status
@@ -159,11 +165,16 @@ export default function InventoryAnimalsPage({
     });
   }, [animals]);
 
-  const filtered = (animals || []).filter(
-    (a) =>
-      (a?.ear_tag || "").toLowerCase().includes(search.toLowerCase()) ||
-      (a?.name || "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter animals by search
+  const filtered = useMemo(() => {
+    const searchFiltered = (animals || []).filter(
+      (a) =>
+        (a?.ear_tag || "").toLowerCase().includes(search.toLowerCase()) ||
+        (a?.name || "").toLowerCase().includes(search.toLowerCase())
+    );
+    // Apply sorting
+    return sortAnimals(searchFiltered, sortConfig);
+  }, [animals, search, sortConfig]);
 
   // Pagination calculations
   const totalRecords = filtered.length;
@@ -172,10 +183,10 @@ export default function InventoryAnimalsPage({
   const endIndex = startIndex + pageSize;
   const paginatedAnimals = filtered.slice(startIndex, endIndex);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or sort changes
   React.useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, sortConfig]);
 
   // Generate pagination range
   const getPaginationRange = () => {
@@ -456,7 +467,15 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusInfo.variant}>
+                        <Badge
+                          variant={
+                            statusInfo.variant === "success"
+                              ? "secondary"
+                              : statusInfo.variant === "warning"
+                              ? "outline"
+                              : statusInfo.variant
+                          }
+                        >
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
@@ -481,13 +500,14 @@ export default function InventoryAnimalsPage({
         <CardHeader>
           <CardTitle>Animals</CardTitle>
           <CardDescription>Full inventory</CardDescription>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Input
               placeholder="Search by tag or name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-xs"
             />
+            <AnimalSort value={sortConfig} onChange={setSortConfig} />
             <Button onClick={() => setAddOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Add Animal
             </Button>
@@ -502,6 +522,7 @@ export default function InventoryAnimalsPage({
                   <TableHead>Sex</TableHead>
                   <TableHead>Birth Date</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Milking Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -547,10 +568,37 @@ export default function InventoryAnimalsPage({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusInfo.variant}>
+                        <Badge
+                          variant={
+                            statusInfo.variant === "success"
+                              ? "secondary"
+                              : statusInfo.variant === "warning"
+                              ? "outline"
+                              : statusInfo.variant
+                          }
+                        >
                           {statusInfo.label}
                           {daysUntilDue !== null ? ` — ${daysUntilDue}d` : ""}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          if (a.sex !== "Female") {
+                            return <Badge variant="outline">N/A</Badge>;
+                          }
+                          const milkingInfo = getMilkingStatus(a);
+                          const safeVariant =
+                            milkingInfo.variant === "success"
+                              ? "secondary"
+                              : milkingInfo.variant === "warning"
+                              ? "outline"
+                              : milkingInfo.variant;
+                          return (
+                            <Badge variant={safeVariant}>
+                              {milkingInfo.label}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   );

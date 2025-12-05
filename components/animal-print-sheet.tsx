@@ -126,7 +126,9 @@ export function AnimalPrintSheet({
               <p className="text-sm text-slate-600">
                 Name: {animal.name || "—"}
               </p>
-              <p className="text-sm text-slate-600">Status: {animal.status}</p>
+              <p className="text-sm text-slate-600">
+                Status: {animal.pregnancy_status || animal.status}
+              </p>
             </div>
           </div>
         </header>
@@ -150,7 +152,9 @@ export function AnimalPrintSheet({
                 </td>
                 <td className={infoRowClass}>Date of Sale</td>
                 <td className={infoRowClass}>
-                  {animal.status === "Sold" ? "Sold" : "—"}
+                  {(animal.pregnancy_status || animal.status) === "Sold"
+                    ? "Sold"
+                    : "—"}
                 </td>
               </tr>
               <tr>

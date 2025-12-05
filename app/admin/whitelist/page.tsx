@@ -301,12 +301,12 @@ export default function WhitelistAdminPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => setEmailToDelete(item.email)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-1" /> Remove
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -328,8 +328,9 @@ export default function WhitelistAdminPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Email from Whitelist?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will prevent <strong>{emailToDelete}</strong> from signing
-              up. If they already have an account, they can still log in.
+              This will immediately revoke access for{" "}
+              <strong>{emailToDelete}</strong>. They will be signed out and must
+              be re-added before they can log in again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

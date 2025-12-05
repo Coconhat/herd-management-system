@@ -195,7 +195,7 @@ export async function createCalvingFromPregnancy(formData: FormData) {
       sire_id: resolvedSireAnimalId,
       sire_fk_id: resolvedSireAnimalId,
       notes: `Born from calving event #${newCalving.id}`,
-      status: "Active" as const,
+      pregnancy_status: "Open",
       health: health ?? "Healthy",
     };
 
@@ -225,7 +225,8 @@ export async function createCalvingFromPregnancy(formData: FormData) {
   const { error: updateAnimalErr } = await supabase
     .from("animals")
     .update({
-      status: "Empty",
+      pregnancy_status: "Empty",
+      milking_status: "Milking",
       reopen_date: reopenDateIso,
       expected_calving_date: null,
     })
@@ -452,7 +453,7 @@ export async function createCalving(formData: FormData) {
       name: calfName?.trim() || null,
       sex: (formData.get("calf_sex") as "Male" | "Female") || null,
       birth_date: calvingDate,
-      status: "Active" as const,
+      pregnancy_status: "Open",
       dam_id: damId,
       dam_fk_id: damId,
       sire_id: resolvedSireAnimalId,
@@ -490,7 +491,8 @@ export async function createCalving(formData: FormData) {
   const { error: updateAnimalErr } = await supabase
     .from("animals")
     .update({
-      status: "Empty",
+      pregnancy_status: "Empty",
+      milking_status: "Milking",
       reopen_date: reopenDateIso,
       expected_calving_date: null,
     })
@@ -547,7 +549,7 @@ export async function getPregnantAnimals() {
     redirect("/auth/login");
   }
 
-  // First, get all animals with status "Pregnant"
+  // First, get all animals with pregnancy_status "Pregnant"
   const { data, error } = await supabase
     .from("animals")
     .select(
@@ -555,12 +557,12 @@ export async function getPregnantAnimals() {
         id,
         ear_tag,
         name,
-        status,
+        pregnancy_status,
         breeding_records ( id, breeding_date, expected_calving_date, pd_result, confirmed_pregnant )
       `
     )
     .eq("sex", "Female")
-    .eq("status", "Pregnant") // Only include animals with status "Pregnant"
+    .eq("pregnancy_status", "Pregnant") // Only include animals with pregnancy_status "Pregnant"
     .order("ear_tag", { ascending: true });
 
   if (error) {

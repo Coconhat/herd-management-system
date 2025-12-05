@@ -139,7 +139,35 @@ export async function recordMedicineUsage(formData: FormData) {
     throw new Error("Usage recorded, but failed to update stock quantity.");
   }
 
-  // 5. If this is post-PD treatment for a breeding record, update the animal status
+  // 5. Create a health_record entry for this treatment
+  const healthRecordType = usageData.breeding_record_id
+    ? "Post-PD Treatment"
+    : "Medicine Administration";
+
+  const healthDescription = usageData.breeding_record_id
+    ? `Post-pregnancy diagnosis vitamin/treatment protocol administered.`
+    : usageData.reason || `${currentMedicine.name} administered.`;
+
+  const healthTreatment = `${currentMedicine.name} - ${quantityUsed} dose(s)`;
+
+  const { error: healthError } = await supabase.from("health_records").insert({
+    animal_id: usageData.animal_id,
+    record_date: usageData.date_administered,
+    record_type: healthRecordType,
+    description: healthDescription,
+    treatment: healthTreatment,
+    notes: usageData.reason || null,
+    user_id: user.id,
+    ml: Math.ceil(quantityUsed),
+    medication: currentMedicine.name,
+  });
+
+  if (healthError) {
+    console.warn("Could not create health record:", healthError);
+    // Non-fatal: medicine usage is already recorded
+  }
+
+  // 6. If this is post-PD treatment for a breeding record, update the animal status
   // From "Empty" (not pregnant) to "Open" (ready for breeding after recovery)
   if (usageData.breeding_record_id) {
     // Get the animal's reopen_date to keep it
@@ -152,9 +180,9 @@ export async function recordMedicineUsage(formData: FormData) {
     // Change animal status from "Empty" to "Open" after treatment
     const { error: animalUpdateError } = await supabase
       .from("animals")
-      .update({ status: "Open" })
+      .update({ pregnancy_status: "Open" })
       .eq("id", usageData.animal_id)
-      .eq("status", "Empty"); // Only update if currently Empty
+      .eq("pregnancy_status", "Empty"); // Only update if currently Empty
 
     if (animalUpdateError) {
       console.warn(

@@ -13,7 +13,10 @@ export function getClassification(animal: Animal): {
   today.setHours(0, 0, 0, 0);
 
   const daysUntilCalving = getDaysUntilExpectedCalving(animal, today);
-  const normalizedStatus = animal.status?.toLowerCase();
+  // Use pregnancy_status first, fall back to status for backward compatibility
+  const normalizedStatus = (
+    animal.pregnancy_status || animal.status
+  )?.toLowerCase();
 
   if (normalizedStatus === "fresh") {
     return { label: "Milking", variant: "secondary" };
@@ -45,16 +48,8 @@ export function getClassification(animal: Animal): {
 
   const ageInMonths = ageInDays / MONTH_IN_DAYS;
 
-  if (ageInMonths <= 3) {
-    return { label: "Calf", variant: "default" };
-  }
-
-  if (ageInMonths <= 7) {
-    return { label: "Weaning", variant: "secondary" };
-  }
-
   if (ageInMonths <= 13) {
-    return { label: "Yearling", variant: "outline" };
+    return { label: "Nursery", variant: "outline" };
   }
 
   if (ageInMonths <= 15) {

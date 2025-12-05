@@ -41,7 +41,13 @@ import type { Calving } from "@/lib/types";
 import { getPostPregnantStatus } from "@/lib/get-post-pregnant-status";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "./delete-animal-modal";
-import { getCombinedStatus } from "@/lib/status-helper";
+import { getCombinedStatus, getMilkingStatus } from "@/lib/status-helper";
+import {
+  AnimalSort,
+  SortConfig,
+  sortAnimals,
+  DEFAULT_SORT_CONFIG,
+} from "@/components/animal-sort";
 import { cn } from "@/lib/utils";
 import renderFarmSource from "./get-origin-color";
 import { styleText } from "util";
@@ -93,19 +99,23 @@ export function DashboardContent({
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
 
   const { toast } = useToast();
 
-  const filteredAnimals = animals.filter(
-    (animal) =>
-      animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAnimals = sortAnimals(
+    animals.filter(
+      (animal) =>
+        animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        animal.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    sortConfig
   );
 
-  // Reset to first page when search or pageSize or animals change
+  // Reset to first page when search or pageSize or animals or sort change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, pageSize, animals.length]);
+  }, [searchTerm, pageSize, animals.length, sortConfig]);
 
   const totalItems = filteredAnimals.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -170,6 +180,21 @@ export function DashboardContent({
     return <Badge variant={safeVariant}>{statusInfo.label}</Badge>;
   };
 
+  // Render milking status badge
+  const renderMilkingStatusBadge = (animal: Animal) => {
+    if (animal.sex !== "Female") {
+      return <Badge variant="outline">N/A</Badge>;
+    }
+    const milkingInfo = getMilkingStatus(animal);
+    const safeVariant =
+      milkingInfo.variant === "success"
+        ? "secondary"
+        : milkingInfo.variant === "warning"
+        ? "outline"
+        : milkingInfo.variant;
+    return <Badge variant={safeVariant}>{milkingInfo.label}</Badge>;
+  };
+
   return (
     <>
       {/* Action Buttons and Search */}
@@ -183,6 +208,8 @@ export function DashboardContent({
             className="pl-10 border-0"
           />
         </div>
+
+        <AnimalSort value={sortConfig} onChange={setSortConfig} />
 
         {/* Page size selector */}
         <div className="ml-auto flex items-center gap-2">
@@ -225,6 +252,7 @@ export function DashboardContent({
                     <TableHead>Classification</TableHead>
                     <TableHead>Birth Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Milking Status</TableHead>
                     <TableHead>Health</TableHead>
 
                     <TableHead>Actions</TableHead>
@@ -268,6 +296,7 @@ export function DashboardContent({
                       </TableCell>
                       <TableCell>{formatDate(animal.birth_date)}</TableCell>
                       <TableCell>{renderStatusBadge(animal)}</TableCell>
+                      <TableCell>{renderMilkingStatusBadge(animal)}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

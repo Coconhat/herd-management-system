@@ -32,8 +32,11 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      setEmail(normalizedEmail);
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo:
@@ -44,7 +47,15 @@ export default function LoginPage() {
       if (error) throw error;
       router.push("/");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      if (error instanceof Error) {
+        const message =
+          error.message === "Invalid login credentials"
+            ? "Invalid login credentials. Double-check your password or reset it via Forgot Password."
+            : error.message;
+        setError(message);
+      } else {
+        setError("An error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +115,7 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   </div>
+
                   {error && <p className="text-sm text-red-500">{error}</p>}
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
@@ -117,6 +129,14 @@ export default function LoginPage() {
                   >
                     Sign up
                   </Link>
+                  <div className="text-center text-sm mt-4">
+                    <Link
+                      href="/auth/forgot-password"
+                      className="underline underline-offset-4 text-primary"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
               </form>
             </CardContent>

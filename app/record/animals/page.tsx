@@ -48,7 +48,13 @@ import Link from "next/link";
 import type { Calving } from "@/lib/types";
 import { getClassification } from "@/lib/get-classification";
 import DeleteAnimalModal from "@/components/delete-animal-modal";
-import { getCombinedStatus } from "@/lib/status-helper";
+import { getPregnancyStatus, getMilkingStatus } from "@/lib/status-helper";
+import {
+  AnimalSort,
+  SortConfig,
+  sortAnimals,
+  DEFAULT_SORT_CONFIG,
+} from "@/components/animal-sort";
 import {
   PieChart,
   Pie,
@@ -134,7 +140,7 @@ const exportToCSV = (animals: Animal[]) => {
             : "",
           age,
           `"${animal.breed || ""}"`,
-          animal.status || "",
+          animal.pregnancy_status || animal.status || "",
           (animal as any).dam_ear_tag || "",
           (animal as any).sire_ear_tag || "",
           calvings.length.toString(),
@@ -158,7 +164,7 @@ const exportToCSV = (animals: Animal[]) => {
           : "",
         age,
         `"${animal.breed || ""}"`,
-        animal.status || "",
+        animal.pregnancy_status || animal.status || "",
         (animal as any).dam_ear_tag || "",
         (animal as any).sire_ear_tag || "",
         "0",
@@ -203,6 +209,7 @@ export default function Page() {
   const [showCharts, setShowCharts] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [sexFilter, setSexFilter] = useState("all");
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
 
   const [animals, setAnimals] = useState<Animal[]>([]);
 
@@ -220,23 +227,34 @@ export default function Page() {
 
   const { toast } = useToast();
 
-  // Enhanced filtering
-  const filteredAnimals = animals.filter((animal) => {
-    const matchesSearch =
-      animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Enhanced filtering and sorting
+  const filteredAnimals = sortAnimals(
+    animals.filter((animal) => {
+      const matchesSearch =
+        animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        animal.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || animal.status === statusFilter;
-    const matchesSex = sexFilter === "all" || animal.sex === sexFilter;
+      const pregnancyInfo = getPregnancyStatus(animal);
+      const matchesStatus =
+        statusFilter === "all" || pregnancyInfo.status === statusFilter;
+      const matchesSex = sexFilter === "all" || animal.sex === sexFilter;
 
-    return matchesSearch && matchesStatus && matchesSex;
-  });
+      return matchesSearch && matchesStatus && matchesSex;
+    }),
+    sortConfig
+  );
 
   // Reset to first page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, pageSize, animals.length, statusFilter, sexFilter]);
+  }, [
+    searchTerm,
+    pageSize,
+    animals.length,
+    statusFilter,
+    sexFilter,
+    sortConfig,
+  ]);
 
   const totalItems = filteredAnimals.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -294,16 +312,17 @@ export default function Page() {
       percentage: Math.round((count / animals.length) * 100),
     }));
 
-    // Status distribution
+    // Status distribution using pregnancy status
     const statusData = animals.reduce((acc, animal) => {
-      acc[animal.status || "Unknown"] =
-        (acc[animal.status || "Unknown"] || 0) + 1;
+      const pregnancyInfo = getPregnancyStatus(animal);
+      const statusLabel = pregnancyInfo.label;
+      acc[statusLabel] = (acc[statusLabel] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     const statusChartData = Object.entries(statusData).map(
       ([status, count]) => ({
-        name: status.charAt(0).toUpperCase() + status.slice(1),
+        name: status,
         value: count,
         percentage: Math.round((count / animals.length) * 100),
       })
@@ -655,9 +674,10 @@ export default function Page() {
                 className="border border-gray-200 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Pregnant">Pregnant</option>
+                <option value="Open">Open</option>
                 <option value="Empty">Empty</option>
+                <option value="Waiting for PD">Waiting for PD</option>
+                <option value="Pregnant">Pregnant</option>
               </select>
 
               <select
@@ -681,6 +701,8 @@ export default function Page() {
                   </option>
                 ))}
               </select>
+
+              <AnimalSort value={sortConfig} onChange={setSortConfig} />
             </div>
           </div>
         </CardContent>
@@ -724,6 +746,9 @@ export default function Page() {
                   </TableHead>
                   <TableHead className="font-semibold text-gray-800">
                     Status
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-800">
+                    Milking Status
                   </TableHead>
                   <TableHead className="font-semibold text-gray-800">
                     Actions
@@ -772,19 +797,52 @@ export default function Page() {
                       {formatDate(animal.birth_date)}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          animal.status === "active"
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : animal.status === "pregnant"
-                            ? "bg-purple-50 text-purple-700 border-purple-200"
-                            : "bg-orange-50 text-orange-700 border-orange-200"
+                      {(() => {
+                        const pregnancyInfo = getPregnancyStatus(animal);
+                        const statusColors: Record<string, string> = {
+                          Open: "bg-blue-50 text-blue-700 border-blue-200",
+                          Empty:
+                            "bg-orange-50 text-orange-700 border-orange-200",
+                          "Waiting for PD":
+                            "bg-yellow-50 text-yellow-700 border-yellow-200",
+                          Pregnant:
+                            "bg-purple-50 text-purple-700 border-purple-200",
+                          Sold: "bg-gray-50 text-gray-700 border-gray-200",
+                          Deceased: "bg-red-50 text-red-700 border-red-200",
+                          Culled: "bg-gray-50 text-gray-700 border-gray-200",
+                        };
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={
+                              statusColors[pregnancyInfo.status] ||
+                              "bg-gray-50 text-gray-700 border-gray-200"
+                            }
+                          >
+                            {pregnancyInfo.label}
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        if (animal.sex !== "Female") {
+                          return <Badge variant="outline">N/A</Badge>;
                         }
-                      >
-                        {animal.status?.charAt(0).toUpperCase() +
-                          animal.status?.slice(1) || "Unknown"}
-                      </Badge>
+                        const milkingInfo = getMilkingStatus(animal);
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={
+                              milkingInfo.status === "Milking"
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-orange-50 text-orange-700 border-orange-200"
+                            }
+                          >
+                            {milkingInfo.label}
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -831,7 +889,7 @@ export default function Page() {
 
                 {paginatedAnimals.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={8} className="text-center py-12">
                       <div className="flex flex-col items-center gap-3 text-muted-foreground">
                         <Users className="h-12 w-12 opacity-50" />
                         <p className="text-lg font-medium">No animals found</p>

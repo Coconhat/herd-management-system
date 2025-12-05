@@ -1,3 +1,4 @@
+import { revokeAuthUserByEmail } from "@/lib/actions/revoke-auth-user";
 import { createClient } from "@/lib/supabase/server";
 import crypto from "crypto";
 
@@ -144,7 +145,7 @@ export async function addEmailToWhitelist(
         // Reactivate the email
         const { error: updateError } = await supabase
           .from("email_whitelist")
-          .update({ is_active: true })
+          .update({ is_active: true, is_registered: false })
           .eq("email", normalizedEmail);
 
         if (updateError) {
@@ -361,10 +362,12 @@ export async function removeEmailFromWhitelist(
       };
     }
 
-    // Deactivate the email (soft delete)
+    // Deactivate the email (soft delete) after revoking auth access
+    await revokeAuthUserByEmail(normalizedEmail);
+
     const { error } = await supabase
       .from("email_whitelist")
-      .update({ is_active: false })
+      .update({ is_active: false, is_registered: false })
       .eq("email", normalizedEmail);
 
     if (error) {
@@ -374,7 +377,7 @@ export async function removeEmailFromWhitelist(
 
     return {
       success: true,
-      message: "Email removed from whitelist successfully",
+      message: "Email removed and login access revoked",
     };
   } catch (error) {
     console.error("Unexpected error in removeEmailFromWhitelist:", error);

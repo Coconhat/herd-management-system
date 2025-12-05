@@ -254,7 +254,7 @@ export async function updateBreedingPDResult(
     const { error: animalErr } = await supabase
       .from("animals")
       .update({
-        status: "Pregnant",
+        pregnancy_status: "Pregnant",
         expected_calving_date: expectedCalving,
         reopen_date: null,
       })
@@ -361,7 +361,7 @@ export async function updateBreedingPDResult(
     const { error: animalErr } = await supabase
       .from("animals")
       .update({
-        status: "Empty",
+        pregnancy_status: "Empty",
         reopen_date: reopenDate,
         expected_calving_date: null,
       })

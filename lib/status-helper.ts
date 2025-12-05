@@ -8,20 +8,33 @@ import {
 import type { BreedingRecord, Calving } from "./types";
 import type { Animal } from "./actions/animals";
 
-export type CombinedStatus =
-  | "Pregnant"
-  | "Dry"
-  | "Fresh"
-  | "Empty"
-  | "Open"
-  | "Awaiting PD Check"
-  | "Check Due"
+// ============================================
+// PREGNANCY STATUS
+// Tracks reproductive cycle
+// ============================================
+export type PregnancyStatus =
+  | "Open" // Ready for breeding
+  | "Empty" // Recently bred/not pregnant, recovery period before can breed again
+  | "Waiting for PD" // Bred but not yet confirmed for pregnancy
+  | "Pregnant" // Confirmed pregnant
   | "Sold"
   | "Deceased"
   | "Culled";
 
-export interface StatusInfo {
-  status: CombinedStatus;
+// ============================================
+// MILKING STATUS
+// Tracks milk production capability
+// ============================================
+export type MilkingStatus =
+  | "Milking" // Can be milked
+  | "Dry" // 7+ months pregnant, can't be milked
+  | "N/A"; // Not applicable (males, young animals)
+
+// ============================================
+// STATUS INFO INTERFACES
+// ============================================
+export interface PregnancyStatusInfo {
+  status: PregnancyStatus;
   label: string;
   variant:
     | "default"
@@ -31,27 +44,47 @@ export interface StatusInfo {
     | "success"
     | "warning";
   priority: number;
+  details?: string;
 }
 
-/**
- * Checks if an animal should be considered "dry" (7+ months pregnant)
- * Returns breeding record if animal is dry, null otherwise
- */
-function getDryStatusInfo(animal: Animal): {
-  isDry: boolean;
-  breedingRecord?: BreedingRecord;
+export interface MilkingStatusInfo {
+  status: MilkingStatus;
+  label: string;
+  variant:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "success"
+    | "warning";
   weeksPregnant?: number;
-} {
-  if (animal.sex !== "Female") return { isDry: false };
+}
 
+export interface AnimalStatusInfo {
+  pregnancy: PregnancyStatusInfo;
+  milking: MilkingStatusInfo;
+}
+
+// Legacy types for backward compatibility
+export type CombinedStatus = PregnancyStatus;
+export type StatusInfo = PregnancyStatusInfo;
+
+/**
+ * Gets pregnancy-related information from breeding records
+ */
+function getPregnancyInfo(animal: Animal): {
+  isPregnant: boolean;
+  weeksPregnant: number;
+  breedingRecord?: BreedingRecord;
+  lastCalvingDate: Date | null;
+  recentBreeding?: BreedingRecord;
+} {
   const breedingRecords = (animal as any).breeding_records as
     | BreedingRecord[]
     | undefined;
   const calvings = (animal as any).calvings as Calving[] | undefined;
 
-  if (!breedingRecords || breedingRecords.length === 0) return { isDry: false };
-
-  // Find last calving date to filter relevant breeding records
+  // Find last calving date
   let lastCalvingDate: Date | null = null;
   if (calvings && calvings.length > 0) {
     const validCalvings = calvings
@@ -67,6 +100,10 @@ function getDryStatusInfo(animal: Animal): {
       .sort((a, b) => b.getTime() - a.getTime());
 
     if (validCalvings.length > 0) lastCalvingDate = validCalvings[0];
+  }
+
+  if (!breedingRecords || breedingRecords.length === 0) {
+    return { isPregnant: false, weeksPregnant: 0, lastCalvingDate };
   }
 
   // Find relevant breeding records (after last calving)
@@ -88,238 +125,322 @@ function getDryStatusInfo(animal: Animal): {
         new Date(a.breeding_date).getTime()
     );
 
-  if (relevantBreedingRecords.length === 0) return { isDry: false };
+  if (relevantBreedingRecords.length === 0) {
+    return { isPregnant: false, weeksPregnant: 0, lastCalvingDate };
+  }
 
   const recentBreeding = relevantBreedingRecords[0];
-
-  // Check if animal is confirmed pregnant or has positive PD result
   const isPregnant =
     recentBreeding.confirmed_pregnant ||
     recentBreeding.pd_result === "Pregnant";
 
-  if (!isPregnant) return { isDry: false };
-
-  // Calculate weeks since breeding
-  try {
-    const breedingDate = parseISO(recentBreeding.breeding_date);
-    if (!isValid(breedingDate)) return { isDry: false };
-
-    const weeksPregnant = differenceInWeeks(new Date(), breedingDate);
-
-    // Dry period starts at 30 weeks (approximately 7 months)
-    const isDry = weeksPregnant >= 30;
-
-    return {
-      isDry,
-      breedingRecord: isDry ? recentBreeding : undefined,
-      weeksPregnant: isDry ? weeksPregnant : undefined,
-    };
-  } catch {
-    return { isDry: false };
+  let weeksPregnant = 0;
+  if (isPregnant) {
+    try {
+      const breedingDate = parseISO(recentBreeding.breeding_date);
+      if (isValid(breedingDate)) {
+        weeksPregnant = differenceInWeeks(new Date(), breedingDate);
+      }
+    } catch {
+      // ignore
+    }
   }
+
+  return {
+    isPregnant,
+    weeksPregnant,
+    breedingRecord: recentBreeding,
+    lastCalvingDate,
+    recentBreeding,
+  };
 }
 
 /**
- * Determines the combined, dynamic status of an animal.
- * Uses nested arrays on the animal object if available:
- *   - animal.breeding_records?: BreedingRecord[]
- *   - animal.calvings?: Calving[]
+ * Determines the PREGNANCY STATUS of an animal
  *
- * Important behavior:
- *  - Empty/blank DB status is normalized to "Empty"
- *  - Breeding records that occurred on or before the most recent calving are ignored
- *    (so old breedings do not incorrectly mark an animal as "Awaiting PD Check")
+ * - Open: Ready for breeding
+ * - Empty: Recently bred/not pregnant, in recovery
+ * - Waiting for PD: Bred but awaiting pregnancy confirmation
+ * - Pregnant: Confirmed pregnant
  */
-export function getCombinedStatus(animal: Animal): StatusInfo {
-  // Defensive normalization of the base DB status (empty string -> "Empty")
-  const normalizedStatus = (animal.status && animal.status.trim()) || "Empty";
+export function getPregnancyStatus(animal: Animal): PregnancyStatusInfo {
+  // Handle non-breeding statuses first
+  // Check pregnancy_status first (new field), fall back to status (legacy field)
+  const dbStatus =
+    (animal.pregnancy_status && animal.pregnancy_status.trim()) ||
+    (animal.status && animal.status.trim()) ||
+    "";
 
-  // 1) Immediate non-breeding statuses
-  if (["Sold", "Deceased", "Culled"].includes(normalizedStatus)) {
+  if (["Sold", "Deceased", "Culled"].includes(dbStatus)) {
     return {
-      status: normalizedStatus as CombinedStatus,
-      label: normalizedStatus,
-      variant: normalizedStatus === "Deceased" ? "destructive" : "outline",
+      status: dbStatus as PregnancyStatus,
+      label: dbStatus,
+      variant: dbStatus === "Deceased" ? "destructive" : "outline",
       priority: 0,
     };
   }
 
-  const breedingRecords = (animal as any).breeding_records as
-    | BreedingRecord[]
-    | undefined;
-  const calvings = (animal as any).calvings as Calving[] | undefined;
+  // If pregnancy_status is explicitly set to a known value, use it
+  if (
+    ["Pregnant", "Open", "Empty", "Waiting for PD", "Dry"].includes(dbStatus)
+  ) {
+    const statusMap: Record<string, PregnancyStatusInfo> = {
+      Pregnant: {
+        status: "Pregnant",
+        label: "Pregnant",
+        variant: "success",
+        priority: 6,
+      },
+      "Waiting for PD": {
+        status: "Waiting for PD",
+        label: "Waiting for PD",
+        variant: "warning",
+        priority: 4,
+      },
+      Empty: {
+        status: "Empty",
+        label: "Empty",
+        variant: "secondary",
+        priority: 2,
+      },
+      Open: {
+        status: "Open",
+        label: "Open",
+        variant: "outline",
+        priority: 3,
+      },
+      Dry: {
+        status: "Open",
+        label: "Dry",
+        variant: "outline",
+        priority: 3,
+      },
+    };
 
-  // Determine last calving date (if any) so we ignore breedings prior to it
-  let lastCalvingDate: Date | null = null;
-  if (calvings && calvings.length > 0) {
-    // sort desc and take the most recent valid calving_date
-    const validCalvings = calvings
-      .map((c) => {
-        try {
-          const d = parseISO(c.calving_date);
-          return isValid(d) ? d : null;
-        } catch {
-          return null;
-        }
-      })
-      .filter((d): d is Date => !!d)
-      .sort((a, b) => b.getTime() - a.getTime());
-
-    if (validCalvings.length > 0) lastCalvingDate = validCalvings[0];
+    if (statusMap[dbStatus]) {
+      return statusMap[dbStatus];
+    }
   }
 
-  // 2) Fresh status (calved within 30d)
-  if (lastCalvingDate) {
-    const daysSinceLastCalving = differenceInDays(new Date(), lastCalvingDate);
-    if (daysSinceLastCalving <= 30) {
+  // Only females have pregnancy status tracking
+  if (animal.sex !== "Female") {
+    return {
+      status: "Open",
+      label: "N/A",
+      variant: "default",
+      priority: 0,
+    };
+  }
+
+  const pregnancyInfo = getPregnancyInfo(animal);
+
+  // Check if recently calved (within 30 days) - considered "Empty" (recovery)
+  if (pregnancyInfo.lastCalvingDate) {
+    const daysSinceCalving = differenceInDays(
+      new Date(),
+      pregnancyInfo.lastCalvingDate
+    );
+    if (daysSinceCalving <= 30) {
       return {
-        status: "Fresh",
-        label: `Fresh (${daysSinceLastCalving}d)`,
-        variant: "success",
-        priority: 7,
+        status: "Empty",
+        label: "Empty",
+        variant: "secondary",
+        priority: 2,
+        details: `Fresh - ${daysSinceCalving}d since calving`,
       };
     }
   }
 
-  // 3) Active breeding cycle detection (for females)
-  if (
-    animal.sex === "Female" &&
-    breedingRecords &&
-    breedingRecords.length > 0
-  ) {
-    // Filter to only breeding records that happened AFTER the last calving (if a last calving exists)
-    const relevantBreedingRecords = breedingRecords
-      .filter((r) => {
-        if (!r?.breeding_date) return false;
-        try {
-          const bd = parseISO(r.breeding_date);
-          if (!isValid(bd)) return false;
-          if (lastCalvingDate) return bd.getTime() > lastCalvingDate.getTime();
-          return true;
-        } catch {
-          return false;
-        }
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.breeding_date).getTime() -
-          new Date(a.breeding_date).getTime()
-      );
+  // Check breeding records for active cycle
+  if (pregnancyInfo.recentBreeding) {
+    const recentBreeding = pregnancyInfo.recentBreeding;
 
-    if (relevantBreedingRecords.length > 0) {
-      const recentBreeding = relevantBreedingRecords[0];
+    // Confirmed Pregnant
+    if (
+      recentBreeding.confirmed_pregnant ||
+      recentBreeding.pd_result === "Pregnant"
+    ) {
+      return {
+        status: "Pregnant",
+        label: "Pregnant",
+        variant: "success",
+        priority: 6,
+        details: `${pregnancyInfo.weeksPregnant} weeks`,
+      };
+    }
 
-      const isActiveCycle =
-        Boolean(recentBreeding.confirmed_pregnant) ||
-        recentBreeding.pd_result === "Unchecked";
+    // Waiting for PD (bred but not confirmed)
+    if (recentBreeding.pd_result === "Unchecked") {
+      return {
+        status: "Waiting for PD",
+        label: "Waiting for PD",
+        variant: "warning",
+        priority: 4,
+      };
+    }
 
-      if (isActiveCycle) {
-        if (
-          recentBreeding.confirmed_pregnant ||
-          recentBreeding.pd_result === "Pregnant"
-        ) {
-          // Check if animal should be dry (7+ months pregnant)
-          const dryInfo = getDryStatusInfo(animal);
-          if (dryInfo.isDry) {
-            return {
-              status: "Dry",
-              label: `Dry (${dryInfo.weeksPregnant}w pregnant)`,
-              variant: "warning",
-              priority: 7,
-            };
-          }
-
-          return {
-            status: "Pregnant",
-            label: "Pregnant",
-            variant: "success",
-            priority: 6,
-          };
-        }
-
-        if (recentBreeding.pd_result === "Unchecked") {
-          const checkDueRaw = recentBreeding.pregnancy_check_due_date;
-          try {
-            const checkDue = checkDueRaw ? parseISO(checkDueRaw) : null;
-            const today = new Date();
-            if (checkDue && isValid(checkDue) && today > checkDue) {
-              return {
-                status: "Check Due",
-                label: "Check Due",
-                variant: "warning",
-                priority: 5,
-              };
-            }
-          } catch {
-            /* date parse failed — fallthrough to Awaiting PD Check */
-          }
-
-          return {
-            status: "Awaiting PD Check",
-            label: "Awaiting PD Check",
-            variant: "secondary",
-            priority: 4,
-          };
-        }
-      }
+    // Empty (pd_result is "Empty" - not pregnant after check)
+    if (recentBreeding.pd_result === "Empty") {
+      return {
+        status: "Empty",
+        label: "Empty",
+        variant: "secondary",
+        priority: 2,
+        details: "Not pregnant - recovery period",
+      };
     }
   }
 
-  // 4) Fall back to DB status mapping
-  const statusMap: Record<string, StatusInfo> = {
-    Active: {
-      status: "Active",
-      label: "Active",
-      variant: "default",
-      priority: 3,
-    },
-    Open: { status: "Open", label: "Open", variant: "outline", priority: 4 },
-    Fresh: {
-      status: "Empty",
-      label: "Empty",
-      variant: "secondary",
-      priority: 2,
-    },
-    Empty: {
-      status: "Empty",
-      label: "Empty",
-      variant: "secondary",
-      priority: 2,
-    },
-    Pregnant: {
-      status: "Pregnant",
-      label: "Pregnant",
-      variant: "success",
-      priority: 6,
-    },
-    Dry: {
-      status: "Dry",
-      label: "Dry",
-      variant: "warning",
-      priority: 7,
-    },
+  // Default to Open (ready for breeding)
+  return {
+    status: "Open",
+    label: "Open",
+    variant: "outline",
+    priority: 3,
   };
+}
 
-  return (
-    statusMap[normalizedStatus] || {
-      status: "Active",
-      label: "Active",
-      variant: "default",
-      priority: 3,
-    }
-  );
+// Constants for age calculation
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const MONTH_IN_DAYS = 30.4375;
+const NURSERY_AGE_MONTHS = 13; // Animals <= 13 months are considered nursery
+
+/**
+ * Gets the animal's age in months
+ */
+function getAgeInMonths(animal: Animal): number | null {
+  if (!animal.birth_date) return null;
+
+  try {
+    const birth = parseISO(animal.birth_date);
+    if (!isValid(birth)) return null;
+
+    const today = new Date();
+    const ageInDays = Math.floor(
+      (today.getTime() - birth.getTime()) / MS_PER_DAY
+    );
+    return ageInDays / MONTH_IN_DAYS;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Export function to check if an animal is dry (for use in other components)
+ * Determines the MILKING STATUS of an animal
+ *
+ * Smart Hybrid Logic:
+ * - Young animals (≤13 months / Nursery) show "N/A"
+ * - Males show "N/A"
+ * - Respects manual "Dry" setting only if animal is still pregnant
+ * - Auto-resets after calving (fresh cows can be milked)
+ * - Falls back to auto-calculation if no manual setting
+ */
+export function getMilkingStatus(animal: Animal): MilkingStatusInfo {
+  // Only females can be milked
+  if (animal.sex !== "Female") {
+    return {
+      status: "N/A" as MilkingStatus,
+      label: "N/A",
+      variant: "default",
+    };
+  }
+
+  // Check age - young animals (nursery) can't be milked
+  const ageInMonths = getAgeInMonths(animal);
+  if (ageInMonths !== null && ageInMonths <= NURSERY_AGE_MONTHS) {
+    return {
+      status: "N/A" as MilkingStatus,
+      label: "Nursery",
+      variant: "outline",
+    };
+  }
+
+  const pregnancyInfo = getPregnancyInfo(animal);
+  const dbMilkingStatus = animal.milking_status?.trim();
+
+  // Check if recently calved (within 60 days) - auto-reset to Milking
+  // Fresh cows should be milked regardless of previous manual "Dry" setting
+  if (pregnancyInfo.lastCalvingDate) {
+    const daysSinceCalving = differenceInDays(
+      new Date(),
+      pregnancyInfo.lastCalvingDate
+    );
+    // If calved recently and not pregnant again, they should be milking
+    if (daysSinceCalving <= 60 && !pregnancyInfo.isPregnant) {
+      return {
+        status: "Milking",
+        label: "Milking",
+        variant: "success",
+      };
+    }
+  }
+
+  // Respect manual "Dry" only if animal is still pregnant
+  // This prevents stale "Dry" status after calving
+  if (dbMilkingStatus === "Dry" && pregnancyInfo.isPregnant) {
+    return {
+      status: "Dry",
+      label: "Dry",
+      variant: "warning",
+      weeksPregnant: pregnancyInfo.weeksPregnant,
+    };
+  }
+
+  // Respect manual "Milking" setting
+  if (dbMilkingStatus === "Milking") {
+    return {
+      status: "Milking",
+      label: "Milking",
+      variant: "success",
+    };
+  }
+
+  // Auto-calculate: If pregnant and 30+ weeks, animal should be dry
+  if (pregnancyInfo.isPregnant && pregnancyInfo.weeksPregnant >= 30) {
+    return {
+      status: "Dry",
+      label: "Dry",
+      variant: "warning",
+      weeksPregnant: pregnancyInfo.weeksPregnant,
+    };
+  }
+
+  // Default: animal can be milked
+  return {
+    status: "Milking",
+    label: "Milking",
+    variant: "success",
+  };
+}
+
+/**
+ * Gets both pregnancy and milking status for an animal
+ */
+export function getAnimalStatus(animal: Animal): AnimalStatusInfo {
+  return {
+    pregnancy: getPregnancyStatus(animal),
+    milking: getMilkingStatus(animal),
+  };
+}
+
+/**
+ * Legacy function for backward compatibility
+ * Returns the pregnancy status in the old format
+ */
+export function getCombinedStatus(animal: Animal): StatusInfo {
+  return getPregnancyStatus(animal);
+}
+
+/**
+ * Check if an animal is dry (7+ months pregnant)
  */
 export function isDryAnimal(animal: Animal): {
   isDry: boolean;
   weeksPregnant?: number;
 } {
-  const dryInfo = getDryStatusInfo(animal);
+  const milkingStatus = getMilkingStatus(animal);
   return {
-    isDry: dryInfo.isDry,
-    weeksPregnant: dryInfo.weeksPregnant,
+    isDry: milkingStatus.status === "Dry",
+    weeksPregnant: milkingStatus.weeksPregnant,
   };
 }

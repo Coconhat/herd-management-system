@@ -19,13 +19,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Heart, Stethoscope, FileText, Edit } from "lucide-react";
-import { getAnimals, type Animal } from "@/lib/actions/animals";
+import { Heart, Stethoscope, FileText, Edit, Save, X } from "lucide-react";
+import {
+  getAnimals,
+  updateAnimalNotes,
+  type Animal,
+} from "@/lib/actions/animals";
 import type { Calving } from "@/lib/actions/calvings";
 import type { HealthRecord } from "@/lib/actions/health-records";
 import { getCalvingsByAnimalId } from "@/lib/actions/calvings";
 import { getHealthRecordsByAnimalId } from "@/lib/actions/health-records";
 import { formatAge, formatWeight } from "@/lib/utils";
+import HealthRecordModal from "@/app/animal/[ear_tag]/health/_component/animal-health";
+import { Textarea } from "./ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnimalProfileContentProps {
   animal: Animal;
@@ -37,6 +44,12 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
   const [loading, setLoading] = useState(true);
   const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
   const [sireDisplayName, setSireDisplayName] = useState<string | null>(null);
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [notesValue, setNotesValue] = useState(animal.notes || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -243,7 +256,17 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
               <Badge
                 variant={animal.sex === "Female" ? "secondary" : "outline"}
               >
-                {animal.status}
+                {animal.pregnancy_status}
+              </Badge>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mr-4">
+                Milking Status
+              </label>
+              <Badge
+                variant={animal.sex === "Female" ? "secondary" : "outline"}
+              >
+                {animal.milking_status}
               </Badge>
             </div>
             <div>
@@ -397,10 +420,15 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
           <Card>
             <CardHeader>
               <CardTitle>Health Records</CardTitle>
-              <CardDescription>
+
+              <CardDescription className="flex space-x-2 items-center">
                 {healthRecords.length} health records
               </CardDescription>
             </CardHeader>
+
+            <div className="px-6 pb-4">
+              <HealthRecordModal animal={animal} />
+            </div>
             <CardContent>
               {loading ? (
                 <div className="space-y-4">
@@ -425,7 +453,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                         <TableHead>Description</TableHead>
                         <TableHead>Treatment</TableHead>
                         <TableHead>Veterinarian</TableHead>
-                        <TableHead>Cost</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead>Medication</TableHead>
+                        <TableHead>mL</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -442,7 +472,9 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
                           <TableCell>{record.description || "—"}</TableCell>
                           <TableCell>{record.treatment || "—"}</TableCell>
                           <TableCell>{record.veterinarian || "—"}</TableCell>
-                          <TableCell>{formatCurrency(record.cost)}</TableCell>
+                          <TableCell>{record.notes || "—"}</TableCell>
+                          <TableCell>{record.medication || "—"}</TableCell>
+                          <TableCell>{record.ml || "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -467,23 +499,80 @@ export function AnimalProfileContent({ animal }: AnimalProfileContentProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {animal.notes ? (
-                <div className="prose max-w-none">
-                  <p className="text-foreground whitespace-pre-wrap">
-                    {animal.notes}
-                  </p>
+              {editNotesOpen ? (
+                <div className="space-y-4">
+                  <Textarea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    placeholder="Enter notes about this animal..."
+                    rows={6}
+                    className="w-full"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          await updateAnimalNotes(animal.id, notesValue);
+                          toast({
+                            title: "Notes saved",
+                            description:
+                              "Animal notes have been updated successfully.",
+                          });
+                          setEditNotesOpen(false);
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description:
+                              "Failed to save notes. Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                      disabled={isSaving}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {isSaving ? "Saving..." : "Save Notes"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setNotesValue(animal.notes || "");
+                        setEditNotesOpen(false);
+                      }}
+                      disabled={isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  No notes available.
-                </p>
+                <div>
+                  {notesValue ? (
+                    <div className="prose max-w-none">
+                      <p className="text-foreground whitespace-pre-wrap">
+                        {notesValue}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">
+                      No notes available. Click "Edit Notes" to add some.
+                    </p>
+                  )}
+                  <div className="mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditNotesOpen(true)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Notes
+                    </Button>
+                  </div>
+                </div>
               )}
-              <div className="mt-6">
-                <Button variant="outline">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Notes
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

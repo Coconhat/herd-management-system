@@ -17,6 +17,7 @@ export interface Animal {
   dam_id?: number;
   sire_id?: number;
   farm_source?: string | null;
+  // Legacy status field (kept for backward compatibility)
   status:
     | "Active"
     | "Sold"
@@ -27,6 +28,18 @@ export interface Animal {
     | "Open"
     | "Empty"
     | "Dry";
+  // New dual status system
+  pregnancy_status?:
+    | "Open" // Ready for breeding
+    | "Empty" // Recently bred, can't breed yet
+    | "Waiting for PD" // Bred but not yet confirmed
+    | "Pregnant" // Confirmed pregnant
+    | "Sold"
+    | "Deceased"
+    | "Culled";
+  milking_status?:
+    | "Milking" // Can be milked
+    | "Dry"; // 7+ months pregnant, can't be milked
   notes?: string;
   user_id: string;
   created_at: string;
@@ -145,14 +158,15 @@ export async function createAnimal(formData: FormData) {
       (formData.get("farm_source") as string).trim() !== ""
         ? (formData.get("farm_source") as string).trim()
         : null,
-    status:
-      (formData.get("status") as
-        | "Active"
+    pregnancy_status:
+      (formData.get("pregnancy_status") as
+        | "Open"
+        | "Waiting for PD"
+        | "Pregnant"
+        | "Empty"
         | "Sold"
         | "Deceased"
-        | "Culled"
-        | "Empty"
-        | "Dry") || "Active",
+        | "Culled") || "Open",
     notes: (formData.get("notes") as string) || null,
     user_id: user.id,
     health,
@@ -185,6 +199,16 @@ export async function updateAnimal(id: number, formData: FormData) {
     health = trimmed.length > 0 ? (trimmed as "Healthy" | "Unhealthy") : null;
   }
 
+  // Get pregnancy_status (or fall back to status for backward compatibility)
+  const pregnancyStatusValue =
+    (formData.get("pregnancy_status") as string) ||
+    (formData.get("status") as string) ||
+    "Open";
+
+  // Get weight value
+  const weightValue = formData.get("weight");
+  const weight = weightValue && weightValue !== "" ? Number(weightValue) : null;
+
   const animalData: {
     ear_tag: string;
     name: string | null;
@@ -193,14 +217,9 @@ export async function updateAnimal(id: number, formData: FormData) {
     dam_id: number | null;
     sire_id: number | null;
     farm_source: string | null;
-    status:
-      | "Active"
-      | "Sold"
-      | "Deceased"
-      | "Culled"
-      | "Empty"
-      | "Open"
-      | "Dry";
+    pregnancy_status: string;
+    milking_status: string | null;
+    weight: number | null;
     notes: string | null;
     updated_at: string;
     health?: "Healthy" | "Unhealthy" | null;
@@ -226,15 +245,9 @@ export async function updateAnimal(id: number, formData: FormData) {
       (formData.get("farm_source") as string).trim() !== ""
         ? (formData.get("farm_source") as string).trim()
         : null,
-    status:
-      (formData.get("status") as
-        | "Active"
-        | "Sold"
-        | "Deceased"
-        | "Culled"
-        | "Empty"
-        | "Open"
-        | "Dry") || "Active",
+    pregnancy_status: pregnancyStatusValue,
+    milking_status: formData.get("milking_status") as string,
+    weight: weight,
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),
   };
@@ -376,12 +389,12 @@ export async function getAnimalStats() {
     .from("animals")
     .select("*", { count: "exact", head: true });
 
-  // Get female animals for breeding
+  // Get female animals for breeding (exclude sold/deceased/culled)
   const { count: femaleAnimals } = await supabase
     .from("animals")
     .select("*", { count: "exact", head: true })
-    .eq("status", "Active")
-    .eq("sex", "Female");
+    .eq("sex", "Female")
+    .not("pregnancy_status", "in", "(Sold,Deceased,Culled)");
 
   // Get recent calvings (last 30 days)
   const thirtyDaysAgo = new Date();
@@ -396,7 +409,7 @@ export async function getAnimalStats() {
   const { count: pregnantCows } = await supabase
     .from("animals")
     .select("*", { count: "exact", head: true })
-    .eq("status", "Pregnant");
+    .eq("pregnancy_status", "Pregnant");
 
   return {
     totalAnimals: totalAnimals || 0,
@@ -448,7 +461,7 @@ export async function getAnimalsWithBreedingData(): Promise<Animal[]> {
     `
     )
     .eq("user_id", user.id)
-    .in("status", ["Active", "Empty", "Pregnant", "Open"]) // Include Active, Empty, Open, and Pregnant animals for breeding management
+    .not("pregnancy_status", "in", "(Sold,Deceased,Culled)") // Exclude terminal statuses from breeding management
     .order("ear_tag", { ascending: true });
 
   if (error) {
@@ -478,6 +491,26 @@ export async function setAnimalHealth(
 
   if (error)
     throw new Error("Failed to update health status: " + error.message);
+  revalidatePath("/");
+  revalidatePath("/inventory/animals");
+}
+
+export async function updateAnimalNotes(id: number, notes: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/auth/login");
+
+  const { error } = await supabase
+    .from("animals")
+    .update({ notes, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error("Failed to update notes: " + error.message);
+
   revalidatePath("/");
   revalidatePath("/inventory/animals");
 }

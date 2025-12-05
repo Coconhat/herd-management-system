@@ -38,14 +38,17 @@ export default function SignUpPage() {
     }
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      setEmail(normalizedEmail);
+
       // Step 1: Check if email is whitelisted
-      console.log("Step 1: Checking whitelist for:", email);
+      console.log("Step 1: Checking whitelist for:", normalizedEmail);
       const whitelistResponse = await fetch("/api/auth/check-whitelist", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
 
       console.log("Whitelist response status:", whitelistResponse.status);
@@ -68,9 +71,9 @@ export default function SignUpPage() {
       }
 
       // Step 2: Create the account in Supabase Auth
-      console.log("Step 2: Creating Supabase account for:", email);
+      console.log("Step 2: Creating Supabase account for:", normalizedEmail);
       const { error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo:
@@ -86,13 +89,13 @@ export default function SignUpPage() {
       console.log("Account created successfully!");
 
       // Step 3: Mark email as registered in whitelist
-      console.log("Marking email as registered:", email);
+      console.log("Marking email as registered:", normalizedEmail);
       const markResponse = await fetch("/api/auth/mark-registered", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
 
       console.log("Mark registered response status:", markResponse.status);

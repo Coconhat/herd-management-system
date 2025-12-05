@@ -60,17 +60,52 @@ const DATABASE_SCHEMA = `
 - user_id: uuid
 - created_at: timestamp
 
+## Table: health_records
+- id: serial (primary key)
+- animal_id: integer (foreign key to animals.id)
+- record_date: date
+- record_type: varchar(50) (e.g., 'Vaccination', 'Treatment', 'Checkup', 'Medicine')
+- description: text
+- treatment: text
+- veterinarian: varchar(100)
+- notes: text
+- user_id: uuid
+- created_at: timestamp
+- ml: integer (milliliters of medication)
+- medication: varchar (name of medication used)
+
+## Table: diesel
+- id: uuid (primary key)
+- event_date: timestamp with time zone
+- volume_liters: numeric(10,2) (amount of diesel in liters)
+- reference: text (receipt or reference number)
+- recorded_by: text (who recorded the entry)
+- type: text ('addition' or 'usage' - default is 'addition')
+
+## Table: feeds
+- id: uuid (primary key)
+- event_date: timestamp with time zone
+- feeds: numeric(10,2) (amount of feed, e.g., in kg or bags)
+- reference: text (receipt or reference number)
+- recorded_by: text (who recorded the entry)
+
 ## Important Relationships:
 - animals.dam_id → animals.id (mother reference)
 - animals.sire_id → animals.id (father reference)
 - breeding_records.animal_id → animals.id
 - calvings.animal_id → animals.id
+- health_records.animal_id → animals.id
 
 ## Common Queries:
 - Get all pregnant animals: SELECT * FROM animals WHERE status = 'Pregnant'
 - Get breeding history: SELECT * FROM breeding_records WHERE animal_id = X ORDER BY breeding_date DESC
 - Get calving history: SELECT * FROM calvings WHERE animal_id = X ORDER BY calving_date DESC
 - Animals ready for breeding: SELECT * FROM animals WHERE status IN ('Empty', 'Open') AND reopen_date <= CURRENT_DATE
+- Get health records for an animal: SELECT * FROM health_records WHERE animal_id = X ORDER BY record_date DESC
+- Get diesel usage: SELECT * FROM diesel ORDER BY event_date DESC
+- Get feed records: SELECT * FROM feeds ORDER BY event_date DESC
+- Total diesel added: SELECT SUM(volume_liters) FROM diesel WHERE type = 'addition'
+- Total diesel used: SELECT SUM(volume_liters) FROM diesel WHERE type = 'usage'
 `;
 
 const SYSTEM_PROMPT = `
@@ -85,19 +120,61 @@ You have access to a PostgreSQL database via Supabase. When users ask questions 
 ## Available Function:
 - executeQuery: Execute a SQL SELECT query against the database
 
+## CRITICAL - User Data Security:
+You MUST always filter queries by user_id to ensure users only see their own data.
+Use the placeholder {{USER_ID}} in your queries - it will be replaced with the actual user's ID.
+
+For example:
+- SELECT * FROM animals WHERE user_id = '{{USER_ID}}' AND status = 'Pregnant'
+- SELECT * FROM calvings WHERE user_id = '{{USER_ID}}' ORDER BY calving_date DESC
+- SELECT * FROM breeding_records WHERE user_id = '{{USER_ID}}' AND pd_result = 'Pregnant'
+
+Tables that require user_id filter: animals, breeding_records, calvings, health_records
+Tables that do NOT have user_id (shared data): diesel, feeds
+
 ## Rules:
 - ONLY generate SELECT queries (no INSERT, UPDATE, DELETE, DROP, etc.)
+- ALWAYS include user_id = '{{USER_ID}}' filter for tables that have user_id
 - Always use proper JOINs when accessing related tables
 - Be mindful of performance - use LIMIT when appropriate
 - Handle NULL values gracefully
 - Use proper date comparisons
-- Always filter by user_id when relevant (though this is handled automatically)
 
 ## Communication Style:
 - Be conversational and friendly
 - Explain what data you're retrieving
-- Present data clearly with bullet points or tables
 - Suggest follow-up questions when relevant
+
+## IMPORTANT - Data Formatting Rules:
+When presenting multiple records, ALWAYS format them in a clear, grouped way:
+
+For lists of records, use this format with clear visual separation:
+
+---
+**Record 1**
+Field: Value
+Field: Value
+---
+**Record 2**
+Field: Value
+Field: Value
+---
+
+Or use a numbered list with clear grouping:
+
+1. **[Primary Identifier]**
+   - Field: Value
+   - Field: Value
+
+2. **[Primary Identifier]**
+   - Field: Value
+   - Field: Value
+
+NEVER list all fields as a flat bullet list without grouping. Each record should be visually distinct and easy to scan.
+
+For calving records, group by calving and show: Date, Dam (ear tag if possible), Calf Tag, Sex, Weight, Sire.
+For breeding records, group by record and show: Date, Animal, Method, Status/Result.
+For health records, group by record and show: Date, Animal, Type, Treatment, Medication.
 
 ${DATABASE_SCHEMA}
 `;
@@ -148,7 +225,16 @@ export type ChatMessage = {
 async function executeQuery(rawQuery: string, explanation: string) {
   const supabase = createClient();
 
-  const query = sanitizeQuery(rawQuery);
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+  const userId = user.id;
+
+  let query = sanitizeQuery(rawQuery);
 
   if (!query) {
     throw new Error("Query is empty after sanitization");
@@ -176,8 +262,17 @@ async function executeQuery(rawQuery: string, explanation: string) {
     }
   }
 
+  // Inject user_id filter into the query for tables that have user_id
+  // This ensures users can only see their own data
+  // Replace placeholder {{USER_ID}} with actual user ID
+  query = query.replace(/\{\{USER_ID\}\}/gi, userId);
+
+  // Also handle cases where AI might use :user_id or $user_id placeholders
+  query = query.replace(/(:user_id|\$user_id)/gi, `'${userId}'`);
+
   console.log("🔍 Executing query:", explanation);
   console.log("📝 SQL:", query);
+  console.log("👤 User ID:", userId);
 
   try {
     // Execute the raw SQL query
@@ -212,6 +307,12 @@ async function executeQuery(rawQuery: string, explanation: string) {
 async function executeWithQueryBuilder(query: string) {
   const supabase = createClient();
 
+  // Get current user for filtering
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   // Simple parser for basic SELECT queries
   const match = query.match(
     /SELECT\s+(.+?)\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+?))?(?:\s+ORDER BY\s+(.+?))?(?:\s+LIMIT\s+(\d+))?/i
@@ -224,6 +325,17 @@ async function executeWithQueryBuilder(query: string) {
   const [, columns, table, whereClause, orderBy, limit] = match;
 
   let queryBuilder = supabase.from(table).select(columns.trim());
+
+  // Always filter by user_id for tables that have it
+  const tablesWithUserId = [
+    "animals",
+    "breeding_records",
+    "calvings",
+    "health_records",
+  ];
+  if (userId && tablesWithUserId.includes(table.toLowerCase())) {
+    queryBuilder = queryBuilder.eq("user_id", userId);
+  }
 
   // Basic WHERE parsing (only handles simple cases)
   if (whereClause) {
@@ -368,5 +480,18 @@ export function useGeminiChat() {
 }
 
 function stripBasicMarkdown(text: string) {
-  return text.replace(/\*\*(.*?)\*\*/g, "$1");
+  return (
+    text
+      // Remove bold markers
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      // Remove italic markers
+      .replace(/\*(.*?)\*/g, "$1")
+      // Convert bullet points (* item) to proper dash format
+      .replace(/^\s*\*\s+/gm, "• ")
+      // Remove any remaining standalone asterisks used as bullets
+      .replace(/\n\s*\*\s*/g, "\n• ")
+      // Clean up any double spaces
+      .replace(/  +/g, " ")
+      .trim()
+  );
 }
