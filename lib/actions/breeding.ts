@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addDays, parseISO } from "date-fns";
+import { addDays, differenceInWeeks, parseISO } from "date-fns";
 import { BreedingRecord } from "../types";
 
 export async function getBreedingRecordsByAnimalId(
@@ -250,11 +250,16 @@ export async function updateBreedingPDResult(
       .toISOString()
       .split("T")[0];
 
-    // Update animal to Pregnant and clear any post-PD helper dates on the breeding record
+    // Calculate if animal should be dry (7+ months / 30+ weeks pregnant)
+    const weeksSinceBreeding = differenceInWeeks(new Date(), breedingDate);
+    const milkingStatus = weeksSinceBreeding >= 30 ? "Dry" : "Milking";
+
+    // Update animal to Pregnant and set appropriate milking status
     const { error: animalErr } = await supabase
       .from("animals")
       .update({
         pregnancy_status: "Pregnant",
+        milking_status: milkingStatus,
         expected_calving_date: expectedCalving,
         reopen_date: null,
       })
