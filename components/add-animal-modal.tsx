@@ -27,11 +27,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Animal } from "@/lib/actions/animals";
 import { useModals } from "@/hooks/use-modals";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 export function AddAnimalModal({
   open,
@@ -56,11 +64,17 @@ export function AddAnimalModal({
 
   const [selectedSex, setSelectedSex] = useState<string | null>(null);
   const [farmSource, setFarmSource] = useState<string | undefined>(undefined);
+  const [damOpen, setDamOpen] = useState(false);
+  const [sireOpen, setSireOpen] = useState(false);
+  const [damValue, setDamValue] = useState("");
+  const [sireValue, setSireValue] = useState("");
 
   useEffect(() => {
     if (!open) {
       setSelectedSex(null);
       setFarmSource(undefined);
+      setDamValue("");
+      setSireValue("");
     }
   }, [open]);
 
@@ -223,36 +237,138 @@ export function AddAnimalModal({
 
             <div className="space-y-2">
               <Label htmlFor="dam_id">Dam (Mother)</Label>
-              <Select name="dam_id">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select dam" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Unknown</SelectItem>
-                  {femaleAnimals.map((a) => (
-                    <SelectItem key={a.id} value={a.id.toString()}>
-                      {`${a.ear_tag} - ${a.name || "Unnamed"}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <input type="hidden" name="dam_id" value={damValue || "none"} />
+              <Popover open={damOpen} onOpenChange={setDamOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={damOpen}
+                    className="w-full justify-between"
+                    type="button"
+                  >
+                    {damValue
+                      ? femaleAnimals.find((a) => a.id.toString() === damValue)
+                        ? `${femaleAnimals.find((a) => a.id.toString() === damValue)?.ear_tag} - ${femaleAnimals.find((a) => a.id.toString() === damValue)?.name || "Unnamed"}`
+                        : "Unknown"
+                      : "Select dam..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search by ear tag or name..." />
+                    <CommandList>
+                      <CommandEmpty>No animal found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setDamValue("");
+                            setDamOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              damValue === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Unknown
+                        </CommandItem>
+                        {femaleAnimals.map((animal) => (
+                          <CommandItem
+                            key={animal.id}
+                            value={`${animal.ear_tag} ${animal.name || ""}`}
+                            onSelect={() => {
+                              setDamValue(animal.id.toString());
+                              setDamOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                damValue === animal.id.toString()
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {animal.ear_tag} - {animal.name || "Unnamed"}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="sire_id">Sire (Father)</Label>
-              <Select name="sire_id">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sire" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Unknown</SelectItem>
-                  {maleAnimals.map((a) => (
-                    <SelectItem key={a.id} value={a.id.toString()}>
-                      {`${a.ear_tag} - ${a.name || "Unnamed"}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <input type="hidden" name="sire_id" value={sireValue || "none"} />
+              <Popover open={sireOpen} onOpenChange={setSireOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={sireOpen}
+                    className="w-full justify-between"
+                    type="button"
+                  >
+                    {sireValue
+                      ? maleAnimals.find((a) => a.id.toString() === sireValue)
+                        ? `${maleAnimals.find((a) => a.id.toString() === sireValue)?.ear_tag} - ${maleAnimals.find((a) => a.id.toString() === sireValue)?.name || "Unnamed"}`
+                        : "Unknown"
+                      : "Select sire..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search by ear tag or name..." />
+                    <CommandList>
+                      <CommandEmpty>No animal found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setSireValue("");
+                            setSireOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              sireValue === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Unknown
+                        </CommandItem>
+                        {maleAnimals.map((animal) => (
+                          <CommandItem
+                            key={animal.id}
+                            value={`${animal.ear_tag} ${animal.name || ""}`}
+                            onSelect={() => {
+                              setSireValue(animal.id.toString());
+                              setSireOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                sireValue === animal.id.toString()
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {animal.ear_tag} - {animal.name || "Unnamed"}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
