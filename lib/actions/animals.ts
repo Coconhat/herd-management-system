@@ -136,6 +136,28 @@ export async function createAnimal(formData: FormData) {
     redirect("/auth/login");
   }
 
+  const earTag = (formData.get("ear_tag") as string)?.trim();
+  if (!earTag) {
+    throw new Error("Ear tag is required");
+  }
+
+  // Check for duplicate ear tag
+  const { data: existing, error: existingError } = await supabase
+    .from("animals")
+    .select("id")
+    .eq("ear_tag", earTag)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingError && existingError.code !== "PGRST116") {
+    console.error("Error checking existing animal:", existingError);
+    throw new Error(existingError.message || "Failed to create animal");
+  }
+
+  if (existing) {
+    throw new Error("An animal with this ear tag already exists");
+  }
+
   const rawHealth = formData.get("health");
   const health: "Healthy" | "Unhealthy" =
     typeof rawHealth === "string" && rawHealth.trim().length > 0
@@ -143,7 +165,7 @@ export async function createAnimal(formData: FormData) {
       : "Healthy";
 
   const animalData = {
-    ear_tag: formData.get("ear_tag") as string,
+    ear_tag: earTag,
     name: (formData.get("name") as string) || null,
     birth_date: (formData.get("birth_date") as string) || null,
     sex: (formData.get("sex") as "Male" | "Female") || null,
@@ -176,7 +198,10 @@ export async function createAnimal(formData: FormData) {
 
   if (error) {
     console.error("Error creating animal:", error);
-    throw new Error("Failed to create animal");
+    if (error.code === "23505") {
+      throw new Error("An animal with this ear tag already exists");
+    }
+    throw new Error(error.message || "Failed to create animal");
   }
 
   revalidatePath("/");
@@ -328,7 +353,21 @@ export async function deleteAnimal(id: number) {
       throw breedingError;
     }
 
-    // 4) Clear dam_id / sire_id from other animals that reference this animal
+    // 4) Delete milking_records for this animal
+    const { error: milkingError } = await supabase
+      .from("milking_records")
+      .delete()
+      .eq("animal_id", id)
+      .eq("user_id", user.id);
+    if (milkingError) {
+      console.error(
+        "Failed to delete milking_records for animal:",
+        milkingError
+      );
+      throw milkingError;
+    }
+
+    // 5) Clear dam_id / sire_id from other animals that reference this animal
     const { error: clearDamError } = await supabase
       .from("animals")
       .update({ dam_id: null })
@@ -349,7 +388,7 @@ export async function deleteAnimal(id: number) {
       throw clearSireError;
     }
 
-    // 5) Finally delete the animal itself
+    // 6) Finally delete the animal itself
     const { error: animalError } = await supabase
       .from("animals")
       .delete()

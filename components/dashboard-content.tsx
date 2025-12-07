@@ -75,7 +75,28 @@ export function DashboardContent({
   const [optimisticHealth, setOptimisticHealth] = useState<
     Record<number, "Healthy" | "Unhealthy">
   >({});
+  const [deletedAnimalIds, setDeletedAnimalIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [optimisticAnimals, setOptimisticAnimals] = useState<Animal[]>([]);
   const [isPending, startTransition] = useTransition();
+
+  // Clear optimistic animals when real data refreshes (new animals will be in 'animals' prop)
+  useEffect(() => {
+    if (optimisticAnimals.length > 0) {
+      // Check if any optimistic animals are now in real data (by ear_tag match)
+      const optimisticEarTags = optimisticAnimals.map((a) =>
+        a.ear_tag.toLowerCase()
+      );
+      const hasNewData = optimisticEarTags.some((tag) =>
+        animals.some((a) => a.ear_tag.toLowerCase() === tag)
+      );
+      if (hasNewData) {
+        setOptimisticAnimals([]);
+      }
+    }
+  }, [animals, optimisticAnimals]);
+
   const handleHealthChange = (
     animalId: number,
     health: "Healthy" | "Unhealthy"
@@ -103,14 +124,42 @@ export function DashboardContent({
 
   const { toast } = useToast();
 
+  // Combine real animals with optimistic ones, filtering out deleted
+  const allAnimals = [...animals, ...optimisticAnimals];
+
   const filteredAnimals = sortAnimals(
-    animals.filter(
+    allAnimals.filter(
       (animal) =>
-        animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        animal.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        !deletedAnimalIds.has(animal.id) &&
+        (animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          animal.name?.toLowerCase().includes(searchTerm.toLowerCase()))
     ),
     sortConfig
   );
+
+  // Optimistic delete callback
+  const handleOptimisticDelete = (animalId: number) => {
+    setDeletedAnimalIds((prev) => new Set(prev).add(animalId));
+  };
+
+  // Revert optimistic delete if server action fails
+  const handleDeleteError = (animalId: number) => {
+    setDeletedAnimalIds((prev) => {
+      const next = new Set(prev);
+      next.delete(animalId);
+      return next;
+    });
+  };
+
+  // Optimistic add callback
+  const handleOptimisticAdd = (animal: Animal) => {
+    setOptimisticAnimals((prev) => [...prev, animal]);
+  };
+
+  // Revert optimistic add if server action fails
+  const handleAddError = (tempId: number) => {
+    setOptimisticAnimals((prev) => prev.filter((a) => a.id !== tempId));
+  };
 
   // Reset to first page when search or pageSize or animals or sort change
   useEffect(() => {
@@ -605,11 +654,15 @@ export function DashboardContent({
         open={addAnimalModalOpen}
         onOpenChange={setAddAnimalModalOpen}
         animals={animals}
+        onOptimisticAdd={handleOptimisticAdd}
+        onAddError={handleAddError}
       />
       <DeleteAnimalModal
         animal={animals.find((a) => a.id === selectedAnimal) || null}
         isOpen={deleteModalOpen}
         onOpenChange={setDeleteModalOpen}
+        onOptimisticDelete={handleOptimisticDelete}
+        onDeleteError={handleDeleteError}
       />
     </>
   );

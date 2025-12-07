@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -211,25 +211,64 @@ export default function Page() {
   const [sexFilter, setSexFilter] = useState("all");
   const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
 
+  const { toast } = useToast();
   const [animals, setAnimals] = useState<Animal[]>([]);
+  const [optimisticAnimals, setOptimisticAnimals] = useState<Animal[]>([]);
+  const [deletedAnimalIds, setDeletedAnimalIds] = useState<Set<number>>(
+    new Set()
+  );
 
-  useEffect(() => {
-    async function loadAnimals() {
+  const refreshAnimals = useCallback(async () => {
+    try {
       const data = await getAnimals();
       setAnimals(data);
+      setOptimisticAnimals([]);
+      setDeletedAnimalIds(new Set());
+    } catch (error) {
+      console.error("Failed to load animals:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load animals.",
+        variant: "destructive",
+      });
     }
-    loadAnimals();
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    refreshAnimals();
+  }, [refreshAnimals]);
 
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const { toast } = useToast();
+  const animalsForDisplay = [...optimisticAnimals, ...animals].filter(
+    (animal) => !deletedAnimalIds.has(animal.id)
+  );
+
+  const handleOptimisticAdd = (animal: Animal) => {
+    setOptimisticAnimals((prev) => [...prev, animal]);
+  };
+
+  const handleAddError = (tempId: number) => {
+    setOptimisticAnimals((prev) => prev.filter((a) => a.id !== tempId));
+  };
+
+  const handleOptimisticDelete = (animalId: number) => {
+    setDeletedAnimalIds((prev) => new Set(prev).add(animalId));
+  };
+
+  const handleDeleteError = (animalId: number) => {
+    setDeletedAnimalIds((prev) => {
+      const next = new Set(prev);
+      next.delete(animalId);
+      return next;
+    });
+  };
 
   // Enhanced filtering and sorting
   const filteredAnimals = sortAnimals(
-    animals.filter((animal) => {
+    animalsForDisplay.filter((animal) => {
       const matchesSearch =
         animal.ear_tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
         animal.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -250,7 +289,7 @@ export default function Page() {
   }, [
     searchTerm,
     pageSize,
-    animals.length,
+    animalsForDisplay.length,
     statusFilter,
     sexFilter,
     sortConfig,
@@ -276,8 +315,9 @@ export default function Page() {
 
   // Chart data calculations
   const getChartData = () => {
+    const total = animalsForDisplay.length || 1;
     // Sex distribution
-    const sexData = animals.reduce((acc, animal) => {
+    const sexData = animalsForDisplay.reduce((acc, animal) => {
       acc[animal.sex || "Unknown"] = (acc[animal.sex || "Unknown"] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -285,7 +325,7 @@ export default function Page() {
     const sexChartData = Object.entries(sexData).map(([sex, count]) => ({
       name: sex,
       value: count,
-      percentage: Math.round((count / animals.length) * 100),
+      percentage: Math.round((count / total) * 100),
     }));
 
     // Age distribution
@@ -295,7 +335,7 @@ export default function Page() {
       "3-5 years": 0,
       "5+ years": 0,
     };
-    animals.forEach((animal) => {
+    animalsForDisplay.forEach((animal) => {
       if (animal.birth_date) {
         const age =
           new Date().getFullYear() - new Date(animal.birth_date).getFullYear();
@@ -309,11 +349,11 @@ export default function Page() {
     const ageChartData = Object.entries(ageGroups).map(([age, count]) => ({
       name: age,
       count,
-      percentage: Math.round((count / animals.length) * 100),
+      percentage: Math.round((count / total) * 100),
     }));
 
     // Status distribution using pregnancy status
-    const statusData = animals.reduce((acc, animal) => {
+    const statusData = animalsForDisplay.reduce((acc, animal) => {
       const pregnancyInfo = getPregnancyStatus(animal);
       const statusLabel = pregnancyInfo.label;
       acc[statusLabel] = (acc[statusLabel] || 0) + 1;
@@ -324,7 +364,7 @@ export default function Page() {
       ([status, count]) => ({
         name: status,
         value: count,
-        percentage: Math.round((count / animals.length) * 100),
+        percentage: Math.round((count / total) * 100),
       })
     );
 
@@ -378,18 +418,20 @@ export default function Page() {
   const paginationItems = getPaginationRange(totalPages, page, 1);
 
   // Statistics cards data
-  const totalAnimals = animals.length;
-  const femaleCount = animals.filter((a) => a.sex === "Female").length;
-  const maleCount = animals.filter((a) => a.sex === "Male").length;
+  const totalAnimals = animalsForDisplay.length;
+  const femaleCount = animalsForDisplay.filter(
+    (a) => a.sex === "Female"
+  ).length;
+  const maleCount = animalsForDisplay.filter((a) => a.sex === "Male").length;
   const averageAge =
-    animals.reduce((sum, animal) => {
+    animalsForDisplay.reduce((sum, animal) => {
       if (animal.birth_date) {
         const age =
           new Date().getFullYear() - new Date(animal.birth_date).getFullYear();
         return sum + age;
       }
       return sum;
-    }, 0) / animals.filter((a) => a.birth_date).length || 0;
+    }, 0) / animalsForDisplay.filter((a) => a.birth_date).length || 0;
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
@@ -409,7 +451,6 @@ export default function Page() {
             Monitor and manage your livestock with comprehensive insights
           </p>
         </div>
-
         <div className="flex gap-3">
           <Button
             variant="outline"
@@ -719,7 +760,7 @@ export default function Page() {
             of {filteredAnimals.length} animals
             {(statusFilter !== "all" || sexFilter !== "all") && (
               <span className="ml-2 text-blue-600">
-                (filtered from {animals.length} total)
+                (filtered from {animalsForDisplay.length} total)
               </span>
             )}
           </CardDescription>
@@ -995,12 +1036,17 @@ export default function Page() {
       <AddAnimalModal
         open={addAnimalModalOpen}
         onOpenChange={setAddAnimalModalOpen}
-        animals={animals}
+        animals={animalsForDisplay}
+        onOptimisticAdd={handleOptimisticAdd}
+        onAddError={handleAddError}
+        onSuccess={refreshAnimals}
       />
       <DeleteAnimalModal
-        animal={animals.find((a) => a.id === selectedAnimal) || null}
+        animal={animalsForDisplay.find((a) => a.id === selectedAnimal) || null}
         isOpen={deleteModalOpen}
         onOpenChange={setDeleteModalOpen}
+        onOptimisticDelete={handleOptimisticDelete}
+        onDeleteError={handleDeleteError}
       />
     </div>
   );

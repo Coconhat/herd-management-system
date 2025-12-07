@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardHeader,
@@ -94,6 +94,35 @@ export default function InventoryAnimalsPage({
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
   const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT_CONFIG);
+  const [optimisticAnimals, setOptimisticAnimals] = useState<Animal[]>([]);
+
+  // Clear optimistic animals when real data refreshes
+  useEffect(() => {
+    if (optimisticAnimals.length > 0) {
+      const optimisticEarTags = optimisticAnimals.map((a) =>
+        a.ear_tag.toLowerCase()
+      );
+      const hasNewData = optimisticEarTags.some((tag) =>
+        animals.some((a) => a.ear_tag.toLowerCase() === tag)
+      );
+      if (hasNewData) {
+        setOptimisticAnimals([]);
+      }
+    }
+  }, [animals, optimisticAnimals]);
+
+  // Optimistic add callback
+  const handleOptimisticAdd = (animal: Animal) => {
+    setOptimisticAnimals((prev) => [...prev, animal]);
+  };
+
+  // Revert optimistic add if server action fails
+  const handleAddError = (tempId: number) => {
+    setOptimisticAnimals((prev) => prev.filter((a) => a.id !== tempId));
+  };
+
+  // Combine real animals with optimistic ones
+  const allAnimals = [...animals, ...optimisticAnimals];
 
   // Helper function to get combined status for an animal
   const getCombinedStatusFor = (animal: Animal) => {
@@ -167,14 +196,14 @@ export default function InventoryAnimalsPage({
 
   // Filter animals by search
   const filtered = useMemo(() => {
-    const searchFiltered = (animals || []).filter(
+    const searchFiltered = (allAnimals || []).filter(
       (a) =>
         (a?.ear_tag || "").toLowerCase().includes(search.toLowerCase()) ||
         (a?.name || "").toLowerCase().includes(search.toLowerCase())
     );
     // Apply sorting
     return sortAnimals(searchFiltered, sortConfig);
-  }, [animals, search, sortConfig]);
+  }, [allAnimals, search, sortConfig]);
 
   // Pagination calculations
   const totalRecords = filtered.length;
@@ -680,6 +709,8 @@ export default function InventoryAnimalsPage({
         open={addOpen}
         onOpenChange={setAddOpen}
         animals={animals}
+        onOptimisticAdd={handleOptimisticAdd}
+        onAddError={handleAddError}
       />
     </div>
   );

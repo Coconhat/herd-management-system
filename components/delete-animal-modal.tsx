@@ -23,12 +23,16 @@ interface DeleteAnimalModalProps {
   animal: Animal | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onOptimisticDelete?: (animalId: number) => void;
+  onDeleteError?: (animalId: number) => void;
 }
 
 export default function DeleteAnimalModal({
   animal,
   isOpen,
   onOpenChange,
+  onOptimisticDelete,
+  onDeleteError,
 }: DeleteAnimalModalProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -36,6 +40,11 @@ export default function DeleteAnimalModal({
 
   const handleDelete = () => {
     if (!animal) return;
+
+    // Optimistically remove from UI immediately
+    onOptimisticDelete?.(animal.id);
+    onOpenChange(false); // close modal immediately
+
     startTransition(async () => {
       try {
         await deleteAnimal(animal.id); // server action
@@ -43,10 +52,11 @@ export default function DeleteAnimalModal({
           title: "Deleted",
           description: `${animal.ear_tag} has been deleted.`,
         });
-        onOpenChange(false); // close modal
         router.refresh(); // refresh server components / data
       } catch (err: any) {
         console.error("deleteAnimal error:", err);
+        // Revert optimistic update on error
+        onDeleteError?.(animal.id);
         toast({
           title: "Delete failed",
           description: err?.message || "Could not delete animal.",

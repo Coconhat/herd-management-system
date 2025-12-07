@@ -45,10 +45,16 @@ export function AddAnimalModal({
   open,
   onOpenChange,
   animals,
+  onOptimisticAdd,
+  onAddError,
+  onSuccess,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   animals: Animal[];
+  onOptimisticAdd?: (animal: Animal) => void;
+  onAddError?: (tempId: number) => void;
+  onSuccess?: () => Promise<void> | void;
 }) {
   const {
     birthDate,
@@ -60,7 +66,14 @@ export function AddAnimalModal({
     femaleAnimals,
     maleAnimals,
     commonBreeds,
-  } = useModals({ open, onOpenChange, animals });
+  } = useModals({
+    open,
+    onOpenChange,
+    animals,
+    onOptimisticAdd,
+    onAddError,
+    onSuccess,
+  });
 
   const [selectedSex, setSelectedSex] = useState<string | null>(null);
   const [farmSource, setFarmSource] = useState<string | undefined>(undefined);
