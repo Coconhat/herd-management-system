@@ -8,6 +8,8 @@ import {
 import type { BreedingRecord, Calving } from "./types";
 import type { Animal } from "./actions/animals";
 
+const INACTIVE_STATUSES = ["Sold", "Deceased", "Culled"] as const;
+
 // ============================================
 // PREGNANCY STATUS
 // Tracks reproductive cycle
@@ -171,10 +173,12 @@ export function getPregnancyStatus(animal: Animal): PregnancyStatusInfo {
     (animal.status && animal.status.trim()) ||
     "";
 
-  if (["Sold", "Deceased", "Culled"].includes(dbStatus)) {
+  if (
+    INACTIVE_STATUSES.includes(dbStatus as (typeof INACTIVE_STATUSES)[number])
+  ) {
     return {
       status: dbStatus as PregnancyStatus,
-      label: dbStatus,
+      label: dbStatus, // Show the actual status: Sold, Deceased, or Culled
       variant: dbStatus === "Deceased" ? "destructive" : "outline",
       priority: 0,
     };
@@ -351,6 +355,21 @@ export function getMilkingStatus(animal: Animal): MilkingStatusInfo {
     return {
       status: "N/A" as MilkingStatus,
       label: "Nursery",
+      variant: "outline",
+    };
+  }
+
+  const dbStatus =
+    (animal.pregnancy_status && animal.pregnancy_status.trim()) ||
+    (animal.status && animal.status.trim()) ||
+    "";
+
+  if (
+    INACTIVE_STATUSES.includes(dbStatus as (typeof INACTIVE_STATUSES)[number])
+  ) {
+    return {
+      status: "N/A" as MilkingStatus,
+      label: "N/A",
       variant: "outline",
     };
   }

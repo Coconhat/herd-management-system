@@ -234,6 +234,12 @@ export async function updateAnimal(id: number, formData: FormData) {
   const weightValue = formData.get("weight");
   const weight = weightValue && weightValue !== "" ? Number(weightValue) : null;
 
+  const milkingStatusRaw = formData.get("milking_status");
+  const milkingStatus =
+    typeof milkingStatusRaw === "string" && milkingStatusRaw.trim().length > 0
+      ? milkingStatusRaw.trim()
+      : null;
+
   const animalData: {
     ear_tag: string;
     name: string | null;
@@ -271,7 +277,7 @@ export async function updateAnimal(id: number, formData: FormData) {
         ? (formData.get("farm_source") as string).trim()
         : null,
     pregnancy_status: pregnancyStatusValue,
-    milking_status: formData.get("milking_status") as string,
+    milking_status: milkingStatus,
     weight: weight,
     notes: (formData.get("notes") as string) || null,
     updated_at: new Date().toISOString(),

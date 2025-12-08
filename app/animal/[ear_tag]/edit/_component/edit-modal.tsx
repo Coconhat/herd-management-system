@@ -40,6 +40,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteAnimal } from "@/lib/actions/animals";
 
+const TERMINAL_STATUSES = ["Sold", "Deceased", "Culled"] as const;
+const isTerminal = (status?: string | null) =>
+  status
+    ? TERMINAL_STATUSES.includes(status as (typeof TERMINAL_STATUSES)[number])
+    : false;
+
 const commonBreeds = [
   "Holstein Friesian",
   "Jersey",
@@ -75,7 +81,11 @@ export default function EditAnimalForm({
   const [pregnancyStatus, setPregnancyStatus] = useState(
     animal.pregnancy_status || "Open"
   );
-  const [milkingStatus, setMilkingStatus] = useState(animal.milking_status);
+  const [milkingStatus, setMilkingStatus] = useState<string>(
+    animal.milking_status || ""
+  );
+  const [lastActiveMilkingStatus, setLastActiveMilkingStatus] =
+    useState<string>(animal.milking_status || "Milking");
   const [weight, setWeight] = useState(animal.weight || "");
   const [damId, setDamId] = useState(animal.dam_id?.toString() || "none");
   const [sireId, setSireId] = useState(animal.sire_id?.toString() || "none");
@@ -110,31 +120,34 @@ export default function EditAnimalForm({
     notes !== (initialAnimal.notes || "") ||
     health !== (initialAnimal.health || "");
 
-  // Check if the status change requires deletion
-  const isTerminalStatus = ["Sold", "Deceased", "Culled"].includes(
-    pregnancyStatus
-  );
-  const wasTerminalStatus = ["Sold", "Deceased", "Culled"].includes(
-    initialAnimal.pregnancy_status || ""
-  );
-  const statusChangedToTerminal = isTerminalStatus && !wasTerminalStatus;
-
   const handleStatusChange = (newStatus: string) => {
+    const nextIsTerminal = isTerminal(newStatus);
+    const prevWasTerminal = isTerminal(pregnancyStatus);
+
+    if (nextIsTerminal) {
+      if (!prevWasTerminal) {
+        setLastActiveMilkingStatus(
+          milkingStatus || lastActiveMilkingStatus || "Milking"
+        );
+      }
+      setMilkingStatus("");
+    } else if (prevWasTerminal) {
+      setMilkingStatus(lastActiveMilkingStatus || "Milking");
+    }
+
     setPregnancyStatus(newStatus as typeof pregnancyStatus);
 
     // If changing to a terminal status, show delete confirmation
-    if (
-      ["Sold", "Deceased", "Culled"].includes(newStatus) &&
-      !["Sold", "Deceased", "Culled"].includes(
-        initialAnimal.pregnancy_status || ""
-      )
-    ) {
+    if (nextIsTerminal && !isTerminal(initialAnimal.pregnancy_status || "")) {
       setShowDeleteConfirm(true);
     }
   };
 
   const handleMilkingStatusChange = (newStatus: string) => {
     setMilkingStatus(newStatus as typeof milkingStatus);
+    if (!isTerminal(pregnancyStatus)) {
+      setLastActiveMilkingStatus(newStatus);
+    }
   };
 
   const handleDeleteConfirm = () => {
@@ -151,6 +164,47 @@ export default function EditAnimalForm({
         toast({
           title: "Delete Failed",
           description: "Could not remove animal. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  const handleKeepInRecords = () => {
+    setShowDeleteConfirm(false);
+    // Auto-save the terminal status
+    const formData = new FormData();
+    formData.append("ear_tag", earTag);
+    formData.append("name", name);
+    if (birthDate)
+      formData.append("birth_date", birthDate.toISOString().split("T")[0]);
+    if (sex) formData.append("sex", sex);
+    formData.append("breed", breed);
+    formData.append("pregnancy_status", pregnancyStatus);
+    formData.append("milking_status", milkingStatus || "");
+    formData.append("weight", weight.toString());
+    formData.append("dam_id", damId === "none" ? "" : damId);
+    formData.append("sire_id", sireId === "none" ? "" : sireId);
+    formData.append("farm_source", farmSource.trim());
+    formData.append("notes", notes);
+    formData.append("health", health.trim());
+
+    startTransition(async () => {
+      try {
+        await updateAnimal(animal.id, formData);
+        toast({
+          title: "Status Updated",
+          description: `${earTag} has been marked as ${pregnancyStatus.toLowerCase()} and kept in records.`,
+        });
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to update animal:", error);
+        toast({
+          title: "Update Failed",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Could not save changes. Please try again.",
           variant: "destructive",
         });
       }
@@ -366,21 +420,30 @@ export default function EditAnimalForm({
                   <SelectItem value="Open">Open</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="space-y-2">
-                <Label htmlFor="milking_status">Milking Status</Label>
-                <Select
-                  value={milkingStatus}
-                  onValueChange={handleMilkingStatusChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select milking status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Milking">Milking</SelectItem>
-                    <SelectItem value="Dry">Dry</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {isTerminal(pregnancyStatus) ? (
+                <div className="space-y-1">
+                  <Label htmlFor="milking_status">Milking Status</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Not applicable for inactive animals.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="milking_status">Milking Status</Label>
+                  <Select
+                    value={milkingStatus}
+                    onValueChange={handleMilkingStatusChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select milking status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Milking">Milking</SelectItem>
+                      <SelectItem value="Dry">Dry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -441,13 +504,7 @@ export default function EditAnimalForm({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                // Reset status back to original if user cancels
-                setPregnancyStatus(initialAnimal.pregnancy_status || "Open");
-                setShowDeleteConfirm(false);
-              }}
-            >
+            <AlertDialogCancel onClick={handleKeepInRecords}>
               Keep in Records
             </AlertDialogCancel>
             <AlertDialogAction
