@@ -375,14 +375,15 @@ export function getMilkingStatus(animal: Animal): MilkingStatusInfo {
     }
   }
 
-  // Respect manual "Dry" only if animal is still pregnant
-  // This prevents stale "Dry" status after calving
-  if (dbMilkingStatus === "Dry" && pregnancyInfo.isPregnant) {
+  // Respect manual "Dry" setting regardless of pregnancy state so users can force a dry period.
+  if (dbMilkingStatus === "Dry") {
     return {
       status: "Dry",
       label: "Dry",
       variant: "warning",
-      weeksPregnant: pregnancyInfo.weeksPregnant,
+      weeksPregnant: pregnancyInfo.isPregnant
+        ? pregnancyInfo.weeksPregnant
+        : undefined,
     };
   }
 
