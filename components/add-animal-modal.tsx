@@ -222,9 +222,6 @@ export function AddAnimalModal({
                   <SelectItem value="Empty">Empty (Recovery period)</SelectItem>
                   <SelectItem value="Waiting for PD">Waiting for PD</SelectItem>
                   <SelectItem value="Pregnant">Pregnant</SelectItem>
-                  <SelectItem value="Sold">Sold</SelectItem>
-                  <SelectItem value="Deceased">Deceased</SelectItem>
-                  <SelectItem value="Culled">Culled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
